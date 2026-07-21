@@ -43,6 +43,8 @@ unreleased entries until a version is packaged for distribution.
 
 ### Changed
 
+- Replaced the README's flat-color badges with locally rendered Jellyfin-gradient
+  badges using `#AA5CC3` through `#00A4DC`.
 - Clarified the product direction: Provider and Network remain separate rule
   types and future home-screen sections; they are not a combined-source feature.
 - Clarified that additional sources mean organization from existing local

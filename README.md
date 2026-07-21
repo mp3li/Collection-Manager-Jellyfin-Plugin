@@ -5,12 +5,12 @@
 </p>
 
 <p align="center">
-  <img alt="Status" src="https://img.shields.io/badge/Status-Initial_Development-660000?style=flat-square&labelColor=04040c" />
-  <img alt="Interface" src="https://img.shields.io/badge/Interface-Jellyfin_Server_Dashboard-660000?style=flat-square&labelColor=04040c" />
-  <img alt="Collections" src="https://img.shields.io/badge/Collections-Standard_Jellyfin_Collections-660000?style=flat-square&labelColor=04040c" />
-  <img alt="Automation" src="https://img.shields.io/badge/Automation-Optional_Metadata_Sync-660000?style=flat-square&labelColor=04040c" />
-  <img alt="Bulk tools" src="https://img.shields.io/badge/Bulk_Tools-Create_Add_%26_Remove-660000?style=flat-square&labelColor=04040c" />
-  <img alt="Target" src="https://img.shields.io/badge/Jellyfin-10.11.x-660000?style=flat-square&labelColor=04040c" />
+  <img alt="Status: Initial Development" src="Assets/Badges/status.svg" />
+  <img alt="Interface: Jellyfin Server Dashboard" src="Assets/Badges/interface.svg" />
+  <img alt="Collections: Standard Jellyfin Collections" src="Assets/Badges/collections.svg" />
+  <img alt="Automation: Optional Metadata Sync" src="Assets/Badges/automation.svg" />
+  <img alt="Bulk Tools: Create, Add and Remove" src="Assets/Badges/bulk-tools.svg" />
+  <img alt="Target: Jellyfin 10.11.x" src="Assets/Badges/target.svg" />
 </p>
 
 ## Table of Contents
@@ -239,6 +239,8 @@ Media Collection Manager/
 ├── Plugin.cs                                # plugin entry point and configuration page
 └── MediaCollectionManager.csproj
 
+Assets/
+└── Badges/                                  # locally rendered Jellyfin-gradient README badges
 Documentation/
 ├── CHANGELOG.md                            # user-visible changes
 ├── project-goals.txt                       # product-delivery checklist
