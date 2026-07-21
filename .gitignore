@@ -1,0 +1,48 @@
+# macOS and Windows Finder files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+Thumbs.db
+Desktop.ini
+
+# .NET build output and test artifacts
+**/bin/
+**/obj/
+TestResults/
+coverage/
+coverage-*/
+*.coverage
+*.coveragexml
+
+# IDE and user-specific workspace state
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Local Jellyfin/server settings, logs, and diagnostics
+Jellyfin/
+Jellyfin Data/
+Plugin Data/
+settings.json
+settings.local.json
+*.local.json
+*.secrets.json
+logs/
+*.log
+
+# Private library fixtures and locally generated distribution files
+Media/
+Private Media/
+Private NFOs/
+*.nfo
+artifacts/
+Release/
+Releases/
+*.zip

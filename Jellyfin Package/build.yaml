@@ -1,0 +1,18 @@
+---
+name: "Media Collection Manager"
+guid: "5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9"
+version: "0.1.0.0"
+targetAbi: "10.11.0.0"
+framework: "net9.0"
+overview: "Visual bulk collection management and metadata-driven automatic collections for Jellyfin."
+description: >
+  Creates ordinary Jellyfin collections from tags, providers, networks, genres,
+  people, studios, years, and other local metadata; keeps enabled rules in sync
+  after library metadata changes or scheduled checks.
+category: "General"
+owner: "mp3li"
+artifacts:
+  - "Jellyfin.Plugin.MediaCollectionManager.dll"
+changelog: >
+  Initial implementation: visual configuration, bulk/manual collection tools,
+  metadata-driven rules, scheduled reconciliation, and metadata-change watching.

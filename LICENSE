@@ -1,0 +1,70 @@
+Media Collection Manager Non-Commercial Source-Available License
+
+Copyright (c) 2026 mp3li. All rights reserved.
+
+This repository is source-available. It is publicly visible so people can use,
+study, fork, modify, and share Media Collection Manager for non-commercial
+purposes while crediting mp3li.
+
+This is not an open-source license as defined by the Open Source Initiative,
+because commercial use is restricted.
+
+Permission is granted to:
+
+1. View, study, and download the source code and documentation.
+2. Fork, copy, modify, adapt, and build on the project for non-commercial
+   purposes.
+3. Share non-commercial forks or modified versions, as long as they follow all
+   requirements in this license.
+
+Requirements for any fork, copy, or modified version:
+
+1. Clearly credit the original project as:
+
+   Media Collection Manager by mp3li
+
+2. State that the work is based on Media Collection Manager by mp3li if changes
+   are made.
+3. Do not imply endorsement, partnership, sponsorship, or approval by mp3li
+   without written permission.
+4. Keep the project's read-only metadata, authentication, access-control, and
+   other safety boundaries intact. A fork must not claim to fetch, alter, or
+   bypass access controls for metadata or media.
+
+You may not, without prior written permission from mp3li:
+
+1. Sell, rent, sublicense, monetize, or commercially exploit this project or
+   any fork, modified version, hosted version, documentation, or substantial
+   portion of it.
+2. Use this project or any fork or modified version as part of a paid product,
+   paid service, subscription, advertisement-supported service, commercial
+   website, commercial app, client work, agency work, or business workflow.
+3. Remove or obscure attribution to mp3li.
+
+Commercial rights reserved:
+
+mp3li reserves the full right to monetize, sell, commercially license,
+relicense, dual-license, or otherwise commercially use this project in the
+future. This license does not prevent mp3li from offering paid versions,
+commercial licences, sponsorships, donations, subscriptions, or other
+monetized Media Collection Manager-related work.
+
+User data and third-party material:
+
+This license does not grant rights to media files, NFO sidecars, metadata,
+artwork, trademarks, or other third-party material. Users are responsible for
+ensuring that they have the rights and permissions needed for material in their
+own Jellyfin libraries.
+
+Third-party software:
+
+Jellyfin, .NET, and any other third-party software used with this project
+remain subject to their own licences. This license does not replace or restrict
+those licences.
+
+No warranty:
+
+This project is provided as-is, without warranty of any kind. mp3li is not
+liable for data loss, incomplete metadata, server incompatibility, collection
+changes, availability changes, copyright issues, or any damages arising from
+use of the project.

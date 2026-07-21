@@ -1,0 +1,489 @@
+<div id="mediaCollectionManagerPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox,emby-select">
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="mediaCollectionManagerForm">
+                <h1>Media Collection Manager</h1>
+                <p class="fieldDescription">Build normal Jellyfin collections from the metadata already in your server. Collections created here remain ordinary collections: use their three-dot menus for images, metadata, sharing, deletion, and every other native Jellyfin collection action.</p>
+
+                <div class="verticalSection">
+                    <h2>Metadata sources and library scope</h2>
+                    <p class="fieldDescription">Media Collection Manager only reads metadata that already exists. Choose whether it reads Jellyfin's library metadata, matching local NFO sidecars, or both. Nothing here changes your media files, NFOs, tags, or Jellyfin metadata.</p>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="metadataSourceMode">Use metadata from</label>
+                        <select id="metadataSourceMode" is="emby-select">
+                            <option value="Both">Both Jellyfin metadata and local NFO sidecars</option>
+                            <option value="JellyfinOnly">Jellyfin library metadata only</option>
+                            <option value="NfoOnly">Local NFO sidecars only</option>
+                        </select>
+                    </div>
+                    <div id="metadataPriorityContainer" class="selectContainer">
+                        <label class="selectLabel" for="metadataSourcePriority">When both provide the same kind of value, show first</label>
+                        <select id="metadataSourcePriority" is="emby-select">
+                            <option value="Jellyfin">Jellyfin library metadata</option>
+                            <option value="LocalNfo">Local NFO metadata</option>
+                        </select>
+                    </div>
+                    <label class="emby-checkbox-label">
+                        <input id="useAllLibraries" type="checkbox" is="emby-checkbox" checked />
+                        <span>Use all libraries on this server</span>
+                    </label>
+                    <div id="libraryScopeContainer" class="selectContainer">
+                        <label class="selectLabel" for="libraryIds">Or use only these libraries</label>
+                        <select id="libraryIds" is="emby-select" multiple size="7"></select>
+                    </div>
+                    <p class="fieldDescription">This scope applies to discovered values, automatic rules, and the manual-media search area.</p>
+                </div>
+
+                <div class="verticalSection">
+                    <h2>Automatic collections</h2>
+                    <p class="fieldDescription">A rule creates one collection from one or more selected values. Provider and Network rules read existing local provider/network metadata and tags, including values written by your downloader and metadata tools.</p>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="ruleName">Collection name</label>
+                        <input id="ruleName" type="text" is="emby-input" required autocomplete="off" placeholder="e.g. Criterion Collection" />
+                    </div>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="ruleField">Build from</label>
+                        <select id="ruleField" is="emby-select">
+                            <option value="Provider">Provider</option>
+                            <option value="Network">Network</option>
+                            <option value="Genre">Genre</option>
+                            <option value="Tag">Any tag</option>
+                            <option value="Actor">Cast member</option>
+                            <option value="Studio">Studio</option>
+                            <option value="Director">Director</option>
+                            <option value="Composer">Composer</option>
+                            <option value="Writer">Writer</option>
+                            <option value="Producer">Producer</option>
+                            <option value="Country">Country / production location</option>
+                            <option value="Language">Language</option>
+                            <option value="ContentRating">Content rating</option>
+                            <option value="ProductionYear">Production year</option>
+                            <option value="JellyfinField">Other Jellyfin metadata field</option>
+                            <option value="NfoField">Other local NFO field</option>
+                        </select>
+                    </div>
+                    <div id="ruleMetadataFieldContainer" class="selectContainer" style="display:none">
+                        <label class="selectLabel" for="ruleMetadataField">Metadata field</label>
+                        <select id="ruleMetadataField" is="emby-select"></select>
+                    </div>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="ruleValues">Choose values already in the server</label>
+                        <select id="ruleValues" is="emby-select" multiple size="9"></select>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="customValues">Or enter values yourself</label>
+                        <input id="customValues" type="text" is="emby-input" placeholder="Separate additional values with commas" />
+                    </div>
+                    <label class="emby-checkbox-label">
+                        <input id="ruleEnabled" type="checkbox" is="emby-checkbox" checked />
+                        <span>Keep this collection in sync automatically</span>
+                    </label>
+                    <label class="emby-checkbox-label">
+                        <input id="removeNonMatching" type="checkbox" is="emby-checkbox" checked />
+                        <span>Remove items that no longer match (recommended)</span>
+                    </label>
+                    <div class="inputContainer">
+                        <button id="saveRule" is="emby-button" type="button" class="raised button-submit block">Create collection rule</button>
+                    </div>
+                    <div id="ruleMessage" class="fieldDescription" aria-live="polite"></div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2>Saved rules</h2>
+                    <p class="fieldDescription">Run a rule immediately, edit its definition, or stop managing it without deleting its Jellyfin collection.</p>
+                    <div id="ruleList"></div>
+                    <button id="runAll" is="emby-button" type="button" class="raised">Run all enabled rules now</button>
+                </div>
+
+                <div class="verticalSection">
+                    <h2>Bulk create by metadata</h2>
+                    <p class="fieldDescription">Select several values to create one standard collection for each of them. This is useful for making a whole provider, network, genre, cast, studio, director, composer, or year shelf at once.</p>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="bulkField">Make collections from</label>
+                        <select id="bulkField" is="emby-select"></select>
+                    </div>
+                    <div id="bulkMetadataFieldContainer" class="selectContainer" style="display:none">
+                        <label class="selectLabel" for="bulkMetadataField">Metadata field</label>
+                        <select id="bulkMetadataField" is="emby-select"></select>
+                    </div>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="bulkValues">Values</label>
+                        <select id="bulkValues" is="emby-select" multiple size="10"></select>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="bulkPrefix">Optional collection-name prefix</label>
+                        <input id="bulkPrefix" type="text" is="emby-input" placeholder="e.g. Network —" />
+                    </div>
+                    <button id="bulkCreate" is="emby-button" type="button" class="raised">Create selected collections</button>
+                </div>
+
+                <div class="verticalSection">
+                    <h2>Manual collection and bulk membership</h2>
+                    <p class="fieldDescription">Search your media, select as many results as you need, then create a collection in one action. For existing collections, use their normal Jellyfin three-dot menu; this plugin never replaces those controls.</p>
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="itemSearch">Find media</label>
+                        <input id="itemSearch" type="search" is="emby-input" placeholder="Search titles, then press Enter" />
+                    </div>
+                    <div id="itemResults" class="paperList"></div>
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="manualCollectionName">New collection name</label>
+                        <input id="manualCollectionName" type="text" is="emby-input" placeholder="e.g. Rainy Sunday movies" />
+                    </div>
+                    <button id="createManualCollection" is="emby-button" type="button" class="raised">Create collection from selected media</button>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="existingCollection">Or change an existing collection</label>
+                        <select id="existingCollection" is="emby-select"></select>
+                    </div>
+                    <div class="ruleActions">
+                        <button id="addSelectedToCollection" is="emby-button" type="button" class="raised">Add selected media</button>
+                        <button id="removeSelectedFromCollection" is="emby-button" type="button">Remove selected media</button>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2>Watching and scheduled reconciliation</h2>
+                    <label class="emby-checkbox-label">
+                        <input id="watchMetadataChanges" type="checkbox" is="emby-checkbox" />
+                        <span>Watch library additions and metadata edits</span>
+                    </label>
+                    <p class="fieldDescription">When enabled, changed tags, genres, people, studios, years, and NFO-backed metadata trigger a quiet-period reconciliation. Changes made by Media Tagging Manager are handled through this same path.</p>
+                    <label class="emby-checkbox-label">
+                        <input id="scheduledReconciliationEnabled" type="checkbox" is="emby-checkbox" />
+                        <span>Also check on a schedule</span>
+                    </label>
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="scheduledMinutes">Minimum minutes between scheduled checks</label>
+                        <input id="scheduledMinutes" type="number" min="15" max="10080" step="15" is="emby-input" />
+                    </div>
+                    <p class="fieldDescription">The dashboard task checks hourly but respects this minimum. You can also run it immediately from Scheduled Tasks or with the button above.</p>
+                    <button is="emby-button" type="submit" class="raised button-submit">Save watching settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        #mediaCollectionManagerPage .verticalSection { margin: 2.5em 0; max-width: 54em; }
+        #mediaCollectionManagerPage .ruleCard { border: 1px solid var(--theme-accent-fill, #444); border-radius: .4em; margin: .75em 0; padding: 1em; }
+        #mediaCollectionManagerPage .ruleCard h3 { margin: 0 0 .25em; }
+        #mediaCollectionManagerPage .ruleActions { display: flex; flex-wrap: wrap; gap: .5em; margin-top: .75em; }
+        #mediaCollectionManagerPage .itemResult { display: flex; align-items: center; gap: .75em; padding: .55em 0; }
+        #mediaCollectionManagerPage .itemResult small { opacity: .75; }
+    </style>
+
+    <script>
+        (function () {
+            'use strict';
+            var pluginId = '5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9';
+            var page = document.querySelector('#mediaCollectionManagerPage');
+            var fields = ['Provider', 'Network', 'Genre', 'Tag', 'Actor', 'Studio', 'Director', 'Composer', 'Writer', 'Producer', 'Country', 'Language', 'ContentRating', 'ProductionYear', 'JellyfinField', 'NfoField'];
+            var facets = {};
+            var rules = [];
+            var editingRuleId = null;
+
+            function api(path, type, data) {
+                return ApiClient.ajax({
+                    url: ApiClient.getUrl('MediaCollectionManager/' + path),
+                    type: type || 'GET',
+                    data: data ? JSON.stringify(data) : undefined,
+                    contentType: data ? 'application/json' : undefined
+                });
+            }
+
+            function facetName(field) {
+                return field === 'Provider' ? 'providers' : field === 'Network' ? 'networks' : field === 'Tag' ? 'tags' :
+                    field === 'Genre' ? 'genres' : field === 'Actor' ? 'actors' :
+                    field === 'Studio' ? 'studios' : field === 'Director' ? 'directors' :
+                    field === 'Composer' ? 'composers' : field === 'Writer' ? 'writers' :
+                    field === 'Producer' ? 'producers' : field === 'Country' ? 'countries' :
+                    field === 'Language' ? 'languages' : field === 'ContentRating' ? 'contentRatings' : 'productionYears';
+            }
+
+            function isGenericField(field) { return field === 'JellyfinField' || field === 'NfoField'; }
+
+            function genericFacetName(field) { return field === 'JellyfinField' ? 'jellyfinFields' : 'nfoFields'; }
+
+            function fieldLabel(field) {
+                return field === 'JellyfinField' ? 'Other Jellyfin metadata field' :
+                    field === 'NfoField' ? 'Other local NFO field' : field;
+            }
+
+            function selectedValues(select) {
+                return Array.prototype.slice.call(select.selectedOptions).map(function (option) { return option.value; });
+            }
+
+            function availableValues(field, metadataFieldName) {
+                return isGenericField(field)
+                    ? ((facets[genericFacetName(field)] || {})[metadataFieldName] || [])
+                    : (facets[facetName(field)] || []);
+            }
+
+            function populateMetadataFields(select, field) {
+                var selected = select.value;
+                var container = select.parentNode;
+                container.style.display = isGenericField(field) ? '' : 'none';
+                select.innerHTML = '';
+                if (!isGenericField(field)) { return; }
+                Object.keys(facets[genericFacetName(field)] || {}).sort().forEach(function (name) {
+                    var option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    option.selected = name === selected;
+                    select.appendChild(option);
+                });
+            }
+
+            function optionsFor(select, field, metadataFieldName) {
+                var selected = selectedValues(select);
+                select.innerHTML = '';
+                availableValues(field, metadataFieldName).forEach(function (value) {
+                    var option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = value;
+                    option.selected = selected.indexOf(value) !== -1;
+                    select.appendChild(option);
+                });
+            }
+
+            function refreshRuleFieldOptions() {
+                var field = page.querySelector('#ruleField').value;
+                var metadataField = page.querySelector('#ruleMetadataField');
+                populateMetadataFields(metadataField, field);
+                optionsFor(page.querySelector('#ruleValues'), field, metadataField.value);
+            }
+
+            function refreshBulkFieldOptions() {
+                var field = page.querySelector('#bulkField').value;
+                var metadataField = page.querySelector('#bulkMetadataField');
+                populateMetadataFields(metadataField, field);
+                optionsFor(page.querySelector('#bulkValues'), field, metadataField.value);
+            }
+
+            function renderRules() {
+                var list = page.querySelector('#ruleList');
+                list.innerHTML = '';
+                if (!rules.length) {
+                    list.textContent = 'No automatic collection rules have been created yet.';
+                    return;
+                }
+                rules.forEach(function (rule) {
+                    var card = document.createElement('div');
+                    card.className = 'ruleCard';
+                    card.innerHTML = '<h3></h3><div class="fieldDescription"></div><div class="ruleActions"><button is="emby-button" type="button" class="raised runRule">Run now</button><button is="emby-button" type="button" class="editRule">Edit rule</button><button is="emby-button" type="button" class="deleteRule">Stop managing</button></div>';
+                    card.querySelector('h3').textContent = rule.name + (rule.enabled ? '' : ' (paused)');
+                    card.querySelector('.fieldDescription').textContent = (isGenericField(rule.field) ? rule.field + ' — ' + (rule.metadataFieldName || 'field') : rule.field) + ': ' + rule.values.join(', ') + (rule.removeItemsNoLongerMatching ? ' — removes items that no longer match.' : ' — only adds matches.');
+                    card.querySelector('.runRule').addEventListener('click', function () {
+                        api('rules/' + rule.id + '/reconcile', 'POST').then(function (result) {
+                            page.querySelector('#ruleMessage').textContent = result.collectionName + ': ' + result.matchingItems + ' matching, ' + result.addedItems + ' added, ' + result.removedItems + ' removed.';
+                            loadRules();
+                        });
+                    });
+                    card.querySelector('.editRule').addEventListener('click', function () {
+                        editingRuleId = rule.id;
+                        page.querySelector('#ruleName').value = rule.name;
+                        page.querySelector('#ruleField').value = rule.field;
+                        populateMetadataFields(page.querySelector('#ruleMetadataField'), rule.field);
+                        page.querySelector('#ruleMetadataField').value = rule.metadataFieldName || '';
+                        optionsFor(page.querySelector('#ruleValues'), rule.field, rule.metadataFieldName);
+                        Array.prototype.slice.call(page.querySelector('#ruleValues').options).forEach(function (option) {
+                            option.selected = rule.values.indexOf(option.value) !== -1;
+                        });
+                        page.querySelector('#customValues').value = rule.values.filter(function (value) {
+                            return !availableValues(rule.field, rule.metadataFieldName).some(function (facetValue) { return facetValue === value; });
+                        }).join(', ');
+                        page.querySelector('#ruleEnabled').checked = rule.enabled;
+                        page.querySelector('#removeNonMatching').checked = rule.removeItemsNoLongerMatching;
+                        page.querySelector('#saveRule').textContent = 'Save rule changes';
+                        page.querySelector('#ruleName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    });
+                    card.querySelector('.deleteRule').addEventListener('click', function () {
+                        if (!confirm('Stop managing “' + rule.name + '”? Its normal Jellyfin collection will stay in place.')) { return; }
+                        api('rules/' + rule.id, 'DELETE').then(loadRules);
+                    });
+                    list.appendChild(card);
+                });
+            }
+
+            function loadRules() {
+                return api('rules').then(function (result) { rules = result || []; renderRules(); });
+            }
+
+            function loadFacets() {
+                return api('facets').then(function (result) {
+                    facets = result || {};
+                    refreshRuleFieldOptions();
+                    refreshBulkFieldOptions();
+                });
+            }
+
+            function loadCollections() {
+                return ApiClient.ajax({ url: ApiClient.getUrl('Items', { Recursive: true, IncludeItemTypes: 'BoxSet', SortBy: 'SortName', SortOrder: 'Ascending', Limit: 500 }), type: 'GET' })
+                    .then(function (result) {
+                        var select = page.querySelector('#existingCollection');
+                        select.innerHTML = '<option value="">Choose a collection</option>';
+                        (result.Items || []).forEach(function (item) {
+                            var option = document.createElement('option');
+                            option.value = item.Id;
+                            option.textContent = item.Name;
+                            select.appendChild(option);
+                        });
+                    });
+            }
+
+            function loadLibraries(config) {
+                return ApiClient.ajax({ url: ApiClient.getUrl('Library/VirtualFolders'), type: 'GET' }).then(function (libraries) {
+                    var select = page.querySelector('#libraryIds');
+                    var selected = (config.LibraryIds || []).map(String);
+                    select.innerHTML = '';
+                    (libraries || []).forEach(function (library) {
+                        var id = library.ItemId || library.Id;
+                        if (!id) { return; }
+                        var option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = library.Name || id;
+                        option.selected = selected.indexOf(String(id)) !== -1;
+                        select.appendChild(option);
+                    });
+                });
+            }
+
+            function updateSourceScopeControls() {
+                var both = page.querySelector('#metadataSourceMode').value === 'Both';
+                page.querySelector('#metadataPriorityContainer').style.display = both ? '' : 'none';
+                page.querySelector('#libraryScopeContainer').style.display = page.querySelector('#useAllLibraries').checked ? 'none' : '';
+            }
+
+            function renderSearch(results) {
+                var area = page.querySelector('#itemResults');
+                area.innerHTML = '';
+                (results || []).forEach(function (item) {
+                    var row = document.createElement('label');
+                    row.className = 'itemResult';
+                    row.innerHTML = '<input type="checkbox" class="manualItem" /><span></span>';
+                    row.querySelector('input').value = item.Id;
+                    row.querySelector('span').innerHTML = '<strong></strong><br /><small></small>';
+                    row.querySelector('strong').textContent = item.Name;
+                    row.querySelector('small').textContent = item.Type + (item.ProductionYear ? ' • ' + item.ProductionYear : '');
+                    area.appendChild(row);
+                });
+                if (!results || !results.length) { area.textContent = 'No media found.'; }
+            }
+
+            page.addEventListener('viewshow', function () {
+                Dashboard.getPluginConfiguration(pluginId).then(function (config) {
+                    page.querySelector('#metadataSourceMode').value = config.MetadataSourceMode || 'Both';
+                    page.querySelector('#metadataSourcePriority').value = config.MetadataSourcePriority || 'Jellyfin';
+                    page.querySelector('#useAllLibraries').checked = config.UseAllLibraries !== false;
+                    page.querySelector('#watchMetadataChanges').checked = !!config.WatchMetadataChanges;
+                    page.querySelector('#scheduledReconciliationEnabled').checked = !!config.ScheduledReconciliationEnabled;
+                    page.querySelector('#scheduledMinutes').value = config.ScheduledReconciliationMinutes || 360;
+                    updateSourceScopeControls();
+                    loadLibraries(config);
+                });
+                var bulkField = page.querySelector('#bulkField');
+                bulkField.innerHTML = fields.map(function (field) { return '<option value="' + field + '">' + fieldLabel(field) + '</option>'; }).join('');
+                loadFacets().then(loadRules);
+                loadCollections();
+            });
+
+            page.querySelector('#ruleField').addEventListener('change', refreshRuleFieldOptions);
+            page.querySelector('#bulkField').addEventListener('change', refreshBulkFieldOptions);
+            page.querySelector('#ruleMetadataField').addEventListener('change', function () { optionsFor(page.querySelector('#ruleValues'), page.querySelector('#ruleField').value, this.value); });
+            page.querySelector('#bulkMetadataField').addEventListener('change', function () { optionsFor(page.querySelector('#bulkValues'), page.querySelector('#bulkField').value, this.value); });
+            page.querySelector('#metadataSourceMode').addEventListener('change', updateSourceScopeControls);
+            page.querySelector('#useAllLibraries').addEventListener('change', updateSourceScopeControls);
+
+            page.querySelector('#saveRule').addEventListener('click', function () {
+                var values = selectedValues(page.querySelector('#ruleValues')).concat(page.querySelector('#customValues').value.split(',').map(function (value) { return value.trim(); }).filter(Boolean));
+                api('rules', 'POST', {
+                    id: editingRuleId,
+                    name: page.querySelector('#ruleName').value,
+                    field: page.querySelector('#ruleField').value,
+                    metadataFieldName: page.querySelector('#ruleMetadataField').value,
+                    values: values,
+                    enabled: page.querySelector('#ruleEnabled').checked,
+                    removeItemsNoLongerMatching: page.querySelector('#removeNonMatching').checked
+                }).then(function (rule) {
+                    page.querySelector('#ruleMessage').textContent = 'Saved “' + rule.name + '”. Run it now to create or update the collection.';
+                    page.querySelector('#ruleName').value = '';
+                    page.querySelector('#customValues').value = '';
+                    page.querySelector('#ruleValues').selectedIndex = -1;
+                    editingRuleId = null;
+                    page.querySelector('#saveRule').textContent = 'Create collection rule';
+                    loadRules();
+                }).catch(function (error) { page.querySelector('#ruleMessage').textContent = error.responseText || 'The rule could not be saved.'; });
+            });
+
+            page.querySelector('#runAll').addEventListener('click', function () {
+                api('reconcile', 'POST').then(function (result) {
+                    page.querySelector('#ruleMessage').textContent = 'Reconciled ' + result.length + ' enabled rule' + (result.length === 1 ? '' : 's') + '.';
+                    loadRules();
+                });
+            });
+
+            page.querySelector('#bulkCreate').addEventListener('click', function () {
+                api('rules/bulk', 'POST', {
+                    field: page.querySelector('#bulkField').value,
+                    metadataFieldName: page.querySelector('#bulkMetadataField').value,
+                    values: selectedValues(page.querySelector('#bulkValues')),
+                    namePrefix: page.querySelector('#bulkPrefix').value
+                }).then(function (created) {
+                    page.querySelector('#ruleMessage').textContent = 'Created and filled ' + created.length + ' collection rule' + (created.length === 1 ? '' : 's') + '.';
+                    loadRules();
+                });
+            });
+
+            page.querySelector('#itemSearch').addEventListener('keydown', function (event) {
+                if (event.key !== 'Enter') { return; }
+                event.preventDefault();
+                api('items?searchTerm=' + encodeURIComponent(event.target.value)).then(renderSearch);
+            });
+
+            page.querySelector('#createManualCollection').addEventListener('click', function () {
+                var ids = Array.prototype.slice.call(page.querySelectorAll('.manualItem:checked')).map(function (input) { return input.value; });
+                api('collections', 'POST', { name: page.querySelector('#manualCollectionName').value, itemIds: ids }).then(function (collection) {
+                    page.querySelector('#ruleMessage').textContent = 'Created normal Jellyfin collection “' + collection.name + '” from ' + ids.length + ' selected item' + (ids.length === 1 ? '' : 's') + '.';
+                    page.querySelector('#manualCollectionName').value = '';
+                    loadCollections();
+                });
+            });
+
+            function selectedManualItemIds() {
+                return Array.prototype.slice.call(page.querySelectorAll('.manualItem:checked')).map(function (input) { return input.value; });
+            }
+
+            function changeExistingCollection(action) {
+                var collectionId = page.querySelector('#existingCollection').value;
+                var itemIds = selectedManualItemIds();
+                if (!collectionId || !itemIds.length) {
+                    page.querySelector('#ruleMessage').textContent = 'Choose an existing collection and at least one media item first.';
+                    return;
+                }
+                api('collections/' + action, 'POST', { collectionId: collectionId, itemIds: itemIds }).then(function () {
+                    page.querySelector('#ruleMessage').textContent = (action === 'add' ? 'Added ' : 'Removed ') + itemIds.length + ' selected item' + (itemIds.length === 1 ? '' : 's') + '.';
+                });
+            }
+
+            page.querySelector('#addSelectedToCollection').addEventListener('click', function () { changeExistingCollection('add'); });
+            page.querySelector('#removeSelectedFromCollection').addEventListener('click', function () { changeExistingCollection('remove'); });
+
+            page.querySelector('#mediaCollectionManagerForm').addEventListener('submit', function (event) {
+                event.preventDefault();
+                Dashboard.getPluginConfiguration(pluginId).then(function (config) {
+                    config.MetadataSourceMode = page.querySelector('#metadataSourceMode').value;
+                    config.MetadataSourcePriority = page.querySelector('#metadataSourcePriority').value;
+                    config.UseAllLibraries = page.querySelector('#useAllLibraries').checked;
+                    config.LibraryIds = selectedValues(page.querySelector('#libraryIds'));
+                    config.WatchMetadataChanges = page.querySelector('#watchMetadataChanges').checked;
+                    config.ScheduledReconciliationEnabled = page.querySelector('#scheduledReconciliationEnabled').checked;
+                    config.ScheduledReconciliationMinutes = Math.max(15, Math.min(10080, parseInt(page.querySelector('#scheduledMinutes').value, 10) || 360));
+                    Dashboard.processPluginConfigurationUpdate(pluginId, config).then(function () {
+                        loadFacets();
+                        page.querySelector('#ruleMessage').textContent = 'Metadata, library scope, and watching settings were saved.';
+                    });
+                });
+            });
+        }());
+    </script>
+</div>
