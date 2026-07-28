@@ -1,45 +1,107 @@
-<p align="center"><img src="Assets/Branding/media-collection-manager-icon.png" alt="Media Collection Manager icon" width="180" /></p>
+<p align="center">
+  <img src="Assets/Branding/media-collection-manager-icon.png" alt="Media Collection Manager icon: a Jellyfin-style television containing an open collection box" width="180" />
+</p>
+
 <h1 align="center">Media Collection Manager</h1>
-<p align="center"><strong>⚠️ Early testing build:</strong> built for Jellyfin 10.11.11. Install only on a private test server and keep normal server backups.</p>
-<p align="center">A companion to <a href="https://github.com/mp3li/Media-Tagging-Manager-Jellyfin-Plugin">Media Tagging Manager</a> for turning the metadata already in your Jellyfin libraries into normal Jellyfin collections.</p>
 
-## What it does
+<p align="center">
+  <img src="Assets/Badges/status.svg" alt="Early testing build" />
+  <img src="Assets/Badges/target.svg" alt="Jellyfin 10.11.11" />
+  <img src="Assets/Badges/collections.svg" alt="Native collections" />
+  <img src="Assets/Badges/bulk-tools.svg" alt="Bulk tools" />
+</p>
 
-Media Collection Manager reads existing Jellyfin and local-NFO metadata only. It does not download metadata, write tags, change NFO files, rename media, or access streaming services.
+<p align="center"><strong>⚠️ Early testing build:</strong> this plugin is for private testing on Jellyfin 10.11.11. Keep ordinary server backups and do not treat an untested build as a production release.</p>
 
-Media Tagging Manager can assign useful metadata such as Provider, Network, Genre, Keyword, Collection, cast, crew, production, rating, and language information. This plugin can use that information alongside every other metadata value already in your library.
+<p align="center">A companion to <a href="https://github.com/mp3li/Media-Tagging-Manager-Jellyfin-Plugin">Media Tagging Manager</a>, built to turn the metadata already in your Jellyfin libraries into normal Jellyfin collections.</p>
 
-## Current testing workflow
+## What it is for
 
-1. **Main Settings** — choose libraries, save settings, scan a local metadata catalog, and inspect the paginated per-library overview.
-2. **Individual Tag Collections** — select metadata values and create one reviewed native Jellyfin collection per value.
-3. **Combined Tag Collections** — select multiple values and create one collection containing the unique media matching any selected value.
-4. **Multi-Match Tag Collections** — select multiple values and create one collection containing only media matching every selected value.
+Building a useful collection in Jellyfin should not mean adding titles one at a
+time. Media Collection Manager scans the metadata that already exists in the
+libraries you choose and gives you reviewed, bulk collection drafts instead.
 
-Every draft supports previews, selected additional libraries, editable titles, and an explicit choice when a native Jellyfin collection with the same title already exists.
+Metadata is descriptive information already connected to a media item: genres,
+providers, networks, studios, cast, crew, directors, composers, years,
+languages, ratings, custom tags, fields in local NFO files, and more. Provider
+and Network are intentionally separate metadata types. A library can therefore
+have a `Provider: MarqueeTV` tag, a `Network: HBO` tag, an `Opera` genre, a
+production company, and any number of other values without this plugin treating
+them as the same thing.
+
+[Media Tagging Manager](https://github.com/mp3li/Media-Tagging-Manager-Jellyfin-Plugin)
+can assign many useful existing tags, including provider and network tags. Media
+Collection Manager works especially well with those values, but it is not
+limited to them: it reads every available metadata value from the selected
+libraries.
+
+## Current four-tab build
+
+| Dashboard tab | What it does |
+| --- | --- |
+| **Main Settings** | Select libraries, save the newly-added-media preference, scan the local read-only metadata catalog, and inspect a paginated library overview. |
+| **Individual Tag Collections** | Select values such as `Horror`, `Netflix`, or `A24` and make one independently titled, reviewed native collection draft for each value. |
+| **Combined Tag Collections** | Select two or more values and make one collection containing the unique union of media matching any selected value. |
+| **Multi-Match Tag Collections** | Select two or more values and make one collection containing only media matching every selected value. |
+
+All collection workflows provide matching counts, grouped previews, editable
+titles, additional-library scope, visible same-title conflict choices, and
+creation outcomes. Collections remain standard Jellyfin collections, so their
+normal Jellyfin artwork, image, and three-dot-menu controls remain available.
+
+## Metadata and privacy boundary
+
+Media Collection Manager is read-only with respect to your library metadata. It
+does not fetch metadata from the internet, create tags, modify tags, rewrite NFO
+files, rename media, move files, or access streaming services. It builds a
+temporary in-server catalog from the latest scan and does all matching on the
+server. The catalog and dashboard previews do not expose media paths.
+
+The plugin does not silently duplicate or alter a same-title collection. When a
+title already exists, the dashboard shows an in-page choice to use the existing
+collection unchanged, skip the draft, or revise the draft title.
 
 ## Requirements
 
 - Jellyfin Server **10.11.11**
 - Administrator access
 - Existing local library metadata
+- .NET SDK 9.0 to build from source
 
-The project builds against Jellyfin.Controller and Jellyfin.Model 10.11.11.
+The project references Jellyfin.Controller and Jellyfin.Model **10.11.11** and
+targets the Jellyfin 10.11 ABI.
 
-## Private testing
+## Build and private installation
 
-Build the DLL:
+Build the plugin:
 
 ```bash
 dotnet build "Media Collection Manager/MediaCollectionManager.csproj" --configuration Release
 ```
 
-Install the resulting DLL privately, restart Jellyfin, then open **Dashboard → Media Collection Manager**. Record observed results in [Documentation/goal-testing.txt](Documentation/goal-testing.txt).
+For a direct private DLL test, copy
+`Media Collection Manager/bin/Release/net9.0/Jellyfin.Plugin.MediaCollectionManager.dll`
+to a dedicated Media Collection Manager directory inside your Jellyfin plugins
+directory, restart Jellyfin, then open **Dashboard → Media Collection Manager**.
+
+For repository-manifest testing, first make a release ZIP containing the exact
+Release DLL, publish that ZIP as a GitHub Release asset, calculate its SHA-256,
+and create a manifest whose version, target ABI, framework, source URL,
+checksum, timestamp, branding image, and changelog all describe that exact
+asset. A manifest is deliberately not published in this repository before that
+artifact exists.
+
+## Private test tracking
+
+The four-tab implementation has automated build and JavaScript syntax checks.
+Private Jellyfin installation and behavior must still be recorded before calling
+the runtime behavior complete. Use the [testing tracker](Documentation/goal-testing.txt)
+for the actual server results.
 
 ## Project documents
 
-- [Product goals](Documentation/project-goals.txt)
-- [Testing tracker](Documentation/goal-testing.txt)
+- [Current product goals](Documentation/project-goals.txt)
+- [Private testing tracker](Documentation/goal-testing.txt)
 - [Changelog](Documentation/CHANGELOG.md)
 
 ## License

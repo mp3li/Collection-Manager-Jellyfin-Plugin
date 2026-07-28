@@ -78,6 +78,8 @@ public sealed record MetadataCatalogStatus(
 public sealed record MetadataCatalogItem(
     Guid Id,
     string Title,
+    Guid LibraryId,
+    string LibraryName,
     IReadOnlyDictionary<string, IReadOnlyList<string>> Metadata);
 
 /// <summary>One page from a selected library's local metadata catalog.</summary>
@@ -106,7 +108,10 @@ public sealed record MetadataCatalogValuePage(
     IReadOnlyList<MetadataCatalogValue> Values);
 
 /// <summary>Preview of the current media items that a collection draft would include.</summary>
-public sealed record IndividualCollectionDraftPreview(int MatchingItems, IReadOnlyList<MediaSearchResult> Items);
+public sealed record CatalogPreviewItem(Guid Id, string Title, Guid LibraryId, string LibraryName);
+
+/// <summary>Preview of the current catalog media that a draft would include, grouped by library in the dashboard.</summary>
+public sealed record IndividualCollectionDraftPreview(int MatchingItems, IReadOnlyList<CatalogPreviewItem> Items);
 
 /// <summary>Conflict information found before an individual collection draft is created.</summary>
 public sealed record IndividualCollectionDraftConflict(string CollectionTitle, bool ExistingCollectionFound);

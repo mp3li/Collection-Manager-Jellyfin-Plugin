@@ -149,9 +149,7 @@ public sealed class MetadataCatalogService
     public IndividualCollectionDraftPreview PreviewDraft(IndividualCollectionDraftRequest draft)
     {
         var items = MatchingItems(draft).OrderBy(item => item.Title, StringComparer.OrdinalIgnoreCase).ToArray();
-        return new IndividualCollectionDraftPreview(
-            items.Length,
-            items.Select(item => new MediaSearchResult(item.Id, item.Title, "Catalog item", null)).ToArray());
+        return new IndividualCollectionDraftPreview(items.Length, items.Select(ToPreviewItem).ToArray());
     }
 
     /// <summary>Gets the current catalog item ids that match a draft across its source and additional libraries.</summary>
@@ -162,7 +160,7 @@ public sealed class MetadataCatalogService
     public IndividualCollectionDraftPreview PreviewTagCollection(TagCollectionDraftRequest draft)
     {
         var items = MatchingTagCollectionItems(draft).OrderBy(item => item.Title, StringComparer.OrdinalIgnoreCase).ToArray();
-        return new IndividualCollectionDraftPreview(items.Length, items.Select(item => new MediaSearchResult(item.Id, item.Title, "Catalog item", null)).ToArray());
+        return new IndividualCollectionDraftPreview(items.Length, items.Select(ToPreviewItem).ToArray());
     }
 
     /// <summary>Gets the current unique media item ids for a union or intersection draft.</summary>
@@ -195,7 +193,7 @@ public sealed class MetadataCatalogService
                 var rows = new List<MetadataCatalogItem>(folder.Items.Length);
                 foreach (var item in folder.Items)
                 {
-                    rows.Add(CreateCatalogItem(item));
+                    rows.Add(CreateCatalogItem(item, folder.Id, folder.Name));
                     processed++;
                     if (processed % 10 == 0 || processed == totalItems)
                     {
@@ -231,7 +229,7 @@ public sealed class MetadataCatalogService
         }
     }
 
-    private MetadataCatalogItem CreateCatalogItem(BaseItem item)
+    private MetadataCatalogItem CreateCatalogItem(BaseItem item, Guid libraryId, string libraryName)
     {
         var values = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         var nfo = NfoMetadataReader.Read(item);
@@ -290,7 +288,7 @@ public sealed class MetadataCatalogService
                 .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
                 .ToArray(),
             StringComparer.OrdinalIgnoreCase);
-        return new MetadataCatalogItem(item.Id, item.Name, readOnlyValues);
+        return new MetadataCatalogItem(item.Id, item.Name, libraryId, libraryName, readOnlyValues);
     }
 
     private IEnumerable<string> People(BaseItem item, string type) =>
@@ -357,18 +355,29 @@ public sealed class MetadataCatalogService
     {
         var tags = draft.SelectedTags.Where(tag => !string.IsNullOrWhiteSpace(tag.MetadataType) && !string.IsNullOrWhiteSpace(tag.MetadataValue)).ToArray();
         if (tags.Length == 0) return [];
+        // A combined/multi-match draft has one shared scope. Every source library is always
+        // included, and the dashboard may add more libraries to that same scope. This lets a
+        // multi-match draft selected from different libraries meaningfully compare each tag
+        // across all of the administrator's chosen libraries.
+        var sharedLibraryIds = tags.Select(tag => tag.SourceLibraryId)
+            .Concat(draft.AdditionalLibraryIds)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToArray();
         var sets = tags.Select(tag => MatchingItems(new IndividualCollectionDraftRequest
         {
-            SourceLibraryId = tag.SourceLibraryId,
+            SourceLibraryId = sharedLibraryIds.FirstOrDefault(),
             MetadataType = tag.MetadataType,
             MetadataValue = tag.MetadataValue,
-            AdditionalLibraryIds = draft.AdditionalLibraryIds,
+            AdditionalLibraryIds = sharedLibraryIds.Skip(1).ToList(),
         }).ToDictionary(item => item.Id)).ToArray();
         var ids = draft.RequireAllTags
             ? sets.Skip(1).Aggregate(new HashSet<Guid>(sets[0].Keys), (current, next) => { current.IntersectWith(next.Keys); return current; })
             : sets.SelectMany(set => set.Keys).ToHashSet();
         return sets.SelectMany(set => set.Values).Where(item => ids.Contains(item.Id)).GroupBy(item => item.Id).Select(group => group.First()).ToArray();
     }
+
+    private static CatalogPreviewItem ToPreviewItem(MetadataCatalogItem item) => new(item.Id, item.Title, item.LibraryId, item.LibraryName);
 
     private static void Add(Dictionary<string, List<string>> values, string column, IEnumerable<string?> additions)
     {

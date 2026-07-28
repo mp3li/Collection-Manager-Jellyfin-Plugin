@@ -1,28 +1,138 @@
-MEDIA COLLECTION MANAGER — TESTING TRACKER
-===========================================
+MEDIA COLLECTION MANAGER — PRIVATE TESTING TRACKER
+===================================================
 
-Use this file to record private Jellyfin 10.11.11 results. Do not put tests in
-project-goals.txt. Do not record server URLs, private media paths, credentials,
-or API keys here.
+Use this tracker for real private Jellyfin 10.11.11 testing. Do not put test
+instructions in project-goals.txt. Do not record server URLs, usernames,
+credentials, API keys, private media titles, paths, NFO contents, logs, or
+screenshots containing private information here.
 
-Current checks
---------------
-[x] Release build compiles against Jellyfin.Controller and Jellyfin.Model 10.11.11 with zero warnings.
-[x] Embedded dashboard JavaScript parses successfully.
-[ ] Install the DLL on a private Jellyfin server.
-[ ] Open every dashboard tab and verify its visual layout.
-[ ] Save and restart Main Settings selections.
-[ ] Scan a small selected library and verify catalog progress and pagination.
-[ ] Verify Individual Tag Collections previews, conflict choices, and results.
-[ ] Verify Combined Tag Collections union matching and additional-library scope.
-[ ] Verify Multi-Match Tag Collections intersection matching and zero-match handling.
-[ ] Verify native Jellyfin collection controls remain available.
+Automated source checks
+-----------------------
+[x] Release build uses Jellyfin.Controller 10.11.11 and Jellyfin.Model 10.11.11.
+[x] Release build completes with zero warnings and zero errors.
+[x] Embedded dashboard JavaScript passes syntax validation.
+[x] `git diff --check` reports no whitespace errors for the release changes.
+[x] Public-file audit confirms no credentials, private paths, media, NFOs, logs,
+    build output, .DS_Store files, test artifacts, or release archives are staged.
+
+Private installation and dashboard availability
+-----------------------------------------------
+[x] Build the exact release ZIP.
+[ ] Create a manifest using the exact release ZIP checksum and published source URL.
+[ ] Add the manifest to a private Jellyfin 10.11.11 server.
+[ ] Install the plugin through Jellyfin's repository interface.
+[ ] Restart Jellyfin and confirm Media Collection Manager appears in Dashboard.
+[ ] Open the plugin dashboard as an administrator and confirm all four tabs load.
+[ ] Confirm a manifest update detects and offers a newer compatible release.
+
+Main Settings
+-------------
+[ ] Library picker lists the expected Jellyfin libraries.
+[ ] Select All and Select None update the picker correctly.
+[ ] Save Libraries persists the selected library list after leaving and reopening the page.
+[ ] Save Main Settings persists libraries and the newly-added-media preference after a Jellyfin restart.
+[ ] The newly-added-media preference is retained without modifying media metadata.
+[ ] Scan is unavailable until at least one library is saved.
+[ ] A scan shows a progressing status and completes without exposing media paths.
+[ ] Starting a second scan while one is running does not start a conflicting scan.
+[ ] My Metadata Tags Overview starts collapsed.
+[ ] Opening the overview expands the saved-library sections by default.
+[ ] Each overview library can be collapsed and expanded independently.
+[ ] Overview pagination contains ten media items per page and shows correct totals.
+[ ] Overview begins with Title and includes a column for every discovered metadata type.
+[ ] Overview color saves and persists after reopening the dashboard.
+
+Catalog fidelity and scale
+--------------------------
+[ ] Confirm ordinary Jellyfin tags, Genres, Providers, Networks, Studios,
+    Production Companies, Production Countries, Cast, Crew, Languages, Ratings,
+    Keywords, Existing Collection Metadata, years, direct Jellyfin fields, and
+    local NFO fields appear when present.
+[ ] Confirm Provider and Network appear as separate metadata types.
+[ ] Confirm metadata assigned by Media Tagging Manager appears alongside, not
+    instead of, all other existing library metadata.
+[ ] Confirm values are alphabetically sorted case-insensitively.
+[ ] Confirm each metadata-type selector starts collapsed.
+[ ] Confirm a metadata type's values are not requested until it is expanded.
+[ ] Confirm searching filters only the expanded type and resets to page one.
+[ ] Confirm each value page contains at most fifty values and Previous/Next and
+    current/total page controls are correct.
+[ ] Confirm displayed matching counts equal the selected library's scanned catalog.
+[ ] Confirm Cast and Crew-related values show a person image only when Jellyfin
+    has a primary person image.
+[ ] Exercise a library with more than ten media items and a metadata type with
+    more than fifty values; the dashboard must remain responsive.
+
+Individual Tag Collections
+--------------------------
+[ ] Selecting a value immediately creates one draft; unselecting it removes that draft.
+[ ] A draft defaults its title to the selected metadata value and accepts edits.
+[ ] Draft Create this draft checkbox controls whether it is created in a batch.
+[ ] A draft's source library is always included.
+[ ] Select All and Select None affect only the draft's other saved libraries.
+[ ] Changing additional libraries immediately updates the matching count,
+    explanation, and grouped preview.
+[ ] The included-media list starts collapsed and expands grouped by library.
+[ ] Create Selected Collections reports current draft, completed/total progress,
+    and Created, Matched an existing collection, Skipped, or Failed for each draft.
+[ ] A same-title conflict is shown in-page, never in a browser confirmation dialog.
+[ ] Use existing collection leaves the native collection unchanged.
+[ ] Skip does not create or alter a collection.
+[ ] Editing a conflicting title allows normal creation when no conflict remains.
+
+Combined Tag Collections
+------------------------
+[ ] The tab uses the same collapsed library/type picker, lazy loading, search,
+    alphabetical ordering, counts, person images, and fifty-value paging.
+[ ] Selecting multiple values creates one combined draft, not multiple drafts.
+[ ] Every selected-tag row shows source library, type, value, source count, and removal.
+[ ] Source libraries are always included in the shared scope and cannot be removed.
+[ ] Select All and Select None apply only to other saved libraries.
+[ ] Changing the shared additional-library scope immediately updates the preview.
+[ ] A union scenario includes every media item matching any selected tag.
+[ ] A media item matching two selected tags appears once in the total and preview.
+[ ] The preview starts collapsed and expands with media grouped by library.
+[ ] A title and at least two tags are required.
+[ ] Creation shows the collection currently being created, unique item count, and result.
+[ ] Same-title handling is visible in-page and does not change an existing collection.
+[ ] A successful creation clears the combined draft and preserves the completion result.
+
+Multi-Match Tag Collections
+---------------------------
+[ ] The tab uses the same collapsed library/type picker, lazy loading, search,
+    alphabetical ordering, counts, person images, and fifty-value paging.
+[ ] Selecting multiple values creates one multi-match draft, not multiple drafts.
+[ ] Every selected-tag row shows source library, type, value, source count, and removal.
+[ ] Source libraries are always included in the shared scope and cannot be removed.
+[ ] Select All and Select None apply only to other saved libraries.
+[ ] Changing the shared additional-library scope immediately updates the preview.
+[ ] An intersection scenario includes only media matching every selected tag.
+[ ] Tags selected from different source libraries use the shared source-plus-additional scope.
+[ ] A zero-match state clearly explains that no media matches every selected tag.
+[ ] Creation is disabled for a zero-match state, a missing title, or fewer than two tags.
+[ ] The preview starts collapsed and expands with media grouped by library.
+[ ] Same-title handling is visible in-page and does not change an existing collection.
+[ ] A successful creation clears the multi-match draft and preserves the completion result.
+
+Native Jellyfin, watcher, and privacy behavior
+-----------------------------------------------
+[ ] Open every created collection's Jellyfin three-dot menu and confirm native
+    controls, including image/artwork controls, remain available.
+[ ] Confirm the plugin does not fetch, create, edit, remove, or overwrite media metadata or NFO files.
+[ ] Confirm the metadata-change listener ignores collection items and does not
+    create a feedback loop when native collection metadata changes.
+[ ] Confirm the newly-added-media preference persists and is respected by any
+    configured automatic maintenance behavior without changing unrelated collections.
+[ ] Confirm collection previews and outcomes never display private file paths.
+[ ] Confirm only elevated Jellyfin administrators can access the plugin API/dashboard.
 
 Results log
 -----------
 Date:
-Test:
-Environment:
+Jellyfin version:
+Plugin ZIP version and checksum:
+Tab or check:
+Sanitized sample setup:
 Observed result:
-Status: [x] / [~] / [!] / [?]
+Status: [x] passed / [~] partial / [!] failed / [?] blocked
 Follow-up:
