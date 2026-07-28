@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Replaced the unreadable all-tag-type metadata table in **My Metadata Tags**.
+  Every selected library now has separate, independently expandable metadata
+  type sections; each section uses a readable two-column **Title** and
+  **metadata tag** table with the existing ten-title pagination.
 - Corrected the repository manifest for Jellyfin 10.11.11: it now uses the
   exact `10.11.11.0` target ABI and Jellyfin's required MD5 release-package
   checksum format.

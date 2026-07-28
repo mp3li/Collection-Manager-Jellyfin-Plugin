@@ -16,10 +16,14 @@
         #collectionManagerPage .mcm-library-overview + .mcm-library-overview { border-top:1px solid rgba(255,255,255,.16); padding-top:1em; }
         #collectionManagerPage .mcm-library-heading { display:flex; align-items:center; justify-content:space-between; gap:1em; }
         #collectionManagerPage .mcm-library-heading h3 { margin:0; }
-        #collectionManagerPage .mcm-catalog-table { width:100%; min-width:44em; table-layout:auto; }
-        #collectionManagerPage .mcm-catalog-table th, #collectionManagerPage .mcm-catalog-table td { padding:.7em .8em; vertical-align:top; white-space:normal; overflow-wrap:anywhere; }
+        #collectionManagerPage .mcm-overview-type { border-top:1px solid rgba(255,255,255,.16); margin-top:1em; padding-top:1em; }
+        #collectionManagerPage .mcm-overview-type-heading { display:flex; align-items:center; justify-content:space-between; gap:1em; }
+        #collectionManagerPage .mcm-overview-type-heading h4 { margin:0; font-size:1.1em; }
+        #collectionManagerPage .mcm-overview-type-content[hidden] { display:none !important; }
+        #collectionManagerPage .mcm-catalog-table { width:100%; table-layout:fixed; }
+        #collectionManagerPage .mcm-catalog-table th, #collectionManagerPage .mcm-catalog-table td { padding:.7em .8em; vertical-align:top; white-space:normal; overflow-wrap:break-word; }
         #collectionManagerPage .mcm-catalog-table th + th, #collectionManagerPage .mcm-catalog-table td + td { border-left:1px solid rgba(255,255,255,.16); }
-        #collectionManagerPage .mcm-catalog-table th:first-child { min-width:15em; }
+        #collectionManagerPage .mcm-catalog-table th:first-child, #collectionManagerPage .mcm-catalog-table td:first-child { width:40%; }
         #collectionManagerPage .mcm-tag-value { color:var(--mcm-metadata-tag-color,#00A4DC); }
         #collectionManagerPage .mcm-pagination { display:flex; flex-wrap:wrap; align-items:center; gap:.65em; margin-top:.85em; }
         #collectionManagerPage .mcm-tag-type + .mcm-tag-type { border-top:1px solid rgba(255,255,255,.16); margin-top:.75em; padding-top:.75em; }
@@ -219,18 +223,18 @@
             var total = Number(prop(catalog, 'TotalItems') || 0);
             section.querySelector('h3').textContent = name;
             if (!total) { container.innerHTML = '<p class="fieldDescription mcm-empty">No metadata tags have been scanned for this library yet. Save your library selections, then run a metadata tag scan.</p>'; return; }
-            var head = '<tr><th>Title</th>' + columns.map(function (column) { return '<th>' + escapeHtml(column) + '</th>'; }).join('') + '</tr>';
-            var rows = items.map(function (item) {
-                var metadata = prop(item, 'Metadata') || {};
-                return '<tr><td>' + escapeHtml(prop(item, 'Title')) + '</td>' + columns.map(function (column) {
+            var typeSections = columns.map(function (column) {
+                var rows = items.map(function (item) {
+                    var metadata = prop(item, 'Metadata') || {};
                     var values = metadata[column] || metadata[column.charAt(0).toLowerCase() + column.slice(1)] || [];
-                    return '<td class="mcm-tag-value">' + values.map(escapeHtml).join('<br />') + '</td>';
-                }).join('') + '</tr>';
+                    return '<tr><td>' + escapeHtml(prop(item, 'Title')) + '</td><td class="mcm-tag-value">' + (values.length ? values.map(escapeHtml).join('<br />') : '—') + '</td></tr>';
+                }).join('');
+                return '<section class="mcm-overview-type"><div class="mcm-overview-type-heading"><h4>' + escapeHtml(column) + '</h4><button is="emby-button" type="button" class="raised" data-toggle-catalog-type>Click here to expand</button></div><div class="mcm-overview-type-content" hidden><div style="overflow-x:auto"><table class="detailTable mcm-catalog-table"><thead><tr><th>Title</th><th>' + escapeHtml(column) + '</th></tr></thead><tbody>' + rows + '</tbody></table></div></div></section>';
             }).join('');
             var first = ((currentPage - 1) * pageSize) + 1;
             var last = Math.min(currentPage * pageSize, total);
             var pages = Math.max(1, Math.ceil(total / pageSize));
-            container.innerHTML = '<div style="overflow-x:auto"><table class="detailTable mcm-catalog-table"><thead>' + head + '</thead><tbody>' + rows + '</tbody></table></div><div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-catalog-page="' + escapeHtml(libraryId) + '" data-page="' + (currentPage - 1) + '"' + (currentPage <= 1 ? ' disabled' : '') + '>Previous</button><span class="fieldDescription">Showing ' + first + '–' + last + ' of ' + total + ' titles · Page ' + currentPage + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-catalog-page="' + escapeHtml(libraryId) + '" data-page="' + (currentPage + 1) + '"' + (currentPage >= pages ? ' disabled' : '') + '>Next</button></div>';
+            container.innerHTML = typeSections + '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-catalog-page="' + escapeHtml(libraryId) + '" data-page="' + (currentPage - 1) + '"' + (currentPage <= 1 ? ' disabled' : '') + '>Previous</button><span class="fieldDescription">Showing ' + first + '–' + last + ' of ' + total + ' titles · Page ' + currentPage + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-catalog-page="' + escapeHtml(libraryId) + '" data-page="' + (currentPage + 1) + '"' + (currentPage >= pages ? ' disabled' : '') + '>Next</button></div>';
         }
 
         var individualDrafts = {}, individualConflictActions = {};
@@ -359,7 +363,7 @@
         $('#toggleMetadataOverview').addEventListener('click', function () { var content = $('#metadataOverviewContent'), expanded = !content.hidden; content.hidden = expanded; this.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadMetadataOverview(); } });
         $('#metadataOverviewColor').addEventListener('input', applyOverviewColor);
         $('#saveMetadataOverviewColorButton').addEventListener('click', function () { send('POST', 'settings/metadata-overview-color', { Color: $('#metadataOverviewColor').value }).then(function (updated) { config = normalize(updated || config); $('#metadataOverviewColor').value = config.MetadataTagOverviewColor; applyOverviewColor(); Dashboard.alert('Overview color saved.'); }, function (error) { Dashboard.alert('Overview color could not be saved: ' + err(error)); }); });
-        $('#metadataOverviewGroups').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-library]')) { var id = target.getAttribute('data-toggle-library'), content = page.querySelector('[data-catalog-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; } if (target.matches('[data-catalog-page]')) { loadCatalogPage(target.getAttribute('data-catalog-page'), Number(target.getAttribute('data-page'))); } });
+        $('#metadataOverviewGroups').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-library]')) { var id = target.getAttribute('data-toggle-library'), content = page.querySelector('[data-catalog-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; } if (target.matches('[data-toggle-catalog-type]')) { var typeContent = target.closest('.mcm-overview-type').querySelector('.mcm-overview-type-content'), typeExpanded = !typeContent.hidden; typeContent.hidden = typeExpanded; target.textContent = typeExpanded ? 'Click here to expand' : 'Click here to collapse'; } if (target.matches('[data-catalog-page]')) { loadCatalogPage(target.getAttribute('data-catalog-page'), Number(target.getAttribute('data-page'))); } });
         Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (button) { button.addEventListener('click', function () { var selectedTab=button.getAttribute('data-tab'); Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (tab) { var active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', active ? 'true' : 'false'); }); Array.prototype.forEach.call(page.querySelectorAll('.mcm-panel'), function (panel) { panel.classList.toggle('active', panel.getAttribute('data-panel') === selectedTab); }); if (selectedTab === 'individual') { renderIndividualLibraryPickers(); renderIndividualDrafts(); } if (selectedTab === 'combined' || selectedTab === 'multi') { renderMode(selectedTab); } }); });
         $('#individualTagLibraryPickers').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-picker-library]')) { var id = target.getAttribute('data-toggle-picker-library'), content = page.querySelector('[data-picker-library-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualTypes(id); } } if (target.matches('[data-toggle-tag-type]')) { var section = target.closest('[data-tag-type]'), content = section.querySelector('.mcm-tag-type-content'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualValues(section, 1); } } if (target.matches('[data-tag-values-page]')) { loadIndividualValues(target.closest('[data-tag-type]'), Number(target.getAttribute('data-tag-values-page'))); } });
         $('#individualTagLibraryPickers').addEventListener('change', function (event) { if (event.target.matches('[data-individual-tag-value]')) { addOrRemoveDraft(event.target); } });

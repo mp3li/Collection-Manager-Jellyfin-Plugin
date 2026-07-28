@@ -1,7 +1,7 @@
 ---
 name: "Collection Manager"
 guid: "5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9"
-version: "0.1.0.2"
+version: "0.1.0.3"
 targetAbi: "10.11.11.0"
 framework: "net9.0"
 overview: "Visual metadata-driven native collection creation for Jellyfin."
@@ -13,5 +13,5 @@ owner: "mp3li"
 artifacts:
   - "Jellyfin.Plugin.CollectionManager.dll"
 changelog: >
-  Corrected Jellyfin 10.11.11 package metadata, full branded repository image,
-  and the Collection Manager icon. Includes the current four-tab testing build.
+  Corrected the My Metadata Tags overview layout so each library has readable,
+  independently expandable metadata-type sections with title-and-tag tables.

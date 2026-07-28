@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.2",
-        "changelog": "Corrected the Jellyfin 10.11.11 package metadata and MD5 package checksum, restored the full branded repository background, and refined the Collection Manager icon. Includes the current four-tab collection workflows.",
+        "version": "0.1.0.3",
+        "changelog": "Corrected the My Metadata Tags overview layout: every library now has readable, independently expandable metadata-type sections, each with a Title and metadata-tag table.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.2/CollectionManager_0.1.0.2.zip",
-        "checksum": "3e49c32880da32ab7882bf7facf52de2",
-        "timestamp": "2026-07-28T02:46:15Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.3/CollectionManager_0.1.0.3.zip",
+        "checksum": "cbab7c3cb87590954b3228d8421bf5e1",
+        "timestamp": "2026-07-28T03:34:57Z"
       }
     ]
   }
