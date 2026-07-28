@@ -5,7 +5,6 @@ using Jellyfin.Plugin.CollectionManager.Models;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.CollectionManager.Services;
@@ -125,7 +124,7 @@ public sealed class MetadataCatalogService
                     column,
                     catalog.ValuesByType.TryGetValue(column, out var values) ? values.Count : 0))
                 .Where(type => type.ValueCount > 0)
-                .OrderBy(type => type.Name.StartsWith("Jellyfin: ", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+                .OrderBy(type => MetadataTypeSortOrder(type.Name))
                 .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
         }
@@ -145,9 +144,6 @@ public sealed class MetadataCatalogService
             var term = searchTerm?.Trim();
             var values = (catalog.ValuesByType.TryGetValue(normalizedType, out var catalogValues) ? catalogValues : [])
                 .Where(value => string.IsNullOrWhiteSpace(term) || value.Value.Contains(term, StringComparison.OrdinalIgnoreCase))
-                .Select(value => IsPersonType(normalizedType)
-                    ? value with { PersonImageUrl = FindPersonImageId(catalog, normalizedType, value.Value) }
-                    : value)
                 .ToArray();
             const int pageSize = 50;
             var pageCount = Math.Max(1, (int)Math.Ceiling(values.Length / (double)pageSize));
@@ -223,7 +219,8 @@ public sealed class MetadataCatalogService
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(column => column, StringComparer.OrdinalIgnoreCase)
                     .ToArray();
-                var valuesByType = BuildValueIndex(rows, columns);
+                var personImages = BuildPersonImageIndex(folder.Items);
+                var valuesByType = BuildValueIndex(rows, columns, personImages);
                 nextCatalogs[folder.Id] = new CatalogLibrary(
                     folder.Id,
                     folder.Name,
@@ -331,25 +328,41 @@ public sealed class MetadataCatalogService
     private static bool IsPersonType(string metadataType) =>
         metadataType is "Cast" or "Crew" or "Directors" or "Writers" or "Producers" or "Composers";
 
-    private string? FindPersonImageId(CatalogLibrary catalog, string metadataType, string personName)
+    private static int MetadataTypeSortOrder(string metadataType)
     {
-        foreach (var row in catalog.Items.Where(item => item.Metadata.TryGetValue(metadataType, out var values) && values.Contains(personName, StringComparer.OrdinalIgnoreCase)))
+        if (!metadataType.Contains(':', StringComparison.Ordinal))
         {
-            var item = _libraryManager.GetItemById<BaseItem>(row.Id);
-            if (item is null)
-            {
-                continue;
-            }
+            return 0;
+        }
 
-            var person = _libraryManager.GetPeople(item).FirstOrDefault(candidate =>
-                string.Equals(candidate.Name, personName, StringComparison.OrdinalIgnoreCase) && candidate.Id != Guid.Empty);
-            if (person is not null && _libraryManager.GetItemById<BaseItem>(person.Id) is { } personItem && personItem.HasImage(ImageType.Primary, 0))
+        if (metadataType.StartsWith("NFO: ", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        return metadataType.StartsWith("Jellyfin: ", StringComparison.OrdinalIgnoreCase) ? 2 : 3;
+    }
+
+    private IReadOnlyDictionary<string, string> BuildPersonImageIndex(IEnumerable<BaseItem> items)
+    {
+        var images = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in items)
+        {
+            foreach (var person in _libraryManager.GetPeople(item))
             {
-                return person.Id.ToString("N", CultureInfo.InvariantCulture);
+                if (string.IsNullOrWhiteSpace(person.Name) || person.Id == Guid.Empty || images.ContainsKey(person.Name))
+                {
+                    continue;
+                }
+
+                if (_libraryManager.GetItemById<BaseItem>(person.Id) is { } personItem && personItem.HasImage(MediaBrowser.Model.Entities.ImageType.Primary, 0))
+                {
+                    images[person.Name] = person.Id.ToString("N", CultureInfo.InvariantCulture);
+                }
             }
         }
 
-        return null;
+        return images;
     }
 
     private IReadOnlyList<MetadataCatalogItem> MatchingItems(IndividualCollectionDraftRequest draft)
@@ -536,7 +549,8 @@ public sealed class MetadataCatalogService
 
     private static IReadOnlyDictionary<string, IReadOnlyList<MetadataCatalogValue>> BuildValueIndex(
         IEnumerable<MetadataCatalogItem> items,
-        IEnumerable<string> columns)
+        IEnumerable<string> columns,
+        IReadOnlyDictionary<string, string>? personImages = null)
     {
         var valuesByType = columns.ToDictionary(
             column => column,
@@ -567,7 +581,10 @@ public sealed class MetadataCatalogService
         return valuesByType.ToDictionary(
             type => type.Key,
             type => (IReadOnlyList<MetadataCatalogValue>)type.Value
-                .Select(value => new MetadataCatalogValue(value.Key, value.Value.Count, null))
+                .Select(value => new MetadataCatalogValue(
+                    value.Key,
+                    value.Value.Count,
+                    IsPersonType(type.Key) && personImages is not null && personImages.TryGetValue(value.Key, out var imageId) ? imageId : null))
                 .OrderBy(value => value.Value, StringComparer.OrdinalIgnoreCase)
                 .ToArray(),
             StringComparer.OrdinalIgnoreCase);

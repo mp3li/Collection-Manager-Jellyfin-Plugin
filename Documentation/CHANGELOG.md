@@ -4,6 +4,12 @@
 
 ### Fixed
 
+- Removed request-time person-image discovery from Crew and other person tag
+  pages. It previously ran while the metadata catalog was locked, so opening a
+  large person category could block every dashboard tag picker. Person image
+  IDs are now captured during metadata scans instead.
+- Ordered metadata types as requested: types without a colon first, then
+  `NFO: …` types, followed by `Jellyfin: …` types.
 - Made metadata tag text inherit Jellyfin's active theme colors rather than a
   hard-coded cyan color, so tags and matching counts remain readable across
   dashboard themes.
