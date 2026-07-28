@@ -51,9 +51,10 @@
 ### Changed
 
 - Completed the structural parity correction with Media Tagging Manager:
-  removed Collection Manager-only repeated tab-title cards. The shared plugin
-  explanation now occupies the same position above tabs, and each panel begins
-  with its first functional section using the shared section-card heading.
+  removed Collection Manager-only repeated tab-title cards. Only the shared
+  repository and Patreon line appears above the tabs; Main Settings keeps its
+  own three-paragraph explanation inside that tab, and each panel begins with
+  its first functional section using the shared section-card heading.
 - Made every section heading consistent and moved outer library
   expand/collapse controls to the left, while leaving nested metadata-type
   controls on the right.
@@ -66,8 +67,8 @@
 
 ### Added
 
-- Added the shared repository and Patreon line used by Media Tagging Manager,
-  with the Collection Manager repository as its first link.
+- Added the shared Media Tagging Manager repository and Patreon line above the
+  dashboard tabs.
 - Completed the current four-tab dashboard release: Main Settings, Individual
   Tag Collections, Combined Tag Collections, and Multi-Match Tag Collections.
 - Added the full lazy metadata picker to Combined and Multi-Match: collapsed
