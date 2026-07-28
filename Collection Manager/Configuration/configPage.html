@@ -1,52 +1,52 @@
-<div id="mediaCollectionManagerPage" data-role="page" class="page type-interior" data-require="emby-input,emby-button,emby-checkbox,emby-select">
+<div id="collectionManagerPage" data-role="page" class="page type-interior" data-require="emby-input,emby-button,emby-checkbox,emby-select">
     <style>
-        #mediaCollectionManagerPage .mcm-section { border:1px solid rgba(255,255,255,.16); border-radius:.65em; padding:1.25em; margin:0 0 1.25em; }
-        #mediaCollectionManagerPage .mcm-section h2 { font-size:1.35em; line-height:1.25; margin:0 0 .35em; }
-        #mediaCollectionManagerPage .mcm-tabs { display:flex; flex-wrap:nowrap; gap:.5em; overflow-x:auto; overscroll-behavior-x:contain; border-bottom:1px solid rgba(255,255,255,.16); margin:1.5em 0; padding-bottom:.15em; }
-        #mediaCollectionManagerPage .mcm-tab { flex:0 0 auto; white-space:nowrap; border:0; border-radius:.45em .45em 0 0; padding:.85em 1.25em; background:rgba(255,255,255,.08); color:inherit; cursor:pointer; font-size:1em; }
-        #mediaCollectionManagerPage .mcm-tab.active { background:#00a4dc; color:#fff; font-weight:bold; }
-        #mediaCollectionManagerPage .mcm-panel { display:none; }
-        #mediaCollectionManagerPage .mcm-panel.active { display:block; }
-        #mediaCollectionManagerPage .mcm-actions { display:flex; flex-wrap:wrap; gap:.65em; margin-top:1em; }
-        #mediaCollectionManagerPage .mcm-library-list { margin:.75em 0 0; }
-        #mediaCollectionManagerPage .mcm-progress { height:.6em; overflow:hidden; margin:1em 0 .55em; border-radius:999px; background:rgba(255,255,255,.14); }
-        #mediaCollectionManagerPage .mcm-progress > div { width:0; height:100%; background:linear-gradient(90deg,#AA5CC3,#00A4DC); transition:width .2s ease; }
-        #mediaCollectionManagerPage .mcm-overview-content[hidden] { display:none !important; }
-        #mediaCollectionManagerPage .mcm-library-overview { margin-top:1em; }
-        #mediaCollectionManagerPage .mcm-library-overview + .mcm-library-overview { border-top:1px solid rgba(255,255,255,.16); padding-top:1em; }
-        #mediaCollectionManagerPage .mcm-library-heading { display:flex; align-items:center; justify-content:space-between; gap:1em; }
-        #mediaCollectionManagerPage .mcm-library-heading h3 { margin:0; }
-        #mediaCollectionManagerPage .mcm-catalog-table { width:100%; min-width:44em; table-layout:auto; }
-        #mediaCollectionManagerPage .mcm-catalog-table th, #mediaCollectionManagerPage .mcm-catalog-table td { padding:.7em .8em; vertical-align:top; white-space:normal; overflow-wrap:anywhere; }
-        #mediaCollectionManagerPage .mcm-catalog-table th + th, #mediaCollectionManagerPage .mcm-catalog-table td + td { border-left:1px solid rgba(255,255,255,.16); }
-        #mediaCollectionManagerPage .mcm-catalog-table th:first-child { min-width:15em; }
-        #mediaCollectionManagerPage .mcm-tag-value { color:var(--mcm-metadata-tag-color,#00A4DC); }
-        #mediaCollectionManagerPage .mcm-pagination { display:flex; flex-wrap:wrap; align-items:center; gap:.65em; margin-top:.85em; }
-        #mediaCollectionManagerPage .mcm-tag-type + .mcm-tag-type { border-top:1px solid rgba(255,255,255,.16); margin-top:.75em; padding-top:.75em; }
-        #mediaCollectionManagerPage .mcm-tag-type-content[hidden], #mediaCollectionManagerPage .mcm-picker-library-content[hidden] { display:none !important; }
-        #mediaCollectionManagerPage .mcm-draft-card { border:1px solid rgba(255,255,255,.16); border-radius:.45em; margin:.85em 0; padding:1em; }
-        #mediaCollectionManagerPage .mcm-draft-card h3 { margin:0 0 .35em; }
-        #mediaCollectionManagerPage .mcm-draft-preview[hidden] { display:none !important; }
-        #mediaCollectionManagerPage .mcm-person-image { width:2em; height:2em; vertical-align:middle; object-fit:cover; border-radius:50%; margin-right:.45em; }
-        #mediaCollectionManagerPage .mcm-empty { margin:.75em 0 0; }
-        #mediaCollectionManagerPage button:disabled { opacity:.45; cursor:not-allowed; }
+        #collectionManagerPage .mcm-section { border:1px solid rgba(255,255,255,.16); border-radius:.65em; padding:1.25em; margin:0 0 1.25em; }
+        #collectionManagerPage .mcm-section h2 { font-size:1.35em; line-height:1.25; margin:0 0 .35em; }
+        #collectionManagerPage .mcm-tabs { display:flex; flex-wrap:nowrap; gap:.5em; overflow-x:auto; overscroll-behavior-x:contain; border-bottom:1px solid rgba(255,255,255,.16); margin:1.5em 0; padding-bottom:.15em; }
+        #collectionManagerPage .mcm-tab { flex:0 0 auto; white-space:nowrap; border:0; border-radius:.45em .45em 0 0; padding:.85em 1.25em; background:rgba(255,255,255,.08); color:inherit; cursor:pointer; font-size:1em; }
+        #collectionManagerPage .mcm-tab.active { background:#00a4dc; color:#fff; font-weight:bold; }
+        #collectionManagerPage .mcm-panel { display:none; }
+        #collectionManagerPage .mcm-panel.active { display:block; }
+        #collectionManagerPage .mcm-actions { display:flex; flex-wrap:wrap; gap:.65em; margin-top:1em; }
+        #collectionManagerPage .mcm-library-list { margin:.75em 0 0; }
+        #collectionManagerPage .mcm-progress { height:.6em; overflow:hidden; margin:1em 0 .55em; border-radius:999px; background:rgba(255,255,255,.14); }
+        #collectionManagerPage .mcm-progress > div { width:0; height:100%; background:linear-gradient(90deg,#AA5CC3,#00A4DC); transition:width .2s ease; }
+        #collectionManagerPage .mcm-overview-content[hidden] { display:none !important; }
+        #collectionManagerPage .mcm-library-overview { margin-top:1em; }
+        #collectionManagerPage .mcm-library-overview + .mcm-library-overview { border-top:1px solid rgba(255,255,255,.16); padding-top:1em; }
+        #collectionManagerPage .mcm-library-heading { display:flex; align-items:center; justify-content:space-between; gap:1em; }
+        #collectionManagerPage .mcm-library-heading h3 { margin:0; }
+        #collectionManagerPage .mcm-catalog-table { width:100%; min-width:44em; table-layout:auto; }
+        #collectionManagerPage .mcm-catalog-table th, #collectionManagerPage .mcm-catalog-table td { padding:.7em .8em; vertical-align:top; white-space:normal; overflow-wrap:anywhere; }
+        #collectionManagerPage .mcm-catalog-table th + th, #collectionManagerPage .mcm-catalog-table td + td { border-left:1px solid rgba(255,255,255,.16); }
+        #collectionManagerPage .mcm-catalog-table th:first-child { min-width:15em; }
+        #collectionManagerPage .mcm-tag-value { color:var(--mcm-metadata-tag-color,#00A4DC); }
+        #collectionManagerPage .mcm-pagination { display:flex; flex-wrap:wrap; align-items:center; gap:.65em; margin-top:.85em; }
+        #collectionManagerPage .mcm-tag-type + .mcm-tag-type { border-top:1px solid rgba(255,255,255,.16); margin-top:.75em; padding-top:.75em; }
+        #collectionManagerPage .mcm-tag-type-content[hidden], #collectionManagerPage .mcm-picker-library-content[hidden] { display:none !important; }
+        #collectionManagerPage .mcm-draft-card { border:1px solid rgba(255,255,255,.16); border-radius:.45em; margin:.85em 0; padding:1em; }
+        #collectionManagerPage .mcm-draft-card h3 { margin:0 0 .35em; }
+        #collectionManagerPage .mcm-draft-preview[hidden] { display:none !important; }
+        #collectionManagerPage .mcm-person-image { width:2em; height:2em; vertical-align:middle; object-fit:cover; border-radius:50%; margin-right:.45em; }
+        #collectionManagerPage .mcm-empty { margin:.75em 0 0; }
+        #collectionManagerPage button:disabled { opacity:.45; cursor:not-allowed; }
     </style>
 
     <div data-role="content"><div class="content-primary">
-        <h1>Media Collection Manager</h1>
+        <h1>Collection Manager</h1>
 
-        <div class="mcm-tabs" role="tablist" aria-label="Media Collection Manager sections"><button type="button" class="mcm-tab active" data-tab="main" role="tab" aria-selected="true">Main Settings</button><button type="button" class="mcm-tab" data-tab="individual" role="tab" aria-selected="false">Individual Tag Collections</button><button type="button" class="mcm-tab" data-tab="combined" role="tab" aria-selected="false">Combined Tag Collections</button><button type="button" class="mcm-tab" data-tab="multi" role="tab" aria-selected="false">Multi-Match Tag Collections</button></div>
+        <div class="mcm-tabs" role="tablist" aria-label="Collection Manager sections"><button type="button" class="mcm-tab active" data-tab="main" role="tab" aria-selected="true">Main Settings</button><button type="button" class="mcm-tab" data-tab="individual" role="tab" aria-selected="false">Individual Tag Collections</button><button type="button" class="mcm-tab" data-tab="combined" role="tab" aria-selected="false">Combined Tag Collections</button><button type="button" class="mcm-tab" data-tab="multi" role="tab" aria-selected="false">Multi-Match Tag Collections</button></div>
 
         <div class="mcm-panel active" data-panel="main">
         <h2>Main Settings</h2>
-        <p class="fieldDescription">Media Collection Manager reads the metadata already assigned to your media and builds a local catalog you can later use to create and maintain Jellyfin collections.</p>
+        <p class="fieldDescription">Collection Manager reads the metadata already assigned to your media and builds a local catalog you can later use to create and maintain Jellyfin collections.</p>
         <p class="fieldDescription">Metadata tags are descriptive information connected to a media item, such as genres, providers, networks, studios, directors, cast members, composers, years, custom tags, and other metadata already available in your Jellyfin libraries or local NFO files. For example, a title may have tags such as <code>Provider: MarqueeTV</code>, <code>Network: HBO</code>, <code>Opera</code>, <code>Broadway</code>, or <code>Live Performance</code>.</p>
-        <p class="fieldDescription">This plugin uses all available metadata tags; it does not fetch, add, edit, or remove metadata from your media. It was especially designed to work alongside the <a href="https://github.com/mp3li/Media-Tagging-Manager-Jellyfin-Plugin" target="_blank" rel="noopener noreferrer">Media Tagging Manager Jellyfin Plugin</a>, which can create and assign many of the tags that Media Collection Manager can then use to organize your library into collections.</p>
+        <p class="fieldDescription">This plugin uses all available metadata tags; it does not fetch, add, edit, or remove metadata from your media. It was especially designed to work alongside the <a href="https://github.com/mp3li/Media-Tagging-Manager-Jellyfin-Plugin" target="_blank" rel="noopener noreferrer">Media Tagging Manager Jellyfin Plugin</a>, which can create and assign many of the tags that Collection Manager can then use to organize your library into collections.</p>
 
         <section class="mcm-section">
             <h2>Selected Libraries</h2>
-            <p class="fieldDescription">Choose which Jellyfin libraries Media Collection Manager will scan for metadata.</p>
-            <p class="fieldDescription">Select one or more libraries to include in Media Collection Manager.</p>
+            <p class="fieldDescription">Choose which Jellyfin libraries Collection Manager will scan for metadata.</p>
+            <p class="fieldDescription">Select one or more libraries to include in Collection Manager.</p>
             <div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="selectAllLibrariesButton">Select All</button><button is="emby-button" type="button" class="raised" id="selectNoLibrariesButton">Select None</button></div>
             <div id="libraryChoices" class="mcm-library-list"></div>
             <div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="saveLibrariesButton">Save Libraries</button></div>
@@ -97,10 +97,10 @@
     <script>
     (function () {
         'use strict';
-        var page = document.querySelector('#mediaCollectionManagerPage');
+        var page = document.querySelector('#collectionManagerPage');
         var config, libraries = [], lastStatus;
         var $ = function (selector) { return page.querySelector(selector); };
-        var url = function (path) { return ApiClient.getUrl('MediaCollectionManager/' + path); };
+        var url = function (path) { return ApiClient.getUrl('CollectionManager/' + path); };
         var get = function (path) { return ApiClient.getJSON(url(path)); };
         var send = function (method, path, data) { return ApiClient.ajax({ type: method, url: url(path), data: data === undefined ? undefined : JSON.stringify(data), contentType: 'application/json', dataType: 'json' }); };
         var prop = function (object, name) { return object && (object[name] !== undefined ? object[name] : object[name.charAt(0).toLowerCase() + name.slice(1)]); };

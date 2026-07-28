@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="Assets/Branding/media-collection-manager-icon.png" alt="Media Collection Manager icon: a Jellyfin-style television containing an open collection box" width="180" />
+  <img src="Assets/Branding/collection-manager-icon.png" alt="Collection Manager icon: a Jellyfin-style television containing an open collection box" width="180" />
 </p>
 
-<h1 align="center">Media Collection Manager</h1>
+<h1 align="center">Collection Manager</h1>
 
 <p align="center">
   <img src="Assets/Badges/status.svg" alt="Early testing build" />
@@ -18,7 +18,7 @@
 ## What it is for
 
 Building a useful collection in Jellyfin should not mean adding titles one at a
-time. Media Collection Manager scans the metadata that already exists in the
+time. Collection Manager scans the metadata that already exists in the
 libraries you choose and gives you reviewed, bulk collection drafts instead.
 
 Metadata is descriptive information already connected to a media item: genres,
@@ -51,7 +51,7 @@ normal Jellyfin artwork, image, and three-dot-menu controls remain available.
 
 ## Metadata and privacy boundary
 
-Media Collection Manager is read-only with respect to your library metadata. It
+Collection Manager is read-only with respect to your library metadata. It
 does not fetch metadata from the internet, create tags, modify tags, rewrite NFO
 files, rename media, move files, or access streaming services. It builds a
 temporary in-server catalog from the latest scan and does all matching on the
@@ -76,13 +76,13 @@ targets the Jellyfin 10.11 ABI.
 Build the plugin:
 
 ```bash
-dotnet build "Media Collection Manager/MediaCollectionManager.csproj" --configuration Release
+dotnet build "Collection Manager/CollectionManager.csproj" --configuration Release
 ```
 
 For a direct private DLL test, copy
-`Media Collection Manager/bin/Release/net9.0/Jellyfin.Plugin.MediaCollectionManager.dll`
-to a dedicated Media Collection Manager directory inside your Jellyfin plugins
-directory, restart Jellyfin, then open **Dashboard → Media Collection Manager**.
+`Collection Manager/bin/Release/net9.0/Jellyfin.Plugin.CollectionManager.dll`
+to a dedicated Collection Manager directory inside your Jellyfin plugins
+directory, restart Jellyfin, then open **Dashboard → Collection Manager**.
 
 For repository-manifest testing, first make a release ZIP containing the exact
 Release DLL, publish that ZIP as a GitHub Release asset, calculate its SHA-256,
@@ -92,11 +92,11 @@ asset. The current private-testing release is available through this repository
 manifest:
 
 ```text
-https://raw.githubusercontent.com/mp3li/Collection-Maker-Jellyfin-Plugin/main/manifest.json
+https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/manifest.json
 ```
 
 In Jellyfin, open **Dashboard → Plugins → Repositories**, add that URL, then
-install the **0.1.0.0 Private Testing** prerelease from the catalog. Restart
+install the **0.1.0.1 Private Testing** prerelease from the catalog. Restart
 Jellyfin and record the real server results in the testing tracker.
 
 ## Private test tracking
@@ -114,5 +114,5 @@ for the actual server results.
 
 ## License
 
-Media Collection Manager is available under the [Media Collection Manager
+Collection Manager is available under the [Collection Manager
 Noncommercial License 1.0](LICENSE).

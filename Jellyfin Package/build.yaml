@@ -1,7 +1,7 @@
 ---
-name: "Media Collection Manager"
+name: "Collection Manager"
 guid: "5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9"
-version: "0.1.0.0"
+version: "0.1.0.1"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 overview: "Visual metadata-driven native collection creation for Jellyfin."
@@ -11,7 +11,7 @@ description: >
 category: "General"
 owner: "mp3li"
 artifacts:
-  - "Jellyfin.Plugin.MediaCollectionManager.dll"
+  - "Jellyfin.Plugin.CollectionManager.dll"
 changelog: >
   Current four-tab testing build: metadata catalog scanning plus individual,
   combined-union, and multi-match-intersection native collection workflows.

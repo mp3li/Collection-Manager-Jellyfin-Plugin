@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed the plugin, project, assembly, dashboard route, manifest, branding,
+  license, and public repository to Collection Manager.
+
 ### Added
 
 - Completed the current four-tab dashboard release: Main Settings, Individual
@@ -15,8 +20,6 @@
   workflows; existing collections are never silently changed or duplicated.
 - Added progress, current-action status, and completion outcomes to the
   one-draft collection workflows.
-
-### Changed
 
 - Updated the product goals and private testing tracker to make the current
   four-tab release boundary explicit.

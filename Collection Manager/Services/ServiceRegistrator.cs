@@ -2,9 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Tasks;
-using Jellyfin.Plugin.MediaCollectionManager.Tasks;
+using Jellyfin.Plugin.CollectionManager.Tasks;
 
-namespace Jellyfin.Plugin.MediaCollectionManager.Services;
+namespace Jellyfin.Plugin.CollectionManager.Services;
 
 /// <summary>Registers collection services and the metadata watcher with Jellyfin's DI container.</summary>
 public sealed class ServiceRegistrator : IPluginServiceRegistrator

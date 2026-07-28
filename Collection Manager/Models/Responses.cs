@@ -1,4 +1,4 @@
-namespace Jellyfin.Plugin.MediaCollectionManager.Models;
+namespace Jellyfin.Plugin.CollectionManager.Models;
 
 /// <summary>Facets currently available from the media library.</summary>
 public sealed class MetadataFacets

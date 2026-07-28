@@ -1,6 +1,6 @@
-using Jellyfin.Plugin.MediaCollectionManager.Configuration;
+using Jellyfin.Plugin.CollectionManager.Configuration;
 
-namespace Jellyfin.Plugin.MediaCollectionManager.Models;
+namespace Jellyfin.Plugin.CollectionManager.Models;
 
 /// <summary>Values owned by the server-wide Main Settings dashboard tab.</summary>
 public sealed class MainSettingsRequest

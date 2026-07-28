@@ -1,4 +1,4 @@
-namespace Jellyfin.Plugin.MediaCollectionManager.Configuration;
+namespace Jellyfin.Plugin.CollectionManager.Configuration;
 
 /// <summary>Metadata fields that can drive an automatic collection.</summary>
 public enum CollectionRuleField

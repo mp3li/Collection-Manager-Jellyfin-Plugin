@@ -1,7 +1,7 @@
-using Jellyfin.Plugin.MediaCollectionManager.Services;
+using Jellyfin.Plugin.CollectionManager.Services;
 using MediaBrowser.Model.Tasks;
 
-namespace Jellyfin.Plugin.MediaCollectionManager.Tasks;
+namespace Jellyfin.Plugin.CollectionManager.Tasks;
 
 /// <summary>Dashboard task that reconciles enabled automatic collection rules.</summary>
 public sealed class ReconcileCollectionsTask : IScheduledTask
@@ -17,13 +17,13 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
     }
 
     /// <inheritdoc />
-    public string Name => "Reconcile Media Collection Manager rules";
+    public string Name => "Reconcile Collection Manager rules";
 
     /// <inheritdoc />
-    public string Key => "MediaCollectionManagerReconcile";
+    public string Key => "CollectionManagerReconcile";
 
     /// <inheritdoc />
-    public string Description => "Creates, adds, and removes collection items from the enabled Media Collection Manager rules.";
+    public string Description => "Creates, adds, and removes collection items from the enabled Collection Manager rules.";
 
     /// <inheritdoc />
     public string Category => "Library";

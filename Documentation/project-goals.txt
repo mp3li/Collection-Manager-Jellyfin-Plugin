@@ -1,9 +1,9 @@
-MEDIA COLLECTION MANAGER — CURRENT RELEASE GOALS
+COLLECTION MANAGER — CURRENT RELEASE GOALS
 =================================================
 
 Purpose
 -------
-Media Collection Manager is a Jellyfin 10.11.11 dashboard plugin for making
+Collection Manager is a Jellyfin 10.11.11 dashboard plugin for making
 ordinary native Jellyfin collections from metadata that already exists in the
 administrator's selected libraries. It reads Jellyfin-assigned metadata and
 local-NFO metadata without fetching, adding, editing, removing, or replacing
@@ -112,7 +112,7 @@ Compatibility and packaging requirements
 ----------------------------------------
 - Build against Jellyfin.Controller and Jellyfin.Model 10.11.11 using net9.0.
 - Target the Jellyfin 10.11 ABI declared by the package metadata.
-- Preserve the Media Collection Manager Noncommercial License 1.0.
+- Preserve the Collection Manager Noncommercial License 1.0.
 - A repository manifest is created only for a real release ZIP. Its version,
   target ABI, framework, release source URL, SHA-256 checksum, timestamp,
   description, branding image, and changelog must describe that exact artifact.

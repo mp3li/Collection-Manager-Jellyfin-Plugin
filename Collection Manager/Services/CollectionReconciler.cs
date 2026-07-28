@@ -1,5 +1,5 @@
-using Jellyfin.Plugin.MediaCollectionManager.Configuration;
-using Jellyfin.Plugin.MediaCollectionManager.Models;
+using Jellyfin.Plugin.CollectionManager.Configuration;
+using Jellyfin.Plugin.CollectionManager.Models;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Reflection;
 
-namespace Jellyfin.Plugin.MediaCollectionManager.Services;
+namespace Jellyfin.Plugin.CollectionManager.Services;
 
 /// <summary>Builds, updates, and reconciles standard Jellyfin collections from local metadata.</summary>
 public sealed class CollectionReconciler
@@ -197,10 +197,10 @@ public sealed class CollectionReconciler
     }
 
     private static Plugin RequirePlugin() =>
-        Plugin.Instance ?? throw new InvalidOperationException("Media Collection Manager has not finished initializing.");
+        Plugin.Instance ?? throw new InvalidOperationException("Collection Manager has not finished initializing.");
 
     private static PluginConfiguration RequireConfiguration() =>
-        Plugin.Instance?.Configuration ?? throw new InvalidOperationException("Media Collection Manager is not initialized.");
+        Plugin.Instance?.Configuration ?? throw new InvalidOperationException("Collection Manager is not initialized.");
 
     private static void UpdateRuleRunState(Plugin plugin, Guid ruleId, Guid collectionId) =>
         plugin.UpdateConfigurationSafely(configuration =>

@@ -1,7 +1,7 @@
 using System.Xml.Linq;
 using MediaBrowser.Controller.Entities;
 
-namespace Jellyfin.Plugin.MediaCollectionManager.Services;
+namespace Jellyfin.Plugin.CollectionManager.Services;
 
 /// <summary>Reads selected existing values from a media item's adjacent Jellyfin NFO sidecar.</summary>
 /// <remarks>

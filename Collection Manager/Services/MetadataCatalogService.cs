@@ -1,13 +1,13 @@
 using System.Globalization;
 using System.Reflection;
-using Jellyfin.Plugin.MediaCollectionManager.Models;
+using Jellyfin.Plugin.CollectionManager.Models;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.MediaCollectionManager.Services;
+namespace Jellyfin.Plugin.CollectionManager.Services;
 
 /// <summary>Builds an in-server, read-only catalog of existing metadata for the dashboard overview.</summary>
 public sealed class MetadataCatalogService
@@ -221,7 +221,7 @@ public sealed class MetadataCatalogService
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Media Collection Manager could not scan the saved libraries for metadata tags.");
+            _logger.LogError(exception, "Collection Manager could not scan the saved libraries for metadata tags.");
             lock (_sync)
             {
                 _status = new MetadataCatalogStatus(false, 0, 0, _status.LastCompletedUtc, "Metadata tag scan could not be completed. Check the Jellyfin server log and try again.");

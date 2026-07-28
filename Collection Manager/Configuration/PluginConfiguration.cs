@@ -1,11 +1,11 @@
 using MediaBrowser.Model.Plugins;
 
-namespace Jellyfin.Plugin.MediaCollectionManager.Configuration;
+namespace Jellyfin.Plugin.CollectionManager.Configuration;
 
-/// <summary>Configuration persisted by Jellyfin for Media Collection Manager.</summary>
+/// <summary>Configuration persisted by Jellyfin for Collection Manager.</summary>
 public sealed class PluginConfiguration : BasePluginConfiguration
 {
-    /// <summary>Gets or sets the metadata sources Media Collection Manager may use.</summary>
+    /// <summary>Gets or sets the metadata sources Collection Manager may use.</summary>
     public MetadataSourceMode MetadataSourceMode { get; set; } = MetadataSourceMode.Both;
 
     /// <summary>Gets or sets which source is presented first when both provide a value.</summary>

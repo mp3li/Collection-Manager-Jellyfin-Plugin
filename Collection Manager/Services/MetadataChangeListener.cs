@@ -1,12 +1,12 @@
-using Jellyfin.Plugin.MediaCollectionManager.Configuration;
-using Jellyfin.Plugin.MediaCollectionManager.Tasks;
+using Jellyfin.Plugin.CollectionManager.Configuration;
+using Jellyfin.Plugin.CollectionManager.Tasks;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.MediaCollectionManager.Services;
+namespace Jellyfin.Plugin.CollectionManager.Services;
 
 /// <summary>Debounces local item metadata changes and reconciles active rules.</summary>
 public sealed class MetadataChangeListener : IHostedService, IDisposable
@@ -75,7 +75,7 @@ public sealed class MetadataChangeListener : IHostedService, IDisposable
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Media Collection Manager could not reconcile after a metadata change.");
+            _logger.LogError(exception, "Collection Manager could not reconcile after a metadata change.");
         }
     }
 }

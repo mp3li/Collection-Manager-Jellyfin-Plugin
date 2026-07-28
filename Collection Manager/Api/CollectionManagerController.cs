@@ -1,7 +1,7 @@
-using Jellyfin.Plugin.MediaCollectionManager.Configuration;
-using Jellyfin.Plugin.MediaCollectionManager.Models;
-using Jellyfin.Plugin.MediaCollectionManager.Services;
-using Jellyfin.Plugin.MediaCollectionManager.Tasks;
+using Jellyfin.Plugin.CollectionManager.Configuration;
+using Jellyfin.Plugin.CollectionManager.Models;
+using Jellyfin.Plugin.CollectionManager.Services;
+using Jellyfin.Plugin.CollectionManager.Tasks;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -9,13 +9,13 @@ using MediaBrowser.Model.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Jellyfin.Plugin.MediaCollectionManager.Api;
+namespace Jellyfin.Plugin.CollectionManager.Api;
 
-/// <summary>Administrator API used by the Media Collection Manager dashboard page.</summary>
+/// <summary>Administrator API used by the Collection Manager dashboard page.</summary>
 [ApiController]
 [Authorize(Policy = "RequiresElevation")]
-[Route("MediaCollectionManager")]
-public sealed class MediaCollectionManagerController : ControllerBase
+[Route("CollectionManager")]
+public sealed class CollectionManagerController : ControllerBase
 {
     private readonly CollectionReconciler _reconciler;
     private readonly MetadataCatalogService _metadataCatalog;
@@ -23,8 +23,8 @@ public sealed class MediaCollectionManagerController : ControllerBase
     private readonly ManualReconciliationRequestQueue _requests;
     private readonly ITaskManager _taskManager;
 
-    /// <summary>Initializes a new instance of the <see cref="MediaCollectionManagerController"/> class.</summary>
-    public MediaCollectionManagerController(
+    /// <summary>Initializes a new instance of the <see cref="CollectionManagerController"/> class.</summary>
+    public CollectionManagerController(
         CollectionReconciler reconciler,
         MetadataCatalogService metadataCatalog,
         ILibraryManager libraryManager,
@@ -411,7 +411,7 @@ public sealed class MediaCollectionManagerController : ControllerBase
     }
 
     private static Plugin RequirePlugin() =>
-        Plugin.Instance ?? throw new InvalidOperationException("Media Collection Manager has not finished initializing.");
+        Plugin.Instance ?? throw new InvalidOperationException("Collection Manager has not finished initializing.");
 
     private void ReloadScheduledTaskTriggers()
     {

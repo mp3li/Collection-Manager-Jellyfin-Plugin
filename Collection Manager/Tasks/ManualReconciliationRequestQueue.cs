@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace Jellyfin.Plugin.MediaCollectionManager.Tasks;
+namespace Jellyfin.Plugin.CollectionManager.Tasks;
 
 /// <summary>Shares short dashboard and metadata-event reconciliation requests with Jellyfin's native task.</summary>
 public sealed class ManualReconciliationRequestQueue

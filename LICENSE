@@ -1,4 +1,4 @@
-Media Collection Manager Noncommercial License 1.0
+Collection Manager Noncommercial License 1.0
 
 Copyright (c) 2026 mp3li
 
@@ -13,8 +13,8 @@ research, charitable, and other noncommercial purposes.
 Every redistributed copy or modified version, including a fork, must retain:
 
 - this copyright notice and this license;
-- the credit "Media Collection Manager Jellyfin Plugin by mp3li"; and
-- a link to https://github.com/mp3li/Collection-Maker-Jellyfin-Plugin.
+- the credit "Collection Manager Jellyfin Plugin by mp3li"; and
+- a link to https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin.
 
 Modified versions must also clearly state that they were modified and must not
 claim to be the original project.
@@ -30,7 +30,7 @@ advantage or monetary compensation.
 4. No trademark permission
 
 This license does not grant permission to use the name "mp3li" or the name
-"Media Collection Manager Jellyfin Plugin" to imply endorsement, sponsorship,
+"Collection Manager Jellyfin Plugin" to imply endorsement, sponsorship,
 or official status for a modified version.
 
 5. Termination
