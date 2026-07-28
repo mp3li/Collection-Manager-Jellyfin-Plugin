@@ -123,9 +123,7 @@ public sealed class MetadataCatalogService
 
             return catalog.Columns.Select(column => new MetadataCatalogType(
                     column,
-                    catalog.Items.SelectMany(item => item.Metadata.TryGetValue(column, out var values) ? values : [])
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .Count()))
+                    catalog.ValuesByType.TryGetValue(column, out var values) ? values.Count : 0))
                 .Where(type => type.ValueCount > 0)
                 .OrderBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
@@ -144,14 +142,11 @@ public sealed class MetadataCatalogService
             }
 
             var term = searchTerm?.Trim();
-            var values = catalog.Items.SelectMany(item => item.Metadata.TryGetValue(normalizedType, out var itemValues)
-                    ? itemValues.Select(value => new { Value = value, ItemId = item.Id })
-                    : [])
+            var values = (catalog.ValuesByType.TryGetValue(normalizedType, out var catalogValues) ? catalogValues : [])
                 .Where(value => string.IsNullOrWhiteSpace(term) || value.Value.Contains(term, StringComparison.OrdinalIgnoreCase))
-                .GroupBy(value => value.Value, StringComparer.OrdinalIgnoreCase)
-                .Select(group => new MetadataCatalogValue(group.Key, group.Select(value => value.ItemId).Distinct().Count(),
-                    IsPersonType(normalizedType) ? FindPersonImageId(catalog, normalizedType, group.Key) : null))
-                .OrderBy(value => value.Value, StringComparer.OrdinalIgnoreCase)
+                .Select(value => IsPersonType(normalizedType)
+                    ? value with { PersonImageUrl = FindPersonImageId(catalog, normalizedType, value.Value) }
+                    : value)
                 .ToArray();
             const int pageSize = 50;
             var pageCount = Math.Max(1, (int)Math.Ceiling(values.Length / (double)pageSize));
@@ -227,11 +222,13 @@ public sealed class MetadataCatalogService
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(column => column, StringComparer.OrdinalIgnoreCase)
                     .ToArray();
+                var valuesByType = BuildValueIndex(rows, columns);
                 nextCatalogs[folder.Id] = new CatalogLibrary(
                     folder.Id,
                     folder.Name,
                     rows.OrderBy(row => row.Title, StringComparer.OrdinalIgnoreCase).ToArray(),
-                    columns);
+                    columns,
+                    valuesByType);
             }
 
             var completedAt = DateTime.UtcNow;
@@ -488,7 +485,12 @@ public sealed class MetadataCatalogService
                     group =>
                     {
                         var library = group.First();
-                        return new CatalogLibrary(library.LibraryId, library.LibraryName, library.Items, library.Columns);
+                        return new CatalogLibrary(
+                            library.LibraryId,
+                            library.LibraryName,
+                            library.Items,
+                            library.Columns,
+                            library.ValuesByType ?? BuildValueIndex(library.Items, library.Columns));
                     });
             var itemCount = restored.Values.Sum(library => library.Items.Count);
             lock (_sync)
@@ -518,7 +520,8 @@ public sealed class MetadataCatalogService
                     catalog.LibraryId,
                     catalog.LibraryName,
                     catalog.Items,
-                    catalog.Columns)).ToArray());
+                    catalog.Columns,
+                    catalog.ValuesByType)).ToArray());
             Directory.CreateDirectory(Path.GetDirectoryName(_catalogFilePath)!);
             var temporaryPath = _catalogFilePath + ".tmp";
             File.WriteAllText(temporaryPath, JsonSerializer.Serialize(snapshot));
@@ -530,6 +533,50 @@ public sealed class MetadataCatalogService
         }
     }
 
+    private static IReadOnlyDictionary<string, IReadOnlyList<MetadataCatalogValue>> BuildValueIndex(
+        IEnumerable<MetadataCatalogItem> items,
+        IEnumerable<string> columns)
+    {
+        var valuesByType = columns.ToDictionary(
+            column => column,
+            _ => new Dictionary<string, HashSet<Guid>>(StringComparer.OrdinalIgnoreCase),
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var item in items)
+        {
+            foreach (var metadata in item.Metadata)
+            {
+                if (!valuesByType.TryGetValue(metadata.Key, out var values))
+                {
+                    continue;
+                }
+
+                foreach (var value in metadata.Value.Where(value => !string.IsNullOrWhiteSpace(value)))
+                {
+                    if (!values.TryGetValue(value, out var matchingItems))
+                    {
+                        matchingItems = [];
+                        values[value] = matchingItems;
+                    }
+
+                    matchingItems.Add(item.Id);
+                }
+            }
+        }
+
+        return valuesByType.ToDictionary(
+            type => type.Key,
+            type => (IReadOnlyList<MetadataCatalogValue>)type.Value
+                .Select(value => new MetadataCatalogValue(value.Key, value.Value.Count, null))
+                .OrderBy(value => value.Value, StringComparer.OrdinalIgnoreCase)
+                .ToArray(),
+            StringComparer.OrdinalIgnoreCase);
+    }
+
     private sealed record ScanLibrary(Guid Id, string Name, BaseItem[] Items);
-    private sealed record CatalogLibrary(Guid LibraryId, string LibraryName, IReadOnlyList<MetadataCatalogItem> Items, IReadOnlyList<string> Columns);
+    private sealed record CatalogLibrary(
+        Guid LibraryId,
+        string LibraryName,
+        IReadOnlyList<MetadataCatalogItem> Items,
+        IReadOnlyList<string> Columns,
+        IReadOnlyDictionary<string, IReadOnlyList<MetadataCatalogValue>> ValuesByType);
 }

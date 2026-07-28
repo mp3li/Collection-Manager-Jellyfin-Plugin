@@ -84,7 +84,8 @@ public sealed record MetadataCatalogSnapshotLibrary(
     Guid LibraryId,
     string LibraryName,
     IReadOnlyList<MetadataCatalogItem> Items,
-    IReadOnlyList<string> Columns);
+    IReadOnlyList<string> Columns,
+    IReadOnlyDictionary<string, IReadOnlyList<MetadataCatalogValue>>? ValuesByType = null);
 
 /// <summary>Small dashboard response identifying the libraries and timestamp of the last available scan.</summary>
 public sealed record MetadataCatalogAvailability(

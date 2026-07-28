@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Pre-indexed every metadata type's tag values and matching-media counts when
+  the catalog is saved. Opening a category now uses that saved index instead of
+  repeatedly walking every title in the library.
 - Replaced the incorrect per-title **My Metadata Tags** renderer with the
   actual metadata-value picker. Each library now loads its tag categories, and
   every expanded category shows only its real tags, matching-media counts,

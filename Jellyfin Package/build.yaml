@@ -1,7 +1,7 @@
 ---
 name: "Collection Manager"
 guid: "5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9"
-version: "0.1.0.5"
+version: "0.1.0.6"
 targetAbi: "10.11.11.0"
 framework: "net9.0"
 overview: "Visual metadata-driven native collection creation for Jellyfin."
@@ -13,5 +13,5 @@ owner: "mp3li"
 artifacts:
   - "Jellyfin.Plugin.CollectionManager.dll"
 changelog: >
-  Corrected My Metadata Tags to show actual metadata tag values by category,
-  rather than media-title rows and empty placeholders.
+  Pre-indexes metadata tag values in the saved scan so category expansion is a
+  direct lookup instead of repeatedly processing every media item in a library.
