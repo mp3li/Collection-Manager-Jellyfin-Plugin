@@ -66,6 +66,8 @@
 
 ### Added
 
+- Added the shared repository and Patreon line used by Media Tagging Manager,
+  with the Collection Manager repository as its first link.
 - Completed the current four-tab dashboard release: Main Settings, Individual
   Tag Collections, Combined Tag Collections, and Multi-Match Tag Collections.
 - Added the full lazy metadata picker to Combined and Multi-Match: collapsed

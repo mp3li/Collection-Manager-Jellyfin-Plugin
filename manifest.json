@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.11",
-        "changelog": "Removes the Collection Manager-only repeated tab headings so the in-panel hierarchy now follows Media Tagging Manager's section-first layout.",
+        "version": "0.1.0.12",
+        "changelog": "Adds the shared repository and Patreon line used by Media Tagging Manager, with Collection Manager's repository as the first link.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.11/CollectionManager_0.1.0.11.zip",
-        "checksum": "69c00f9ce1fe1a3271e2f72f46c45d30",
-        "timestamp": "2026-07-28T20:14:33Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.12/CollectionManager_0.1.0.12.zip",
+        "checksum": "84bc017c25d73e7961b8afcf56281530",
+        "timestamp": "2026-07-28T20:28:09Z"
       }
     ]
   }
