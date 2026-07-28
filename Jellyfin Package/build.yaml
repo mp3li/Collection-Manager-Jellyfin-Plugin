@@ -1,7 +1,7 @@
 ---
 name: "Collection Manager"
 guid: "5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9"
-version: "0.1.0.8"
+version: "0.1.0.9"
 targetAbi: "10.11.11.0"
 framework: "net9.0"
 overview: "Visual metadata-driven native collection creation for Jellyfin."
@@ -13,5 +13,5 @@ owner: "mp3li"
 artifacts:
   - "Jellyfin.Plugin.CollectionManager.dll"
 changelog: >
-  Removes request-time Crew/person-image lookups that could block every
-  metadata picker, and orders plain, NFO, then Jellyfin metadata types.
+  Keeps all tag-pagination controls at the viewer's exact page position,
+  promotes section headers, and moves outer library controls to the left.

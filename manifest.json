@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.8",
-        "changelog": "Removes request-time Crew/person-image lookups that could block every metadata picker, and orders plain, NFO, then Jellyfin metadata types.",
+        "version": "0.1.0.9",
+        "changelog": "Keeps all tag-pagination controls at the viewer's exact page position, promotes section headers, and moves outer library controls to the left.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.8/CollectionManager_0.1.0.8.zip",
-        "checksum": "59c3e91ed4856dd1325e00c6438f51b3",
-        "timestamp": "2026-07-28T07:41:55Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.9/CollectionManager_0.1.0.9.zip",
+        "checksum": "69db491bdb5767d2131c681d707f79dd",
+        "timestamp": "2026-07-28T19:48:30Z"
       }
     ]
   }

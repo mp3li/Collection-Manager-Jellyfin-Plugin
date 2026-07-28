@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Kept the dashboard at its exact viewport position when using Previous Page
+  or Next Page in Main Settings, Individual, Combined, and Multi-Match tag
+  views. The controls are also blurred before their list is replaced, avoiding
+  Jellyfin's focus-driven scroll jump.
 - Removed request-time person-image discovery from Crew and other person tag
   pages. It previously ran while the metadata catalog was locked, so opening a
   large person category could block every dashboard tag picker. Person image
@@ -46,6 +50,9 @@
 
 ### Changed
 
+- Made every tab section heading use the same large, bold heading treatment as
+  the tab's own title. Moved outer library expand/collapse controls to the
+  left, while leaving nested metadata-type controls on the right.
 - Added separate metadata-type and metadata-tag searches above the saved-scan
   library overview, changed collection pickers to a two-column layout where
   there is room, and made the Individual draft's other-library scope a proper

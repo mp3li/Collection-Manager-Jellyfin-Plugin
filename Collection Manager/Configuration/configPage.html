@@ -1,7 +1,7 @@
 <div id="collectionManagerPage" data-role="page" class="page type-interior" data-require="emby-input,emby-button,emby-checkbox,emby-select">
     <style>
         #collectionManagerPage .mcm-section { border:1px solid rgba(255,255,255,.16); border-radius:.65em; padding:1.25em; margin:0 0 1.25em; }
-        #collectionManagerPage .mcm-section h2 { font-size:1.35em; line-height:1.25; margin:0 0 .35em; }
+        #collectionManagerPage h2 { font-size:1.5em; line-height:1.25; margin:0 0 .35em; font-weight:700; }
         #collectionManagerPage .mcm-tabs { display:flex; flex-wrap:nowrap; gap:.5em; overflow-x:auto; overscroll-behavior-x:contain; border-bottom:1px solid rgba(255,255,255,.16); margin:1.5em 0; padding-bottom:.15em; }
         #collectionManagerPage .mcm-tab { flex:0 0 auto; white-space:nowrap; border:0; border-radius:.45em .45em 0 0; padding:.85em 1.25em; background:rgba(255,255,255,.08); color:inherit; cursor:pointer; font-size:1em; }
         #collectionManagerPage .mcm-tab.active { background:#00a4dc; color:#fff; font-weight:bold; }
@@ -16,6 +16,8 @@
         #collectionManagerPage .mcm-library-overview + .mcm-library-overview { border-top:1px solid rgba(255,255,255,.16); padding-top:1em; }
         #collectionManagerPage .mcm-library-heading { display:flex; align-items:center; justify-content:space-between; gap:1em; }
         #collectionManagerPage .mcm-library-heading h3 { margin:0; }
+        #collectionManagerPage .mcm-library-overview > .mcm-library-heading { justify-content:flex-start; }
+        #collectionManagerPage .mcm-library-overview > .mcm-library-heading > button { order:-1; }
         #collectionManagerPage .mcm-overview-type { border-top:1px solid rgba(255,255,255,.16); margin-top:1em; padding-top:1em; }
         #collectionManagerPage .mcm-overview-type-heading { display:flex; align-items:center; justify-content:space-between; gap:1em; }
         #collectionManagerPage .mcm-overview-type-heading h4 { margin:0; font-size:1.1em; }
@@ -29,6 +31,7 @@
         #collectionManagerPage .mcm-additional-libraries { border-top:1px solid rgba(128,128,128,.35); margin-top:1em; padding-top:1em; }
         #collectionManagerPage .mcm-additional-libraries-options[hidden] { display:none !important; }
         #collectionManagerPage .mcm-pagination { display:flex; flex-wrap:wrap; align-items:center; gap:.65em; margin-top:.85em; }
+        #collectionManagerPage .mcm-overview-type-content, #collectionManagerPage .mcm-tag-type-content { overflow-anchor:none; }
         #collectionManagerPage .mcm-tag-type + .mcm-tag-type { border-top:1px solid rgba(255,255,255,.16); margin-top:.75em; padding-top:.75em; }
         #collectionManagerPage .mcm-tag-type-content[hidden], #collectionManagerPage .mcm-picker-library-content[hidden] { display:none !important; }
         #collectionManagerPage .mcm-draft-card { border:1px solid rgba(255,255,255,.16); border-radius:.45em; margin:.85em 0; padding:1em; }
@@ -158,6 +161,20 @@
             });
         }
 
+        function capturePagePosition() {
+            return { left: window.scrollX, top: window.scrollY };
+        }
+
+        function restorePagePosition(position) {
+            var restore = function () { window.scrollTo(position.left, position.top); };
+            restore();
+            window.requestAnimationFrame(function () {
+                restore();
+                window.requestAnimationFrame(restore);
+            });
+            window.setTimeout(restore, 50);
+        }
+
         function updateStatus(status) {
             var priorStatus = lastStatus;
             lastStatus = status || lastStatus;
@@ -262,13 +279,13 @@
         function loadOverviewValues(section, pageNumber) {
             var libraryId = section.getAttribute('data-overview-library'), type = section.getAttribute('data-overview-metadata-type'), content = section.querySelector('.mcm-overview-type-content');
             var existingSearch = content.querySelector('[data-overview-tag-search]'), search = existingSearch ? existingSearch.value : ($('#metadataTagSearch').value || '');
-            var scrollX = window.scrollX, scrollY = window.scrollY;
+            var pagePosition = capturePagePosition();
             content.innerHTML = '<p class="fieldDescription">Loading metadata tags…</p>';
             catalogGet('metadata-catalog/values?libraryId=' + encodeURIComponent(libraryId) + '&metadataType=' + encodeURIComponent(type) + '&searchTerm=' + encodeURIComponent(search) + '&page=' + encodeURIComponent(pageNumber), function (result) {
                 var values = prop(result, 'Values') || [], current = Number(prop(result, 'Page') || 1), total = Number(prop(result, 'TotalValues') || 0), pageSize = Number(prop(result, 'PageSize') || 50), pages = Math.max(1, Math.ceil(total / pageSize));
                 content.innerHTML = '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search ' + escapeHtml(type) + '</label><input is="emby-input" type="search" data-overview-tag-search value="' + escapeHtml(search) + '" placeholder="Search ' + escapeHtml(type) + '" /></div>' + (values.length ? '<div class="mcm-overview-tag-picker">' + values.map(function (entry) { return '<div class="mcm-overview-tag-value"><span class="mcm-tag-value">' + escapeHtml(prop(entry, 'Value')) + '</span><span class="mcm-overview-tag-count">' + escapeHtml(prop(entry, 'MatchingItems')) + ' matching media</span></div>'; }).join('') + '</div>' : '<p class="fieldDescription">No metadata tags match this search.</p>') + '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-overview-values-page="' + (current - 1) + '"' + (current <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + current + ' of ' + pages + ' · ' + total + ' metadata tags</span><button is="emby-button" type="button" class="raised" data-overview-values-page="' + (current + 1) + '"' + (current >= pages ? ' disabled' : '') + '>Next Page</button></div>';
-                window.requestAnimationFrame(function () { window.scrollTo(scrollX, scrollY); });
-            }, function (error) { content.innerHTML = '<p class="fieldDescription">Could not load metadata tags: ' + escapeHtml(err(error)) + '</p>'; });
+                restorePagePosition(pagePosition);
+            }, function (error) { content.innerHTML = '<p class="fieldDescription">Could not load metadata tags: ' + escapeHtml(err(error)) + '</p>'; restorePagePosition(pagePosition); });
         }
 
         var individualDrafts = {}, individualConflictActions = {};
@@ -295,11 +312,13 @@
         function loadIndividualValues(section, pageNumber) {
             var libraryId = section.getAttribute('data-tag-library'), type = section.getAttribute('data-tag-type'), content = section.querySelector('.mcm-tag-type-content');
             var existingSearch = content.querySelector('[data-tag-search]'), search = existingSearch ? existingSearch.value : '';
+            var pagePosition = capturePagePosition();
             content.innerHTML = '<p class="fieldDescription">Loading metadata tags…</p>';
             catalogGet('metadata-catalog/values?libraryId=' + encodeURIComponent(libraryId) + '&metadataType=' + encodeURIComponent(type) + '&searchTerm=' + encodeURIComponent(search) + '&page=' + encodeURIComponent(pageNumber), function (result) {
                 var values = prop(result, 'Values') || [], current = Number(prop(result, 'Page') || 1), total = Number(prop(result, 'TotalValues') || 0), pageSize = Number(prop(result, 'PageSize') || 50), pages = Math.max(1, Math.ceil(total / pageSize));
                 content.innerHTML = '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search ' + escapeHtml(type) + '</label><input is="emby-input" type="search" data-tag-search value="' + escapeHtml(search) + '" placeholder="Search ' + escapeHtml(type) + '" /></div>' + (values.length ? '<div class="mcm-tag-picker-grid">' + values.map(function (entry) { var value = prop(entry, 'Value'), key = draftKey(libraryId, type, value), image = prop(entry, 'PersonImageUrl'); return '<label class="checkboxContainer">' + (image ? '<img class="mcm-person-image" src="' + escapeHtml(ApiClient.getUrl('Items/' + image + '/Images/Primary')) + '" alt="" />' : '') + '<input is="emby-checkbox" type="checkbox" data-individual-tag-value="1" data-library="' + escapeHtml(libraryId) + '" data-type="' + escapeHtml(type) + '" data-value="' + escapeHtml(value) + '"' + (individualDrafts[key] ? ' checked' : '') + ' /> <span>' + escapeHtml(value) + ' (' + escapeHtml(prop(entry, 'MatchingItems')) + ')</span></label>'; }).join('') + '</div>' : '<p class="fieldDescription">No metadata tags match this search.</p>') + '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-tag-values-page="' + (current - 1) + '"' + (current <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + current + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-tag-values-page="' + (current + 1) + '"' + (current >= pages ? ' disabled' : '') + '>Next Page</button></div>';
-            }, function (error) { content.innerHTML = '<p class="fieldDescription">Could not load metadata tags: ' + escapeHtml(err(error)) + '</p>'; });
+                restorePagePosition(pagePosition);
+            }, function (error) { content.innerHTML = '<p class="fieldDescription">Could not load metadata tags: ' + escapeHtml(err(error)) + '</p>'; restorePagePosition(pagePosition); });
         }
 
         function addOrRemoveDraft(input) {
@@ -384,11 +403,13 @@
         }
         function loadModeValues(section, pageNumber) {
             var mode = section.getAttribute('data-mode-section'), libraryId = section.getAttribute('data-library'), type = section.getAttribute('data-type'), host = section.querySelector('.mcm-tag-type-content'), prior = host.querySelector('[data-mode-search]'), search = prior ? prior.value : '';
+            var pagePosition = capturePagePosition();
             host.innerHTML = '<p class="fieldDescription">Loading metadata tags…</p>';
             catalogGet('metadata-catalog/values?libraryId=' + encodeURIComponent(libraryId) + '&metadataType=' + encodeURIComponent(type) + '&searchTerm=' + encodeURIComponent(search) + '&page=' + encodeURIComponent(pageNumber), function (data) {
                 var values = prop(data, 'Values') || [], current = Number(prop(data, 'Page') || 1), total = Number(prop(data, 'TotalValues') || 0), pageSize = Number(prop(data, 'PageSize') || 50), pages = Math.max(1, Math.ceil(total / pageSize));
                 host.innerHTML = '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search ' + escapeHtml(type) + '</label><input is="emby-input" type="search" data-mode-search value="' + escapeHtml(search) + '" placeholder="Search ' + escapeHtml(type) + '" /></div>' + (values.length ? '<div class="mcm-tag-picker-grid">' + values.map(function (value) { var name = prop(value, 'Value'), key = draftKey(libraryId, type, name), image = prop(value, 'PersonImageUrl'); return '<label class="checkboxContainer">' + (image ? '<img class="mcm-person-image" src="' + escapeHtml(ApiClient.getUrl('Items/' + image + '/Images/Primary')) + '" alt="" />' : '') + '<input is="emby-checkbox" type="checkbox" data-mode-value="' + mode + '" data-library="' + escapeHtml(libraryId) + '" data-type="' + escapeHtml(type) + '" data-value="' + escapeHtml(name) + '" data-count="' + escapeHtml(prop(value, 'MatchingItems')) + '"' + (tagCollectionStates[mode].tags[key] ? ' checked' : '') + ' /> <span>' + escapeHtml(name) + ' (' + escapeHtml(prop(value, 'MatchingItems')) + ')</span></label>'; }).join('') + '</div>' : '<p class="fieldDescription">No metadata tags match this search.</p>') + '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-mode-page="' + (current - 1) + '"' + (current <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + current + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-mode-page="' + (current + 1) + '"' + (current >= pages ? ' disabled' : '') + '>Next Page</button></div>';
-            }, function (error) { host.innerHTML = '<p class="fieldDescription">Could not load metadata tags: ' + escapeHtml(err(error)) + '</p>'; });
+                restorePagePosition(pagePosition);
+            }, function (error) { host.innerHTML = '<p class="fieldDescription">Could not load metadata tags: ' + escapeHtml(err(error)) + '</p>'; restorePagePosition(pagePosition); });
         }
 
         $('#selectAllLibrariesButton').addEventListener('click', function () { Array.prototype.forEach.call(page.querySelectorAll('[data-library-choice]'), function (input) { input.checked = true; }); });
@@ -403,10 +424,10 @@
                 if (section.querySelector('.mcm-overview-type-content').hidden === false) { loadOverviewValues(section, 1); }
             });
         });
-        $('#metadataOverviewGroups').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-library]')) { var id = target.getAttribute('data-toggle-library'), content = page.querySelector('[data-catalog-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; } if (target.matches('[data-toggle-overview-type]')) { var typeSection = target.closest('[data-overview-type]'), typeContent = typeSection.querySelector('.mcm-overview-type-content'), typeExpanded = !typeContent.hidden; typeContent.hidden = typeExpanded; target.textContent = typeExpanded ? 'Click here to expand' : 'Click here to collapse'; if (!typeExpanded) { loadOverviewValues(typeSection, 1); } } if (target.matches('[data-overview-values-page]')) { loadOverviewValues(target.closest('[data-overview-type]'), Number(target.getAttribute('data-overview-values-page'))); } });
+        $('#metadataOverviewGroups').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-library]')) { var id = target.getAttribute('data-toggle-library'), content = page.querySelector('[data-catalog-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; } if (target.matches('[data-toggle-overview-type]')) { var typeSection = target.closest('[data-overview-type]'), typeContent = typeSection.querySelector('.mcm-overview-type-content'), typeExpanded = !typeContent.hidden; typeContent.hidden = typeExpanded; target.textContent = typeExpanded ? 'Click here to expand' : 'Click here to collapse'; if (!typeExpanded) { loadOverviewValues(typeSection, 1); } } if (target.matches('[data-overview-values-page]')) { event.preventDefault(); target.blur(); loadOverviewValues(target.closest('[data-overview-type]'), Number(target.getAttribute('data-overview-values-page'))); } });
         $('#metadataOverviewGroups').addEventListener('input', function (event) { if (event.target.matches('[data-overview-tag-search]')) { var section = event.target.closest('[data-overview-type]'); window.clearTimeout(event.target.searchTimer); event.target.searchTimer = window.setTimeout(function () { loadOverviewValues(section, 1); }, 250); } });
         Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (button) { button.addEventListener('click', function () { var selectedTab=button.getAttribute('data-tab'); Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (tab) { var active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', active ? 'true' : 'false'); }); Array.prototype.forEach.call(page.querySelectorAll('.mcm-panel'), function (panel) { panel.classList.toggle('active', panel.getAttribute('data-panel') === selectedTab); }); if (selectedTab === 'individual') { renderIndividualLibraryPickers(); renderIndividualDrafts(); } if (selectedTab === 'combined' || selectedTab === 'multi') { renderMode(selectedTab); } }); });
-        $('#individualTagLibraryPickers').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-picker-library]')) { var id = target.getAttribute('data-toggle-picker-library'), content = page.querySelector('[data-picker-library-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualTypes(id); } } if (target.matches('[data-toggle-tag-type]')) { var section = target.closest('[data-tag-type]'), content = section.querySelector('.mcm-tag-type-content'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualValues(section, 1); } } if (target.matches('[data-tag-values-page]')) { loadIndividualValues(target.closest('[data-tag-type]'), Number(target.getAttribute('data-tag-values-page'))); } });
+        $('#individualTagLibraryPickers').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-picker-library]')) { var id = target.getAttribute('data-toggle-picker-library'), content = page.querySelector('[data-picker-library-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualTypes(id); } } if (target.matches('[data-toggle-tag-type]')) { var section = target.closest('[data-tag-type]'), content = section.querySelector('.mcm-tag-type-content'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualValues(section, 1); } } if (target.matches('[data-tag-values-page]')) { event.preventDefault(); target.blur(); loadIndividualValues(target.closest('[data-tag-type]'), Number(target.getAttribute('data-tag-values-page'))); } });
         $('#individualTagLibraryPickers').addEventListener('change', function (event) { if (event.target.matches('[data-individual-tag-value]')) { addOrRemoveDraft(event.target); } });
         $('#individualTagLibraryPickers').addEventListener('input', function (event) { if (event.target.matches('[data-tag-search]')) { var section = event.target.closest('[data-tag-type]'); window.clearTimeout(event.target.searchTimer); event.target.searchTimer = window.setTimeout(function () { loadIndividualValues(section, 1); }, 250); } });
         $('#individualCollectionDrafts').addEventListener('input', function (event) { var card = event.target.closest('[data-draft]'); if (!card) { return; } var draft = individualDrafts[card.getAttribute('data-draft')]; if (event.target.matches('[data-draft-title]')) { draft.collectionTitle = event.target.value; delete individualConflictActions[draft.key]; } });
@@ -455,7 +476,7 @@
                 button = target.closest('[data-mode-type]');
                 if (button) { var typeSection = button.closest('[data-mode-section]'), typeContent = typeSection.querySelector('.mcm-tag-type-content'), typeExpanded = !typeContent.hidden; typeContent.hidden = typeExpanded; button.textContent = typeExpanded ? 'Click here to expand' : 'Click here to collapse'; if (!typeExpanded) { loadModeValues(typeSection, 1); } return; }
                 button = target.closest('[data-mode-page]');
-                if (button) { loadModeValues(button.closest('[data-mode-section]'), Number(button.getAttribute('data-mode-page'))); return; }
+                if (button) { event.preventDefault(); button.blur(); loadModeValues(button.closest('[data-mode-section]'), Number(button.getAttribute('data-mode-page'))); return; }
                 button = target.closest('[data-mode-all]');
                 if (button) { state.additional = selectedSavedLibraries().filter(function (id) { return modeSourceLibraryIds(mode).indexOf(String(id)) < 0; }); state.preview = null; state.conflict = false; state.action = ''; renderMode(mode); return; }
                 button = target.closest('[data-mode-none]');
