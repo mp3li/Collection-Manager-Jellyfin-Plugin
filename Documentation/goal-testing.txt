@@ -18,7 +18,7 @@ Automated source checks
 Private installation and dashboard availability
 -----------------------------------------------
 [x] Build the exact release ZIP.
-[ ] Create a manifest using the exact release ZIP checksum and published source URL.
+[x] Create a manifest using the exact release ZIP checksum and published source URL.
 [ ] Add the manifest to a private Jellyfin 10.11.11 server.
 [ ] Install the plugin through Jellyfin's repository interface.
 [ ] Restart Jellyfin and confirm Media Collection Manager appears in Dashboard.

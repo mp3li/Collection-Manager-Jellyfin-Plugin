@@ -88,8 +88,16 @@ For repository-manifest testing, first make a release ZIP containing the exact
 Release DLL, publish that ZIP as a GitHub Release asset, calculate its SHA-256,
 and create a manifest whose version, target ABI, framework, source URL,
 checksum, timestamp, branding image, and changelog all describe that exact
-asset. A manifest is deliberately not published in this repository before that
-artifact exists.
+asset. The current private-testing release is available through this repository
+manifest:
+
+```text
+https://raw.githubusercontent.com/mp3li/Collection-Maker-Jellyfin-Plugin/main/manifest.json
+```
+
+In Jellyfin, open **Dashboard → Plugins → Repositories**, add that URL, then
+install the **0.1.0.0 Private Testing** prerelease from the catalog. Restart
+Jellyfin and record the real server results in the testing tracker.
 
 ## Private test tracking
 
