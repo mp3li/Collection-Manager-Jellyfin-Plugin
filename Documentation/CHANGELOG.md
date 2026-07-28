@@ -50,10 +50,10 @@
 
 ### Changed
 
-- Matched the Media Tagging Manager dashboard structure: each tab's
-  introduction now sits in the same bordered, padded section card as every
-  other area. There are no standalone, larger tab headings or indented
-  follow-on sections, and the redundant My Metadata Tags subheading is gone.
+- Completed the structural parity correction with Media Tagging Manager:
+  removed Collection Manager-only repeated tab-title cards. The shared plugin
+  explanation now occupies the same position above tabs, and each panel begins
+  with its first functional section using the shared section-card heading.
 - Made every section heading consistent and moved outer library
   expand/collapse controls to the left, while leaving nested metadata-type
   controls on the right.

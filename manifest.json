@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.10",
-        "changelog": "Matches the Media Tagging Manager dashboard's uniform section-card layout: every tab introduction and setting area uses the same heading and spacing.",
+        "version": "0.1.0.11",
+        "changelog": "Removes the Collection Manager-only repeated tab headings so the in-panel hierarchy now follows Media Tagging Manager's section-first layout.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.10/CollectionManager_0.1.0.10.zip",
-        "checksum": "bdc09f20d2fbf8f1a075941ce800384c",
-        "timestamp": "2026-07-28T19:54:46Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.11/CollectionManager_0.1.0.11.zip",
+        "checksum": "69c00f9ce1fe1a3271e2f72f46c45d30",
+        "timestamp": "2026-07-28T20:14:33Z"
       }
     ]
   }

@@ -1,7 +1,7 @@
 ---
 name: "Collection Manager"
 guid: "5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9"
-version: "0.1.0.10"
+version: "0.1.0.11"
 targetAbi: "10.11.11.0"
 framework: "net9.0"
 overview: "Visual metadata-driven native collection creation for Jellyfin."
@@ -13,5 +13,5 @@ owner: "mp3li"
 artifacts:
   - "Jellyfin.Plugin.CollectionManager.dll"
 changelog: >
-  Matches the Media Tagging Manager dashboard's uniform section-card layout:
-  every tab introduction and setting area uses the same heading and spacing.
+  Removes the Collection Manager-only repeated tab headings so the in-panel
+  hierarchy now follows Media Tagging Manager's section-first layout.
