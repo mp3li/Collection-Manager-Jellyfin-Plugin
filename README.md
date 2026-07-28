@@ -35,14 +35,15 @@ Collection Manager works especially well with those values, but it is not
 limited to them: it reads every available metadata value from the selected
 libraries.
 
-## Current four-tab build
+## Current five-tab build
 
 | Dashboard tab | What it does |
 | --- | --- |
 | **Main Settings** | Select libraries, save the newly-added-media preference, scan the local read-only metadata catalog, and inspect the saved most-recent scan in a paginated library overview. |
-| **Individual Tag Collections** | Select values such as `Horror`, `Netflix`, or `A24` and make one independently titled, reviewed native collection draft for each value. |
-| **Combined Tag Collections** | Select two or more values and make one collection containing the unique union of media matching any selected value. |
-| **Multi-Match Tag Collections** | Select two or more values and make one collection containing only media matching every selected value. |
+| **Create Individual Tag Collections** | Select values such as `Horror`, `Netflix`, or `A24` and make one independently titled, reviewed native collection draft for each value. |
+| **Create Combined Tag Collections** | Select two or more values and make one collection containing the unique union of media matching any selected value. |
+| **Create Multi-Match Tag Collections** | Select two or more values and make one collection containing only media matching every selected value. |
+| **Collection Overview & Editor** | Save a selected-library collection scan, review current and latest-scan changes, and edit native collection titles and membership in bulk. |
 
 All collection workflows provide matching counts, grouped previews, editable
 titles, additional-library scope, visible same-title conflict choices, and
@@ -97,12 +98,12 @@ https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/
 ```
 
 In Jellyfin, open **Dashboard → Plugins → Repositories**, add that URL, then
-install the **0.1.0.15 Private Testing** prerelease from the catalog. Restart
+install the **0.1.0.16 Private Testing** prerelease from the catalog. Restart
 Jellyfin and record the real server results in the testing tracker.
 
 ## Private test tracking
 
-The four-tab implementation has automated build and JavaScript syntax checks.
+The five-tab implementation has automated build and JavaScript syntax checks.
 Private Jellyfin installation and behavior must still be recorded before calling
 the runtime behavior complete. Use the [testing tracker](Documentation/goal-testing.txt)
 for the actual server results.

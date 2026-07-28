@@ -82,6 +82,72 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             return CloneConfiguration(configuration);
         });
 
+    /// <summary>Saves the collection-overview filters selected by the administrator.</summary>
+    public PluginConfiguration UpdateCollectionOverviewSettings(bool showPluginMade, bool showNonPluginMade) =>
+        UpdateConfigurationSafely(configuration =>
+        {
+            configuration.ShowPluginMadeCollections = showPluginMade;
+            configuration.ShowNonPluginMadeCollections = showNonPluginMade;
+            return CloneConfiguration(configuration);
+        });
+
+    /// <summary>Saves the collection-overview change colors selected by the administrator.</summary>
+    public PluginConfiguration UpdateCollectionOverviewColors(string addedColor, string removedColor) =>
+        UpdateConfigurationSafely(configuration =>
+        {
+            configuration.CollectionOverviewAddedColor = addedColor;
+            configuration.CollectionOverviewRemovedColor = removedColor;
+            return CloneConfiguration(configuration);
+        });
+
+    /// <summary>Records a collection created by Collection Manager.</summary>
+    public void MarkCollectionManaged(Guid collectionId) => UpdateConfigurationSafely(configuration =>
+    {
+        if (!configuration.PluginManagedCollectionIds.Contains(collectionId))
+        {
+            configuration.PluginManagedCollectionIds.Add(collectionId);
+        }
+
+        return 0;
+    });
+
+    /// <summary>Records a reversible dashboard collection action.</summary>
+    public void RecordCollectionAction(CollectionActionRecord record) => UpdateConfigurationSafely(configuration =>
+    {
+        configuration.CollectionActionHistory.Add(CloneAction(record));
+        if (configuration.CollectionActionHistory.Count > 100)
+        {
+            configuration.CollectionActionHistory.RemoveRange(0, configuration.CollectionActionHistory.Count - 100);
+        }
+
+        return 0;
+    });
+
+    /// <summary>Removes a managed collection identifier after its collection is deleted.</summary>
+    public void ForgetManagedCollection(Guid collectionId) => UpdateConfigurationSafely(configuration =>
+    {
+        configuration.PluginManagedCollectionIds.RemoveAll(id => id == collectionId);
+        return 0;
+    });
+
+    /// <summary>Removes the most recent action after it has been undone.</summary>
+    public void RemoveLastCollectionAction() => UpdateConfigurationSafely(configuration =>
+    {
+        if (configuration.CollectionActionHistory.Count > 0)
+        {
+            configuration.CollectionActionHistory.RemoveAt(configuration.CollectionActionHistory.Count - 1);
+        }
+
+        return 0;
+    });
+
+    /// <summary>Saves the latest collection overview snapshot.</summary>
+    public void SaveCollectionOverviewSnapshot(CollectionOverviewSnapshot snapshot) => UpdateConfigurationSafely(configuration =>
+    {
+        configuration.CollectionOverviewSnapshot = CloneSnapshot(snapshot);
+        return 0;
+    });
+
     /// <summary>Gets an isolated snapshot of all persisted collection rules.</summary>
     public IReadOnlyList<CollectionRule> GetRulesSnapshot()
     {
@@ -109,6 +175,13 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         LibraryIds = source.LibraryIds.Distinct().ToList(),
         AutomaticallyAddNewMediaToApplicableCollections = source.AutomaticallyAddNewMediaToApplicableCollections,
         MetadataTagOverviewColor = source.MetadataTagOverviewColor,
+        ShowPluginMadeCollections = source.ShowPluginMadeCollections,
+        ShowNonPluginMadeCollections = source.ShowNonPluginMadeCollections,
+        CollectionOverviewAddedColor = source.CollectionOverviewAddedColor,
+        CollectionOverviewRemovedColor = source.CollectionOverviewRemovedColor,
+        PluginManagedCollectionIds = source.PluginManagedCollectionIds.Distinct().ToList(),
+        CollectionOverviewSnapshot = source.CollectionOverviewSnapshot is null ? null : CloneSnapshot(source.CollectionOverviewSnapshot),
+        CollectionActionHistory = source.CollectionActionHistory.Select(CloneAction).ToList(),
         WatchMetadataChanges = source.WatchMetadataChanges,
         ScheduledReconciliationEnabled = source.ScheduledReconciliationEnabled,
         ScheduledReconciliationMinutes = source.ScheduledReconciliationMinutes,
@@ -127,5 +200,41 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         RemoveItemsNoLongerMatching = source.RemoveItemsNoLongerMatching,
         CollectionId = source.CollectionId,
         LastRunUtc = source.LastRunUtc,
+    };
+
+    private static CollectionActionRecord CloneAction(CollectionActionRecord source) => new()
+    {
+        Action = source.Action,
+        CollectionId = source.CollectionId,
+        CollectionName = source.CollectionName,
+        PreviousCollectionName = source.PreviousCollectionName,
+        ItemIds = source.ItemIds.Distinct().ToList(),
+        OccurredUtc = source.OccurredUtc,
+    };
+
+    private static CollectionOverviewSnapshot CloneSnapshot(CollectionOverviewSnapshot source) => new()
+    {
+        CompletedUtc = source.CompletedUtc,
+        Libraries = source.Libraries.Select(library => new CollectionOverviewLibrarySnapshot
+        {
+            LibraryId = library.LibraryId,
+            LibraryName = library.LibraryName,
+            Collections = library.Collections.Select(collection => new CollectionOverviewCollectionSnapshot
+            {
+                CollectionId = collection.CollectionId,
+                Name = collection.Name,
+                MadeByPlugin = collection.MadeByPlugin,
+                Exists = collection.Exists,
+                NewlyAdded = collection.NewlyAdded,
+                NewlyRemoved = collection.NewlyRemoved,
+                Items = collection.Items.Select(item => new CollectionOverviewItemSnapshot
+                {
+                    ItemId = item.ItemId,
+                    Name = item.Name,
+                    NewlyAdded = item.NewlyAdded,
+                    NewlyRemoved = item.NewlyRemoved,
+                }).ToList(),
+            }).ToList(),
+        }).ToList(),
     };
 }

@@ -143,27 +143,62 @@ public sealed class CollectionReconciler
     }
 
     /// <summary>Creates an ordinary Jellyfin collection with a bulk initial item set.</summary>
-    public Task<BoxSet> CreateCollectionAsync(string name, IEnumerable<Guid> itemIds)
+    public async Task<BoxSet> CreateCollectionAsync(string name, IEnumerable<Guid> itemIds)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
             throw new ArgumentException("A collection name is required.", nameof(name));
         }
 
-        return _collectionManager.CreateCollectionAsync(new CollectionCreationOptions
+        var ids = itemIds.Distinct().ToArray();
+        var collection = await _collectionManager.CreateCollectionAsync(new CollectionCreationOptions
         {
             Name = name.Trim(),
-            ItemIdList = itemIds.Select(itemId => itemId.ToString("N", System.Globalization.CultureInfo.InvariantCulture)).Distinct().ToArray(),
+            ItemIdList = ids.Select(itemId => itemId.ToString("N", System.Globalization.CultureInfo.InvariantCulture)).ToArray(),
+        }).ConfigureAwait(false);
+        Plugin.Instance?.MarkCollectionManaged(collection.Id);
+        Plugin.Instance?.RecordCollectionAction(new CollectionActionRecord
+        {
+            Action = "Create",
+            CollectionId = collection.Id,
+            CollectionName = collection.Name,
+            ItemIds = ids.ToList(),
+            OccurredUtc = DateTime.UtcNow,
         });
+        return collection;
     }
 
     /// <summary>Adds many selected items to an existing standard Jellyfin collection.</summary>
-    public Task AddToCollectionAsync(Guid collectionId, IEnumerable<Guid> itemIds) =>
-        _collectionManager.AddToCollectionAsync(collectionId, itemIds.Distinct());
+    public async Task AddToCollectionAsync(Guid collectionId, IEnumerable<Guid> itemIds, bool recordAction = true)
+    {
+        var ids = itemIds.Distinct().ToArray();
+        await _collectionManager.AddToCollectionAsync(collectionId, ids).ConfigureAwait(false);
+        var collection = _libraryManager.GetItemById<BoxSet>(collectionId);
+        if (recordAction) Plugin.Instance?.RecordCollectionAction(new CollectionActionRecord
+        {
+            Action = "Add",
+            CollectionId = collectionId,
+            CollectionName = collection?.Name ?? string.Empty,
+            ItemIds = ids.ToList(),
+            OccurredUtc = DateTime.UtcNow,
+        });
+    }
 
     /// <summary>Removes many selected items from an existing standard Jellyfin collection.</summary>
-    public Task RemoveFromCollectionAsync(Guid collectionId, IEnumerable<Guid> itemIds) =>
-        _collectionManager.RemoveFromCollectionAsync(collectionId, itemIds.Distinct());
+    public async Task RemoveFromCollectionAsync(Guid collectionId, IEnumerable<Guid> itemIds, bool recordAction = true)
+    {
+        var ids = itemIds.Distinct().ToArray();
+        await _collectionManager.RemoveFromCollectionAsync(collectionId, ids).ConfigureAwait(false);
+        var collection = _libraryManager.GetItemById<BoxSet>(collectionId);
+        if (recordAction) Plugin.Instance?.RecordCollectionAction(new CollectionActionRecord
+        {
+            Action = "Remove",
+            CollectionId = collectionId,
+            CollectionName = collection?.Name ?? string.Empty,
+            ItemIds = ids.ToList(),
+            OccurredUtc = DateTime.UtcNow,
+        });
+    }
 
     /// <summary>Searches media within the libraries selected for this plugin.</summary>
     public IReadOnlyList<MediaSearchResult> SearchMedia(string? searchTerm)
@@ -183,7 +218,7 @@ public sealed class CollectionReconciler
     }
 
     /// <summary>Renames the standard Jellyfin collection attached to an edited rule.</summary>
-    public async Task RenameCollectionAsync(Guid collectionId, string name, CancellationToken cancellationToken)
+    public async Task RenameCollectionAsync(Guid collectionId, string name, CancellationToken cancellationToken, bool recordAction = true)
     {
         var collection = _libraryManager.GetItemById<BoxSet>(collectionId)
             ?? throw new KeyNotFoundException("The collection attached to this rule no longer exists.");
@@ -192,8 +227,17 @@ public sealed class CollectionReconciler
             return;
         }
 
+        var previousName = collection.Name;
         collection.Name = name;
         await _libraryManager.UpdateItemAsync(collection, collection, ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
+        if (recordAction) Plugin.Instance?.RecordCollectionAction(new CollectionActionRecord
+        {
+            Action = "Rename",
+            CollectionId = collectionId,
+            CollectionName = name,
+            PreviousCollectionName = previousName,
+            OccurredUtc = DateTime.UtcNow,
+        });
     }
 
     private static Plugin RequirePlugin() =>

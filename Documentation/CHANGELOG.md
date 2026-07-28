@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added Collection Overview & Editor: saved selected-library collection scans,
+  collection-type settings, last-scan status, change colors, expandable library
+  pages, and native collection title and membership editing.
+- Added Main Settings cleanup choices for the last recorded action,
+  plugin-recorded collections, and plugin-recorded additions to external
+  collections.
+- Renamed the three collection-creation tabs to begin with Create and placed
+  Select All, Select None, and Save Libraries together after the library picker.
+
 ### Fixed
 
 - Kept the dashboard at its exact viewport position when using Previous Page

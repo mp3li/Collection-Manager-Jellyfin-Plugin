@@ -11,6 +11,14 @@
         #collectionManagerPage .mcm-library-list { margin:.75em 0 0; }
         #collectionManagerPage .mcm-progress { height:.6em; overflow:hidden; margin:1em 0 .55em; border-radius:999px; background:rgba(255,255,255,.14); }
         #collectionManagerPage .mcm-progress > div { width:0; height:100%; background:linear-gradient(90deg,#AA5CC3,#00A4DC); transition:width .2s ease; }
+        #collectionManagerPage .mcm-setting-pair { display:grid; grid-template-columns:repeat(auto-fit,minmax(15em,1fr)); gap:1em; }
+        #collectionManagerPage .mcm-last-added { color:var(--mcm-last-added-color,#4CAF50); }
+        #collectionManagerPage .mcm-last-removed { color:var(--mcm-last-removed-color,#F44336); text-decoration:line-through; }
+        #collectionManagerPage .mcm-dialog-backdrop { position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; padding:1em; background:rgba(0,0,0,.72); }
+        #collectionManagerPage .mcm-dialog-backdrop[hidden] { display:none !important; }
+        #collectionManagerPage .mcm-dialog { width:min(44em,100%); max-height:80vh; overflow:auto; background:var(--theme-body-bg,#202020); border:1px solid rgba(255,255,255,.22); border-radius:.65em; padding:1.25em; }
+        #collectionManagerPage .mcm-collection-editor-items { max-height:24em; overflow-y:auto; padding:.15em .4em; border:1px solid rgba(255,255,255,.16); border-radius:.4em; }
+        #collectionManagerPage .mcm-collection-editor-items .checkboxContainer { display:block; margin:.55em 0; }
         #collectionManagerPage .mcm-overview-content[hidden] { display:none !important; }
         #collectionManagerPage .mcm-library-overview { margin-top:1em; }
         #collectionManagerPage .mcm-library-overview + .mcm-library-overview { border-top:1px solid rgba(255,255,255,.16); padding-top:1em; }
@@ -51,9 +59,10 @@
 
         <div class="mcm-tabs mcm-tabs-primary" role="tablist" aria-label="Collection Manager sections">
             <button type="button" class="mcm-tab active" data-tab="main" role="tab" aria-selected="true">Main Settings</button>
-            <button type="button" class="mcm-tab" data-tab="individual" role="tab" aria-selected="false">Individual Tag Collections</button>
-            <button type="button" class="mcm-tab" data-tab="combined" role="tab" aria-selected="false">Combined Tag Collections</button>
-            <button type="button" class="mcm-tab" data-tab="multi" role="tab" aria-selected="false">Multi-Match Tag Collections</button>
+            <button type="button" class="mcm-tab" data-tab="individual" role="tab" aria-selected="false">Create Individual Tag Collections</button>
+            <button type="button" class="mcm-tab" data-tab="combined" role="tab" aria-selected="false">Create Combined Tag Collections</button>
+            <button type="button" class="mcm-tab" data-tab="multi" role="tab" aria-selected="false">Create Multi-Match Tag Collections</button>
+            <button type="button" class="mcm-tab" data-tab="overview" role="tab" aria-selected="false">Collection Overview &amp; Editor</button>
         </div>
 
         <div class="mcm-panel active" data-panel="main">
@@ -62,9 +71,8 @@
             <h2>Selected Libraries</h2>
             <p class="fieldDescription">Choose which Jellyfin libraries Collection Manager will scan for metadata.</p>
             <p class="fieldDescription">Select one or more libraries to include in Collection Manager.</p>
-            <div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="selectAllLibrariesButton">Select All</button><button is="emby-button" type="button" class="raised" id="selectNoLibrariesButton">Select None</button></div>
             <div id="libraryChoices" class="mcm-library-list"></div>
-            <div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="saveLibrariesButton">Save Libraries</button></div>
+            <div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="selectAllLibrariesButton">Select All</button><button is="emby-button" type="button" class="raised" id="selectNoLibrariesButton">Select None</button><button is="emby-button" type="button" class="raised" id="saveLibrariesButton">Save Libraries</button></div>
         </section>
 
         <section class="mcm-section">
@@ -82,6 +90,16 @@
             <div class="mcm-actions"><button is="emby-button" type="button" class="raised button-submit" id="scanMetadataTagsButton">Scan Metadata Tags</button></div>
             <div class="mcm-progress" aria-label="Metadata tag scan progress"><div id="scanProgressBar"></div></div>
             <p id="scanStatus" class="fieldDescription" aria-live="polite">Ready to scan your selected libraries.</p>
+        </section>
+
+        <section class="mcm-section">
+            <h2>Clean Up Settings</h2>
+            <p class="fieldDescription">Choose one or more cleanup actions, then click Clean Up. These actions affect only collections or collection membership changes recorded by Collection Manager.</p>
+            <label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" id="undoLastCollectionAction" /> <span>Undo Last Collection Action</span></label>
+            <label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" id="removeAllPluginCollections" /> <span>Remove All Collections Made By This Plugin</span></label>
+            <label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" id="removeAllExternalCollectionAdditions" /> <span>Remove All Media Additions To Existing Collections Not Made by This Plugin</span></label>
+            <div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="cleanUpCollectionsButton">Clean Up</button></div>
+            <p id="cleanUpCollectionsStatus" class="fieldDescription" aria-live="polite"></p>
         </section>
 
         <section class="mcm-section">
@@ -103,13 +121,22 @@
         </div>
         <div class="mcm-panel" data-panel="combined"><div class="mcm-combined-host" data-mode="combined"></div></div>
         <div class="mcm-panel" data-panel="multi"><div class="mcm-combined-host" data-mode="multi"></div></div>
+        <div class="mcm-panel" data-panel="overview">
+            <p class="fieldDescription">Use this tab to view all your collections, including collections made by and not made by this plugin.</p>
+            <section class="mcm-section"><h2>Selected Collections Settings</h2><p class="fieldDescription">Choose if you want to see only collections made by this plugin, collections not made by this plugin, or both, before scanning for existing collections below.</p><label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" id="showPluginMadeCollections" /> <span>Show collections made by this plugin</span></label><label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" id="showNonPluginMadeCollections" /> <span>Show collections not made by this plugin</span></label><div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="saveCollectionOverviewSettingsButton">Save Selected Collections Settings</button></div></section>
+            <section class="mcm-section"><h2>Scan for Collections</h2><p class="fieldDescription">Use the Scan for Collections button to populate the list of all existing collections and their contents in the lower Collections Overview &amp; Editor section.</p><div class="mcm-actions"><button is="emby-button" type="button" class="raised button-submit" id="scanCollectionsButton">Scan for Collections</button></div><div class="mcm-progress"><div id="collectionsScanProgress"></div></div><p id="collectionsScanStatus" class="fieldDescription" aria-live="polite">No collection overview scan has been completed yet.</p></section>
+            <section class="mcm-section"><h2>Collections Overview &amp; Editor</h2><p class="fieldDescription">Browse and edit your existing collections. The newest scan shows newly added collection names and newly added titles in green text, and newly removed collection names and titles in red text by default. You can change those colors below.</p><button is="emby-button" type="button" class="raised" id="toggleCollectionsOverview">Click here to expand</button><div id="collectionsOverviewContent" hidden><div class="mcm-setting-pair"><div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="collectionsOverviewAddedColor">Newly added color</label><input is="emby-input" id="collectionsOverviewAddedColor" type="color" value="#4CAF50" /></div><div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="collectionsOverviewRemovedColor">Newly removed color</label><input is="emby-input" id="collectionsOverviewRemovedColor" type="color" value="#F44336" /></div></div><div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="saveCollectionsOverviewColorsButton">Save Colors</button></div><div id="collectionsOverviewGroups"></div></div></section>
+        </div>
     </div></div>
+
+    <div id="collectionEditorDialog" class="mcm-dialog-backdrop" hidden><div class="mcm-dialog" role="dialog" aria-modal="true" aria-labelledby="collectionEditorTitle"><h2 id="collectionEditorTitle">Edit Collection</h2><div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="collectionEditorName">Collection title</label><input is="emby-input" id="collectionEditorName" type="text" /></div><p id="collectionEditorCount" class="fieldDescription"></p><p class="fieldDescription">Media in collection:</p><div id="collectionEditorItems" class="mcm-collection-editor-items"></div><div class="mcm-pagination" id="collectionEditorPages"></div><div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="collectionEditorSelectAll">Select All</button><button is="emby-button" type="button" class="raised" id="collectionEditorSelectNone">Select None</button><button is="emby-button" type="button" class="raised" id="collectionEditorRemove">Remove from Collection</button><button is="emby-button" type="button" class="raised" id="collectionEditorAdd">Add to Collection</button><button is="emby-button" type="button" class="raised" id="collectionEditorSaveTitle">Save Collection Title</button><button is="emby-button" type="button" class="raised" id="collectionEditorClose">Close</button></div></div></div>
+    <div id="collectionTargetDialog" class="mcm-dialog-backdrop" hidden><div class="mcm-dialog" role="dialog" aria-modal="true"><h2>Add Selected Media to Collection</h2><div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="collectionTargetSelect">Collection</label><select is="emby-select" id="collectionTargetSelect"></select></div><div class="mcm-actions"><button is="emby-button" type="button" class="raised button-submit" id="collectionTargetAdd">Add to Collection</button><button is="emby-button" type="button" class="raised" id="collectionTargetClose">Close</button></div></div></div>
 
     <script>
     (function () {
         'use strict';
         var page = document.querySelector('#collectionManagerPage');
-        var config, libraries = [], lastStatus;
+        var config, libraries = [], lastStatus, collectionOverviewCounts = {}, collectionOverviewPages = {}, collectionOverviewPageNumbers = {}, collectionOverviewCollapsed = {}, collectionEditor = { id:null, selected:{}, page:1 };
         var $ = function (selector) { return page.querySelector(selector); };
         var url = function (path) { return ApiClient.getUrl('CollectionManager/' + path); };
         var get = function (path) { return ApiClient.getJSON(url(path)); };
@@ -123,7 +150,11 @@
             return {
                 LibraryIds: prop(raw, 'LibraryIds') || [],
                 AutomaticallyAddNewMediaToApplicableCollections: prop(raw, 'AutomaticallyAddNewMediaToApplicableCollections') === true,
-                MetadataTagOverviewColor: prop(raw, 'MetadataTagOverviewColor') || '#00A4DC'
+                MetadataTagOverviewColor: prop(raw, 'MetadataTagOverviewColor') || '#00A4DC',
+                ShowPluginMadeCollections: prop(raw, 'ShowPluginMadeCollections') !== false,
+                ShowNonPluginMadeCollections: prop(raw, 'ShowNonPluginMadeCollections') !== false,
+                CollectionOverviewAddedColor: prop(raw, 'CollectionOverviewAddedColor') || '#4CAF50',
+                CollectionOverviewRemovedColor: prop(raw, 'CollectionOverviewRemovedColor') || '#F44336'
             };
         }
 
@@ -195,6 +226,12 @@
                 renderLibraries();
                 $('#automaticallyAddNewMediaYes').checked = config.AutomaticallyAddNewMediaToApplicableCollections;
                 $('#automaticallyAddNewMediaNo').checked = !config.AutomaticallyAddNewMediaToApplicableCollections;
+                $('#showPluginMadeCollections').checked = config.ShowPluginMadeCollections;
+                $('#showNonPluginMadeCollections').checked = config.ShowNonPluginMadeCollections;
+                $('#collectionsOverviewAddedColor').value = config.CollectionOverviewAddedColor;
+                $('#collectionsOverviewRemovedColor').value = config.CollectionOverviewRemovedColor;
+                applyCollectionOverviewColors();
+                loadCollectionOverviewStatus();
                 refreshStatus();
             }, function (error) { $('#libraryChoices').innerHTML = '<p class="fieldDescription">Could not load plugin settings: ' + escapeHtml(err(error)) + '</p>'; });
         }
@@ -411,11 +448,72 @@
             }, function (error) { host.innerHTML = '<p class="fieldDescription">Could not load metadata tags: ' + escapeHtml(err(error)) + '</p>'; restorePagePosition(pagePosition); });
         }
 
+        function applyCollectionOverviewColors() {
+            page.style.setProperty('--mcm-last-added-color', config.CollectionOverviewAddedColor || '#4CAF50');
+            page.style.setProperty('--mcm-last-removed-color', config.CollectionOverviewRemovedColor || '#F44336');
+        }
+        function updateCollectionOverviewStatus(status) {
+            var scanning = prop(status, 'IsScanning') === true, processed = Number(prop(status, 'ProcessedItems') || 0), total = Number(prop(status, 'TotalItems') || 0);
+            $('#collectionsScanProgress').style.width = total > 0 ? Math.min(100, Math.round(processed * 100 / total)) + '%' : (scanning ? '0%' : '0%');
+            var message = prop(status, 'Message') || 'No collection overview scan has been completed yet.', completed = prop(status, 'LastCompletedUtc');
+            $('#collectionsScanStatus').textContent = completed ? message + ' Last Scan: ' + new Date(completed).toLocaleString() : message;
+            $('#scanCollectionsButton').disabled = scanning;
+        }
+        function loadCollectionOverviewStatus() { get('collection-overview/status').then(updateCollectionOverviewStatus, function (error) { $('#collectionsScanStatus').textContent = 'Could not load collection scan status: ' + err(error); }); }
+        function loadCollectionOverviewCounts() {
+            get('collection-overview/counts').then(function (items) {
+                collectionOverviewCounts = {}; (items || []).forEach(function (item) { collectionOverviewCounts[String(prop(item, 'LibraryId'))] = Number(prop(item, 'TotalItems')) || 0; });
+                collectionOverviewPages = {}; collectionOverviewPageNumbers = {}; renderCollectionOverview();
+            }, function (error) { $('#collectionsOverviewGroups').innerHTML = '<p class="fieldDescription">Could not load collection overview: ' + escapeHtml(err(error)) + '</p>'; });
+        }
+        function collectionClass(collection) { return prop(collection, 'NewlyRemoved') === true ? 'mcm-last-removed' : (prop(collection, 'NewlyAdded') === true ? 'mcm-last-added' : ''); }
+        function collectionItemsList(items) { return (items || []).map(function (item) { return '<div class="' + (prop(item, 'NewlyRemoved') ? 'mcm-last-removed' : (prop(item, 'NewlyAdded') ? 'mcm-last-added' : '')) + '">' + escapeHtml(prop(item, 'Name')) + '</div>'; }).join('') || 'No media items in this selected library.'; }
+        function collectionPageControls(libraryId, result) { var pageNumber = Number(prop(result, 'Page') || 1), total = Number(prop(result, 'TotalItems') || 0), size = Number(prop(result, 'PageSize') || 10), pages = Math.max(1, Math.ceil(total / size)); return '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-collection-overview-page="' + (pageNumber - 1) + '"' + (pageNumber <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + pageNumber + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-collection-overview-page="' + (pageNumber + 1) + '"' + (pageNumber >= pages ? ' disabled' : '') + '>Next Page</button></div>'; }
+        function renderCollectionOverview() {
+            var selected = (config.LibraryIds || []).map(String);
+            $('#collectionsOverviewGroups').innerHTML = libraries.filter(function (library) { return selected.indexOf(String(prop(library, 'ItemId'))) >= 0; }).map(function (library) {
+                var libraryId = String(prop(library, 'ItemId')), collapsed = collectionOverviewCollapsed[libraryId] !== false, result = collectionOverviewPages[libraryId], total = Number(collectionOverviewCounts[libraryId]) || 0;
+                var rows = !result ? '<p class="fieldDescription">Loading this library…</p>' : ((prop(result, 'Items') || []).map(function (collection) { var current = prop(collection, 'Exists') !== false, items = prop(collection, 'Items') || []; return '<tr><td><div class="' + collectionClass(collection) + '">' + escapeHtml(prop(collection, 'Name')) + '</div>' + (current ? '<div class="mcm-actions"><button is="emby-button" type="button" class="raised" data-edit-collection="' + escapeHtml(prop(collection, 'CollectionId')) + '">Edit Collection</button></div>' : '<p class="fieldDescription">This collection was removed since the previous scan.</p>') + '</td><td>' + items.length + '</td><td>' + collectionItemsList(items) + '</td></tr>'; }).join('') || '<tr><td colspan="3">No collections match the selected collection settings.</td></tr>');
+                return '<section class="mcm-section"><h2>' + escapeHtml(prop(library, 'Name')) + '</h2><button is="emby-button" type="button" class="raised" data-toggle-collection-library="' + escapeHtml(libraryId) + '">' + (collapsed ? 'Click here to expand' : 'Click here to collapse') + '</button><div data-collection-library-content="' + escapeHtml(libraryId) + '"' + (collapsed ? ' hidden' : '') + '><p class="fieldDescription">' + total + ' collection' + (total === 1 ? '' : 's') + ' in this selected library. Libraries display 10 collections at a time.</p><div style="overflow-x:auto"><table class="detailTable"><thead><tr><th>Collection</th><th>Collection item(s)</th><th>Media in collection</th></tr></thead><tbody>' + rows + '</tbody></table></div>' + (result ? collectionPageControls(libraryId, result) : '') + '</div></section>';
+            }).join('') || '<p class="fieldDescription">Save selected libraries in Main Settings before viewing collections.</p>';
+        }
+        function loadCollectionOverviewPage(libraryId, requestedPage) { var pageNumber = Math.max(1, Number(requestedPage) || 1); collectionOverviewPageNumbers[libraryId] = pageNumber; var position = capturePagePosition(); get('collection-overview/page?libraryId=' + encodeURIComponent(libraryId) + '&page=' + pageNumber + '&pageSize=10').then(function (result) { collectionOverviewPages[libraryId] = result; renderCollectionOverview(); restorePagePosition(position); }, function (error) { $('#collectionsOverviewGroups').innerHTML = '<p class="fieldDescription">Could not load this collection overview page: ' + escapeHtml(err(error)) + '</p>'; }); }
+        function openCollectionEditor(id, requestedPage) {
+            collectionEditor.id = id; collectionEditor.page = requestedPage || 1; document.querySelector('#collectionEditorDialog').hidden = false;
+            get('collection-overview/collection?collectionId=' + encodeURIComponent(id) + '&page=' + collectionEditor.page + '&pageSize=50').then(function (result) {
+                $('#collectionEditorTitle').textContent = 'Edit ' + prop(result, 'Name') + ' Collection'; $('#collectionEditorName').value = prop(result, 'Name') || ''; $('#collectionEditorCount').textContent = 'Collection item(s): ' + Number(prop(result, 'TotalItems') || 0);
+                var items = prop(result, 'Items') || []; $('#collectionEditorItems').innerHTML = items.map(function (item) { var itemId = String(prop(item, 'Id')); return '<label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" data-editor-item="' + escapeHtml(itemId) + '"' + (collectionEditor.selected[itemId] ? ' checked' : '') + ' /> <span>' + escapeHtml(prop(item, 'Name')) + '</span></label>'; }).join('') || '<p class="fieldDescription">This collection currently has no media items.</p>';
+                var pageNumber = Number(prop(result, 'Page') || 1), pages = Math.max(1, Math.ceil(Number(prop(result, 'TotalItems') || 0) / Number(prop(result, 'PageSize') || 50))); $('#collectionEditorPages').innerHTML = '<button is="emby-button" type="button" class="raised" data-editor-page="' + (pageNumber - 1) + '"' + (pageNumber <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + pageNumber + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-editor-page="' + (pageNumber + 1) + '"' + (pageNumber >= pages ? ' disabled' : '') + '>Next Page</button>';
+            }, function (error) { Dashboard.alert('Could not open this collection: ' + err(error)); document.querySelector('#collectionEditorDialog').hidden = true; });
+        }
+        function selectedEditorItems() { return Object.keys(collectionEditor.selected).filter(function (id) { return collectionEditor.selected[id]; }); }
+        function refreshCollectionsAfterEdit() { loadCollectionOverviewStatus(); if (!$('#collectionsOverviewContent').hidden) loadCollectionOverviewCounts(); }
+
         $('#selectAllLibrariesButton').addEventListener('click', function () { Array.prototype.forEach.call(page.querySelectorAll('[data-library-choice]'), function (input) { input.checked = true; }); });
         $('#selectNoLibrariesButton').addEventListener('click', function () { Array.prototype.forEach.call(page.querySelectorAll('[data-library-choice]'), function (input) { input.checked = false; }); });
         $('#saveLibrariesButton').addEventListener('click', saveLibraries);
         $('#saveMainSettingsButton').addEventListener('click', saveMainSettings);
         $('#scanMetadataTagsButton').addEventListener('click', startScan);
+        $('#cleanUpCollectionsButton').addEventListener('click', function () {
+            var request = { UndoLastCollectionAction: $('#undoLastCollectionAction').checked, RemoveAllPluginMadeCollections: $('#removeAllPluginCollections').checked, RemoveAllMediaAdditionsToExternalCollections: $('#removeAllExternalCollectionAdditions').checked };
+            if (!request.UndoLastCollectionAction && !request.RemoveAllPluginMadeCollections && !request.RemoveAllMediaAdditionsToExternalCollections) { Dashboard.alert('Select one or more cleanup actions.'); return; }
+            send('POST', 'collections/cleanup', request).then(function (result) { $('#cleanUpCollectionsStatus').textContent = prop(result, 'Message') || 'Cleanup complete.'; $('#undoLastCollectionAction').checked = false; $('#removeAllPluginCollections').checked = false; $('#removeAllExternalCollectionAdditions').checked = false; refreshCollectionsAfterEdit(); }, function (error) { $('#cleanUpCollectionsStatus').textContent = 'Cleanup could not be completed: ' + err(error); });
+        });
+        $('#saveCollectionOverviewSettingsButton').addEventListener('click', function () { send('POST', 'settings/collection-overview', { ShowPluginMadeCollections: $('#showPluginMadeCollections').checked, ShowNonPluginMadeCollections: $('#showNonPluginMadeCollections').checked }).then(function (updated) { config = normalize(updated || config); Dashboard.alert('Selected Collections Settings saved.'); loadCollectionOverviewCounts(); }, function (error) { Dashboard.alert('Could not save Selected Collections Settings: ' + err(error)); }); });
+        $('#scanCollectionsButton').addEventListener('click', function () { $('#collectionsScanProgress').style.width = '25%'; $('#collectionsScanStatus').textContent = 'Scanning collections…'; send('POST', 'collection-overview/scan').then(function (status) { $('#collectionsScanProgress').style.width = '100%'; updateCollectionOverviewStatus(status); loadCollectionOverviewCounts(); }, function (error) { $('#collectionsScanProgress').style.width = '0'; $('#collectionsScanStatus').textContent = 'Collection scan could not be completed: ' + err(error); }); });
+        $('#toggleCollectionsOverview').addEventListener('click', function () { var content = $('#collectionsOverviewContent'), expanded = !content.hidden; content.hidden = expanded; this.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) loadCollectionOverviewCounts(); });
+        $('#saveCollectionsOverviewColorsButton').addEventListener('click', function () { send('POST', 'settings/collection-overview-colors', { AddedColor: $('#collectionsOverviewAddedColor').value, RemovedColor: $('#collectionsOverviewRemovedColor').value }).then(function (updated) { config = normalize(updated || config); $('#collectionsOverviewAddedColor').value = config.CollectionOverviewAddedColor; $('#collectionsOverviewRemovedColor').value = config.CollectionOverviewRemovedColor; applyCollectionOverviewColors(); Dashboard.alert('Collection overview colors saved.'); }, function (error) { Dashboard.alert('Could not save collection overview colors: ' + err(error)); }); });
+        $('#collectionsOverviewGroups').addEventListener('click', function (event) { var target = event.target.closest('button'); if (!target) return; if (target.matches('[data-toggle-collection-library]')) { var id = target.getAttribute('data-toggle-collection-library'), content = page.querySelector('[data-collection-library-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; collectionOverviewCollapsed[id] = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded && !collectionOverviewPages[id]) loadCollectionOverviewPage(id, collectionOverviewPageNumbers[id] || 1); } if (target.matches('[data-collection-overview-page]')) { event.preventDefault(); target.blur(); var section = target.closest('[data-collection-library-content]'); loadCollectionOverviewPage(section.getAttribute('data-collection-library-content'), Number(target.getAttribute('data-collection-overview-page'))); } if (target.matches('[data-edit-collection]')) { collectionEditor.selected = {}; openCollectionEditor(target.getAttribute('data-edit-collection'), 1); } });
+        document.querySelector('#collectionEditorItems').addEventListener('change', function (event) { if (event.target.matches('[data-editor-item]')) collectionEditor.selected[event.target.getAttribute('data-editor-item')] = event.target.checked; });
+        document.querySelector('#collectionEditorPages').addEventListener('click', function (event) { var target = event.target.closest('[data-editor-page]'); if (target) openCollectionEditor(collectionEditor.id, Number(target.getAttribute('data-editor-page'))); });
+        document.querySelector('#collectionEditorSelectAll').addEventListener('click', function () { Array.prototype.forEach.call(document.querySelectorAll('[data-editor-item]'), function (input) { input.checked = true; collectionEditor.selected[input.getAttribute('data-editor-item')] = true; }); });
+        document.querySelector('#collectionEditorSelectNone').addEventListener('click', function () { Array.prototype.forEach.call(document.querySelectorAll('[data-editor-item]'), function (input) { input.checked = false; delete collectionEditor.selected[input.getAttribute('data-editor-item')]; }); });
+        document.querySelector('#collectionEditorClose').addEventListener('click', function () { document.querySelector('#collectionEditorDialog').hidden = true; });
+        document.querySelector('#collectionEditorSaveTitle').addEventListener('click', function () { send('POST', 'collections/rename', { CollectionId: collectionEditor.id, Name: $('#collectionEditorName').value }).then(function () { Dashboard.alert('Collection title saved.'); refreshCollectionsAfterEdit(); openCollectionEditor(collectionEditor.id, collectionEditor.page); }, function (error) { Dashboard.alert('Could not save collection title: ' + err(error)); }); });
+        document.querySelector('#collectionEditorRemove').addEventListener('click', function () { var ids = selectedEditorItems(); if (!ids.length) { Dashboard.alert('Select one or more media items first.'); return; } send('POST', 'collections/remove', { CollectionId: collectionEditor.id, ItemIds: ids }).then(function () { collectionEditor.selected = {}; openCollectionEditor(collectionEditor.id, collectionEditor.page); refreshCollectionsAfterEdit(); }, function (error) { Dashboard.alert('Could not remove media from this collection: ' + err(error)); }); });
+        document.querySelector('#collectionEditorAdd').addEventListener('click', function () { var ids = selectedEditorItems(); if (!ids.length) { Dashboard.alert('Select one or more media items first.'); return; } get('collection-overview/targets').then(function (targets) { document.querySelector('#collectionTargetSelect').innerHTML = (targets || []).map(function (target) { return '<option value="' + escapeHtml(prop(target, 'Id')) + '">' + escapeHtml(prop(target, 'Name')) + '</option>'; }).join(''); document.querySelector('#collectionTargetDialog').hidden = false; }, function (error) { Dashboard.alert('Could not load collections: ' + err(error)); }); });
+        document.querySelector('#collectionTargetClose').addEventListener('click', function () { document.querySelector('#collectionTargetDialog').hidden = true; });
+        document.querySelector('#collectionTargetAdd').addEventListener('click', function () { var targetId = document.querySelector('#collectionTargetSelect').value, ids = selectedEditorItems(); if (!targetId || !ids.length) return; send('POST', 'collections/add', { CollectionId: targetId, ItemIds: ids }).then(function () { document.querySelector('#collectionTargetDialog').hidden = true; Dashboard.alert('Selected media was added to the chosen collection.'); refreshCollectionsAfterEdit(); }, function (error) { Dashboard.alert('Could not add media to the chosen collection: ' + err(error)); }); });
         $('#toggleMetadataOverview').addEventListener('click', function () { var content = $('#metadataOverviewContent'), expanded = !content.hidden; content.hidden = expanded; this.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadMetadataOverview(); } });
         $('#metadataTypeSearch').addEventListener('input', applyOverviewTypeFilter);
         $('#metadataTagSearch').addEventListener('input', function () {
@@ -425,7 +523,7 @@
         });
         $('#metadataOverviewGroups').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-library]')) { var id = target.getAttribute('data-toggle-library'), content = page.querySelector('[data-catalog-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; } if (target.matches('[data-toggle-overview-type]')) { var typeSection = target.closest('[data-overview-type]'), typeContent = typeSection.querySelector('.mcm-overview-type-content'), typeExpanded = !typeContent.hidden; typeContent.hidden = typeExpanded; target.textContent = typeExpanded ? 'Click here to expand' : 'Click here to collapse'; if (!typeExpanded) { loadOverviewValues(typeSection, 1); } } if (target.matches('[data-overview-values-page]')) { event.preventDefault(); target.blur(); loadOverviewValues(target.closest('[data-overview-type]'), Number(target.getAttribute('data-overview-values-page'))); } });
         $('#metadataOverviewGroups').addEventListener('input', function (event) { if (event.target.matches('[data-overview-tag-search]')) { var section = event.target.closest('[data-overview-type]'); window.clearTimeout(event.target.searchTimer); event.target.searchTimer = window.setTimeout(function () { loadOverviewValues(section, 1); }, 250); } });
-        Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (button) { button.addEventListener('click', function () { var selectedTab=button.getAttribute('data-tab'); Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (tab) { var active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', active ? 'true' : 'false'); }); Array.prototype.forEach.call(page.querySelectorAll('.mcm-panel'), function (panel) { panel.classList.toggle('active', panel.getAttribute('data-panel') === selectedTab); }); if (selectedTab === 'individual') { renderIndividualLibraryPickers(); renderIndividualDrafts(); } if (selectedTab === 'combined' || selectedTab === 'multi') { renderMode(selectedTab); } }); });
+        Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (button) { button.addEventListener('click', function () { var selectedTab=button.getAttribute('data-tab'); Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (tab) { var active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', active ? 'true' : 'false'); }); Array.prototype.forEach.call(page.querySelectorAll('.mcm-panel'), function (panel) { panel.classList.toggle('active', panel.getAttribute('data-panel') === selectedTab); }); if (selectedTab === 'individual') { renderIndividualLibraryPickers(); renderIndividualDrafts(); } if (selectedTab === 'combined' || selectedTab === 'multi') { renderMode(selectedTab); } if (selectedTab === 'overview') { loadCollectionOverviewStatus(); if (!$('#collectionsOverviewContent').hidden) loadCollectionOverviewCounts(); } }); });
         $('#individualTagLibraryPickers').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-picker-library]')) { var id = target.getAttribute('data-toggle-picker-library'), content = page.querySelector('[data-picker-library-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualTypes(id); } } if (target.matches('[data-toggle-tag-type]')) { var section = target.closest('[data-tag-type]'), content = section.querySelector('.mcm-tag-type-content'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualValues(section, 1); } } if (target.matches('[data-tag-values-page]')) { event.preventDefault(); target.blur(); loadIndividualValues(target.closest('[data-tag-type]'), Number(target.getAttribute('data-tag-values-page'))); } });
         $('#individualTagLibraryPickers').addEventListener('change', function (event) { if (event.target.matches('[data-individual-tag-value]')) { addOrRemoveDraft(event.target); } });
         $('#individualTagLibraryPickers').addEventListener('input', function (event) { if (event.target.matches('[data-tag-search]')) { var section = event.target.closest('[data-tag-type]'); window.clearTimeout(event.target.searchTimer); event.target.searchTimer = window.setTimeout(function () { loadIndividualValues(section, 1); }, 250); } });

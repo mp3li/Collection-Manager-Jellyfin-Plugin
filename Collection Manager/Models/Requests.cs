@@ -26,6 +26,35 @@ public sealed class MetadataOverviewColorRequest
     public string Color { get; set; } = "#00A4DC";
 }
 
+/// <summary>Settings controlling which existing collections appear in the collection overview.</summary>
+public sealed class CollectionOverviewSettingsRequest
+{
+    public bool ShowPluginMadeCollections { get; set; } = true;
+    public bool ShowNonPluginMadeCollections { get; set; } = true;
+}
+
+/// <summary>Colors used to distinguish collection overview changes from the latest scan.</summary>
+public sealed class CollectionOverviewColorsRequest
+{
+    public string AddedColor { get; set; } = "#4CAF50";
+    public string RemovedColor { get; set; } = "#F44336";
+}
+
+/// <summary>One requested collection title change.</summary>
+public sealed class CollectionRenameRequest
+{
+    public Guid CollectionId { get; set; }
+    public string Name { get; set; } = string.Empty;
+}
+
+/// <summary>The selected Collection Manager cleanup actions.</summary>
+public sealed class CollectionCleanupRequest
+{
+    public bool UndoLastCollectionAction { get; set; }
+    public bool RemoveAllPluginMadeCollections { get; set; }
+    public bool RemoveAllMediaAdditionsToExternalCollections { get; set; }
+}
+
 /// <summary>One administrator-reviewed collection draft created from a catalog metadata value.</summary>
 public sealed class IndividualCollectionDraftRequest
 {

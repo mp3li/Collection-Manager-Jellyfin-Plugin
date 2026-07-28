@@ -22,7 +22,7 @@ Private installation and dashboard availability
 [ ] Add the manifest to a private Jellyfin 10.11.11 server.
 [ ] Install the plugin through Jellyfin's repository interface.
 [ ] Restart Jellyfin and confirm Collection Manager appears in Dashboard.
-[ ] Open the plugin dashboard as an administrator and confirm all four tabs load.
+[ ] Open the plugin dashboard as an administrator and confirm all five tabs load.
 [ ] Confirm a manifest update detects and offers a newer compatible release.
 
 Main Settings
@@ -50,6 +50,10 @@ Main Settings
 [ ] After a Jellyfin restart, the last completed scan and its timestamp remain
     available without starting a new scan.
 [ ] Overview color saves and persists after reopening the dashboard.
+[ ] Select All, Select None, and Save Libraries appear together after the
+    library picker, in that order.
+[ ] Cleanup performs only the selected actions, reports a result, and does not
+    remove media files or alter library metadata.
 
 Catalog fidelity and scale
 --------------------------
@@ -122,6 +126,25 @@ Multi-Match Tag Collections
 [ ] The preview starts collapsed and expands with media grouped by library.
 [ ] Same-title handling is visible in-page and does not change an existing collection.
 [ ] A successful creation clears the multi-match draft and preserves the completion result.
+
+Collection Overview & Editor
+----------------------------
+[ ] Selected Collections Settings saves either collection type individually or both types together.
+[ ] Scan for Collections reports progress, a found-collection result, and the local last-scan date and time.
+[ ] The saved collection overview remains available after leaving, reopening, and restarting Jellyfin without another scan.
+[ ] A new scan regenerates the saved overview using the current selected-library collection state.
+[ ] The Collections Overview & Editor starts collapsed and uses independently expandable, initially collapsed selected-library sections.
+[ ] Overview paging shows no more than ten collections per library and does not move the dashboard viewport.
+[ ] Newly added collection names and media titles use the selected added color; newly removed names and titles use the selected removed color.
+[ ] Overview color choices persist after reopening the dashboard.
+[ ] Edit Collection opens the correct titled dialog with a current collection title and item count.
+[ ] Media in collection loads in bounded lazy pages inside the scrollable picker.
+[ ] Select All, Select None, Remove from Collection, and Add to Collection operate on the selected current-page and previously selected media items as intended.
+[ ] Add to Collection opens a native collection picker and adds selected media only to the chosen collection.
+[ ] Saving a collection title changes the normal native Jellyfin collection name.
+[ ] Undo Last Collection Action reverses the last recorded create, membership, or title action without touching media files.
+[ ] Remove All Collections Made By This Plugin removes only collections recorded as plugin-made.
+[ ] Remove All Media Additions To Existing Collections Not Made by This Plugin removes only recorded plugin additions to non-plugin collections.
 
 Native Jellyfin, watcher, and privacy behavior
 -----------------------------------------------

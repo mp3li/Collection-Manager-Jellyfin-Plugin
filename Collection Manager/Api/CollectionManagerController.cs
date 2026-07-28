@@ -414,6 +414,260 @@ public sealed class CollectionManagerController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Saves the collection types the administrator wants shown in the overview.</summary>
+    [HttpPost("settings/collection-overview")]
+    public IActionResult UpdateCollectionOverviewSettings([FromBody] CollectionOverviewSettingsRequest request) =>
+        Ok(RequirePlugin().UpdateCollectionOverviewSettings(request.ShowPluginMadeCollections, request.ShowNonPluginMadeCollections));
+
+    /// <summary>Saves the collection overview's added and removed colors.</summary>
+    [HttpPost("settings/collection-overview-colors")]
+    public IActionResult UpdateCollectionOverviewColors([FromBody] CollectionOverviewColorsRequest request)
+    {
+        if (!IsColor(request.AddedColor) || !IsColor(request.RemovedColor))
+        {
+            return BadRequest("Choose valid six-digit hexadecimal colors.");
+        }
+
+        return Ok(RequirePlugin().UpdateCollectionOverviewColors(request.AddedColor.Trim(), request.RemovedColor.Trim()));
+    }
+
+    /// <summary>Scans current standard Jellyfin collections and saves a selected-library overview snapshot.</summary>
+    [HttpPost("collection-overview/scan")]
+    public IActionResult ScanCollectionOverview()
+    {
+        var plugin = RequirePlugin();
+        if (plugin.Configuration.LibraryIds.Count == 0)
+        {
+            return BadRequest("Save one or more libraries in Main Settings before scanning collections.");
+        }
+
+        var snapshot = BuildCollectionOverviewSnapshot(plugin.Configuration);
+        plugin.SaveCollectionOverviewSnapshot(snapshot);
+        var count = snapshot.Libraries.SelectMany(library => library.Collections).Where(collection => collection.Exists).Select(collection => collection.CollectionId).Distinct().Count();
+        return Ok(new { IsScanning = false, ProcessedItems = count, TotalItems = count, LastCompletedUtc = snapshot.CompletedUtc, Message = $"Collection scan complete. Found {count} collection(s)." });
+    }
+
+    /// <summary>Returns the saved collection overview scan status and last-completed time.</summary>
+    [HttpGet("collection-overview/status")]
+    public IActionResult GetCollectionOverviewStatus()
+    {
+        var snapshot = RequirePlugin().Configuration.CollectionOverviewSnapshot;
+        var count = snapshot?.Libraries.SelectMany(library => library.Collections).Where(collection => collection.Exists).Select(collection => collection.CollectionId).Distinct().Count() ?? 0;
+        return Ok(new { IsScanning = false, ProcessedItems = count, TotalItems = count, LastCompletedUtc = snapshot?.CompletedUtc, Message = snapshot is null ? "No collection overview scan has been completed yet." : $"Showing the last available collection scan. Found {count} collection(s)." });
+    }
+
+    /// <summary>Returns saved per-library collection counts for the expandable overview.</summary>
+    [HttpGet("collection-overview/counts")]
+    public IActionResult GetCollectionOverviewCounts()
+    {
+        var snapshot = RequirePlugin().Configuration.CollectionOverviewSnapshot;
+        return Ok(snapshot?.Libraries.Select(library => new { library.LibraryId, TotalItems = FilterCollections(library.Collections).Count }).ToArray() ?? []);
+    }
+
+    /// <summary>Returns a bounded saved collection-overview page for one selected library.</summary>
+    [HttpGet("collection-overview/page")]
+    public IActionResult GetCollectionOverviewPage([FromQuery] Guid libraryId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var library = RequirePlugin().Configuration.CollectionOverviewSnapshot?.Libraries.FirstOrDefault(candidate => candidate.LibraryId == libraryId);
+        if (library is null)
+        {
+            return Ok(new { Items = Array.Empty<CollectionOverviewCollectionSnapshot>(), TotalItems = 0, Page = 1, PageSize = Math.Clamp(pageSize, 1, 50) });
+        }
+
+        var size = Math.Clamp(pageSize, 1, 50);
+        var values = FilterCollections(library.Collections).OrderBy(collection => collection.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+        var currentPage = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(values.Length / (double)size)));
+        return Ok(new { Items = values.Skip((currentPage - 1) * size).Take(size).ToArray(), TotalItems = values.Length, Page = currentPage, PageSize = size });
+    }
+
+    /// <summary>Returns a lazy page of current media members for a collection editor dialog.</summary>
+    [HttpGet("collection-overview/collection")]
+    public IActionResult GetCollectionEditor([FromQuery] Guid collectionId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    {
+        var collection = _libraryManager.GetItemById<BoxSet>(collectionId);
+        if (collection is null)
+        {
+            return NotFound("This collection no longer exists.");
+        }
+
+        var items = collection.GetLinkedChildren().OrderBy(item => item.SortName ?? item.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+        var size = Math.Clamp(pageSize, 1, 100);
+        var currentPage = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(items.Length / (double)size)));
+        return Ok(new
+        {
+            CollectionId = collection.Id,
+            Name = collection.Name,
+            TotalItems = items.Length,
+            Page = currentPage,
+            PageSize = size,
+            Items = items.Skip((currentPage - 1) * size).Take(size).Select(item => new { item.Id, item.Name, Type = item.GetType().Name, item.ProductionYear }).ToArray(),
+        });
+    }
+
+    /// <summary>Returns all current collection titles for the editor's Add to Collection dialog.</summary>
+    [HttpGet("collection-overview/targets")]
+    public IActionResult GetCollectionTargets() => Ok(_libraryManager.GetItemList(new InternalItemsQuery { Recursive = true })
+        .OfType<BoxSet>().OrderBy(collection => collection.Name, StringComparer.OrdinalIgnoreCase)
+        .Select(collection => new { collection.Id, collection.Name }).ToArray());
+
+    /// <summary>Renames an existing native Jellyfin collection from its editor dialog.</summary>
+    [HttpPost("collections/rename")]
+    public async Task<IActionResult> RenameCollection([FromBody] CollectionRenameRequest request, CancellationToken cancellationToken)
+    {
+        if (request.CollectionId == Guid.Empty || string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest("A collection and collection title are required.");
+        }
+
+        await _reconciler.RenameCollectionAsync(request.CollectionId, request.Name.Trim(), cancellationToken).ConfigureAwait(false);
+        return NoContent();
+    }
+
+    /// <summary>Applies selected reversible cleanup actions to Collection Manager collections.</summary>
+    [HttpPost("collections/cleanup")]
+    public async Task<IActionResult> CleanUpCollections([FromBody] CollectionCleanupRequest request, CancellationToken cancellationToken)
+    {
+        var plugin = RequirePlugin();
+        var messages = new List<string>();
+        if (request.UndoLastCollectionAction && plugin.Configuration.CollectionActionHistory.LastOrDefault() is { } action)
+        {
+            await UndoCollectionAction(action, cancellationToken).ConfigureAwait(false);
+            plugin.RemoveLastCollectionAction();
+            messages.Add("Undid the last Collection Manager action.");
+        }
+
+        if (request.RemoveAllPluginMadeCollections)
+        {
+            var managedIds = plugin.Configuration.PluginManagedCollectionIds.Concat(plugin.Configuration.Rules.Where(rule => rule.CollectionId.HasValue).Select(rule => rule.CollectionId!.Value)).Distinct().ToArray();
+            var collections = managedIds.Select(id => _libraryManager.GetItemById<BoxSet>(id)).Where(collection => collection is not null).Cast<BoxSet>().ToArray();
+            if (collections.Length > 0)
+            {
+                _libraryManager.DeleteItemsUnsafeFast(collections);
+            }
+
+            foreach (var collection in collections)
+            {
+                plugin.ForgetManagedCollection(collection.Id);
+            }
+
+            messages.Add($"Removed {collections.Length} collection(s) made by this plugin.");
+        }
+
+        if (request.RemoveAllMediaAdditionsToExternalCollections)
+        {
+            var managed = plugin.Configuration.PluginManagedCollectionIds.Concat(plugin.Configuration.Rules.Where(rule => rule.CollectionId.HasValue).Select(rule => rule.CollectionId!.Value)).ToHashSet();
+            var additions = plugin.Configuration.CollectionActionHistory.Where(action => string.Equals(action.Action, "Add", StringComparison.Ordinal) && !managed.Contains(action.CollectionId))
+                .SelectMany(action => action.ItemIds.Select(itemId => (action.CollectionId, ItemId: itemId))).Distinct().ToArray();
+            foreach (var group in additions.GroupBy(value => value.CollectionId))
+            {
+                await _reconciler.RemoveFromCollectionAsync(group.Key, group.Select(value => value.ItemId)).ConfigureAwait(false);
+            }
+
+            messages.Add($"Removed {additions.Length} media addition(s) from existing collections not made by this plugin.");
+        }
+
+        return Ok(new { Message = messages.Count == 0 ? "Select one or more cleanup actions." : string.Join(" ", messages) });
+    }
+
+    private CollectionOverviewSnapshot BuildCollectionOverviewSnapshot(PluginConfiguration configuration)
+    {
+        var selectedLibraries = _libraryManager.GetVirtualFolders(true)
+            .Select(folder => new { Id = Guid.TryParse(folder.ItemId, out var id) ? id : Guid.Empty, folder.Name })
+            .Where(folder => configuration.LibraryIds.Contains(folder.Id)).ToArray();
+        var itemLibraries = selectedLibraries.SelectMany(library => _libraryManager.GetItemList(new InternalItemsQuery { ParentId = library.Id, Recursive = true })
+            .Where(item => item is not BoxSet).Select(item => new { item.Id, LibraryId = library.Id })).GroupBy(value => value.Id).ToDictionary(group => group.Key, group => group.First().LibraryId);
+        var previous = configuration.CollectionOverviewSnapshot;
+        var previousLibraries = previous?.Libraries.ToDictionary(library => library.LibraryId) ?? [];
+        var managed = configuration.PluginManagedCollectionIds.Concat(configuration.Rules.Where(rule => rule.CollectionId.HasValue).Select(rule => rule.CollectionId!.Value)).ToHashSet();
+        var current = selectedLibraries.ToDictionary(library => library.Id, library => new CollectionOverviewLibrarySnapshot { LibraryId = library.Id, LibraryName = library.Name });
+
+        foreach (var collection in _libraryManager.GetItemList(new InternalItemsQuery { Recursive = true }).OfType<BoxSet>())
+        {
+            var children = collection.GetLinkedChildren().Where(child => itemLibraries.ContainsKey(child.Id)).ToArray();
+            foreach (var group in children.GroupBy(child => itemLibraries[child.Id]))
+            {
+                var prior = previousLibraries.TryGetValue(group.Key, out var previousLibrary)
+                    ? previousLibrary.Collections.FirstOrDefault(candidate => candidate.CollectionId == collection.Id)
+                    : null;
+                var priorItems = prior?.Items.Select(item => item.ItemId).ToHashSet() ?? [];
+                current[group.Key].Collections.Add(new CollectionOverviewCollectionSnapshot
+                {
+                    CollectionId = collection.Id,
+                    Name = collection.Name,
+                    MadeByPlugin = managed.Contains(collection.Id),
+                    Exists = true,
+                    NewlyAdded = prior is null,
+                    Items = group.Select(child => new CollectionOverviewItemSnapshot
+                    {
+                        ItemId = child.Id,
+                        Name = child.Name,
+                        NewlyAdded = !priorItems.Contains(child.Id),
+                    }).Concat((prior?.Items ?? []).Where(item => !group.Any(child => child.Id == item.ItemId)).Select(item => new CollectionOverviewItemSnapshot
+                    {
+                        ItemId = item.ItemId,
+                        Name = item.Name,
+                        NewlyRemoved = true,
+                    })).ToList(),
+                });
+            }
+        }
+
+        foreach (var library in current.Values)
+        {
+            if (!previousLibraries.TryGetValue(library.LibraryId, out var previousLibrary))
+            {
+                continue;
+            }
+
+            foreach (var removed in previousLibrary.Collections.Where(previousCollection => !library.Collections.Any(currentCollection => currentCollection.CollectionId == previousCollection.CollectionId)))
+            {
+                library.Collections.Add(new CollectionOverviewCollectionSnapshot
+                {
+                    CollectionId = removed.CollectionId,
+                    Name = removed.Name,
+                    MadeByPlugin = removed.MadeByPlugin,
+                    Exists = false,
+                    NewlyRemoved = true,
+                    Items = removed.Items.Select(item => new CollectionOverviewItemSnapshot { ItemId = item.ItemId, Name = item.Name, NewlyRemoved = true }).ToList(),
+                });
+            }
+        }
+
+        return new CollectionOverviewSnapshot { CompletedUtc = DateTime.UtcNow, Libraries = current.Values.OrderBy(library => library.LibraryName, StringComparer.OrdinalIgnoreCase).ToList() };
+    }
+
+    private List<CollectionOverviewCollectionSnapshot> FilterCollections(IEnumerable<CollectionOverviewCollectionSnapshot> collections)
+    {
+        var configuration = RequirePlugin().Configuration;
+        return collections.Where(collection => (collection.MadeByPlugin && configuration.ShowPluginMadeCollections) || (!collection.MadeByPlugin && configuration.ShowNonPluginMadeCollections)).ToList();
+    }
+
+    private async Task UndoCollectionAction(CollectionActionRecord action, CancellationToken cancellationToken)
+    {
+        switch (action.Action)
+        {
+            case "Create":
+                if (_libraryManager.GetItemById<BoxSet>(action.CollectionId) is { } created)
+                {
+                    _libraryManager.DeleteItemsUnsafeFast([created]);
+                    RequirePlugin().ForgetManagedCollection(created.Id);
+                }
+                break;
+            case "Add":
+                await _reconciler.RemoveFromCollectionAsync(action.CollectionId, action.ItemIds, recordAction: false).ConfigureAwait(false);
+                break;
+            case "Remove":
+                await _reconciler.AddToCollectionAsync(action.CollectionId, action.ItemIds, recordAction: false).ConfigureAwait(false);
+                break;
+            case "Rename" when !string.IsNullOrWhiteSpace(action.PreviousCollectionName):
+                await _reconciler.RenameCollectionAsync(action.CollectionId, action.PreviousCollectionName, cancellationToken, recordAction: false).ConfigureAwait(false);
+                break;
+        }
+    }
+
+    private static bool IsColor(string? color) =>
+        !string.IsNullOrWhiteSpace(color) && System.Text.RegularExpressions.Regex.IsMatch(color, "^#[0-9a-fA-F]{6}$");
+
     private static Plugin RequirePlugin() =>
         Plugin.Instance ?? throw new InvalidOperationException("Collection Manager has not finished initializing.");
 

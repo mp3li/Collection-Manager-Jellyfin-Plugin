@@ -23,6 +23,27 @@ public sealed class PluginConfiguration : BasePluginConfiguration
 
     /// <summary>Gets or sets the overview metadata text color selected by the administrator.</summary>
     public string MetadataTagOverviewColor { get; set; } = "#00A4DC";
+
+    /// <summary>Gets or sets whether the collection overview includes collections created by this plugin.</summary>
+    public bool ShowPluginMadeCollections { get; set; } = true;
+
+    /// <summary>Gets or sets whether the collection overview includes collections not created by this plugin.</summary>
+    public bool ShowNonPluginMadeCollections { get; set; } = true;
+
+    /// <summary>Gets or sets the color used for newly added collection names and media titles.</summary>
+    public string CollectionOverviewAddedColor { get; set; } = "#4CAF50";
+
+    /// <summary>Gets or sets the color used for newly removed collection names and media titles.</summary>
+    public string CollectionOverviewRemovedColor { get; set; } = "#F44336";
+
+    /// <summary>Gets or sets the ids of collections created through Collection Manager.</summary>
+    public List<Guid> PluginManagedCollectionIds { get; set; } = [];
+
+    /// <summary>Gets or sets the last saved collection overview scan.</summary>
+    public CollectionOverviewSnapshot? CollectionOverviewSnapshot { get; set; }
+
+    /// <summary>Gets or sets recent reversible collection actions initiated by this plugin.</summary>
+    public List<CollectionActionRecord> CollectionActionHistory { get; set; } = [];
     /// <summary>Gets or sets a value indicating whether metadata-change events can reconcile enabled rules.</summary>
     public bool WatchMetadataChanges { get; set; } = true;
 
