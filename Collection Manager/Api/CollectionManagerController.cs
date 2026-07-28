@@ -2,6 +2,7 @@ using Jellyfin.Plugin.CollectionManager.Configuration;
 using Jellyfin.Plugin.CollectionManager.Models;
 using Jellyfin.Plugin.CollectionManager.Services;
 using Jellyfin.Plugin.CollectionManager.Tasks;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -505,7 +506,7 @@ public sealed class CollectionManagerController : ControllerBase
 
     /// <summary>Returns all current collection titles for the editor's Add to Collection dialog.</summary>
     [HttpGet("collection-overview/targets")]
-    public IActionResult GetCollectionTargets() => Ok(_libraryManager.GetItemList(new InternalItemsQuery { Recursive = true })
+    public IActionResult GetCollectionTargets() => Ok(_libraryManager.GetItemList(new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.BoxSet] })
         .OfType<BoxSet>().OrderBy(collection => collection.Name, StringComparer.OrdinalIgnoreCase)
         .Select(collection => new { collection.Id, collection.Name }).ToArray());
 
@@ -581,7 +582,7 @@ public sealed class CollectionManagerController : ControllerBase
         var managed = configuration.PluginManagedCollectionIds.Concat(configuration.Rules.Where(rule => rule.CollectionId.HasValue).Select(rule => rule.CollectionId!.Value)).ToHashSet();
         var current = selectedLibraries.ToDictionary(library => library.Id, library => new CollectionOverviewLibrarySnapshot { LibraryId = library.Id, LibraryName = library.Name });
 
-        var allCollections = _libraryManager.GetItemList(new InternalItemsQuery { Recursive = true }).OfType<BoxSet>().ToArray();
+        var allCollections = _libraryManager.GetItemList(new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.BoxSet] }).OfType<BoxSet>().ToArray();
         foreach (var collection in allCollections)
         {
             BaseItem[] children;
@@ -710,7 +711,7 @@ public sealed class CollectionManagerController : ControllerBase
         !string.IsNullOrWhiteSpace(draft.CollectionTitle);
 
     private BoxSet? FindCollectionByName(string title) =>
-        _libraryManager.GetItemList(new InternalItemsQuery { Recursive = true })
+        _libraryManager.GetItemList(new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.BoxSet] })
             .OfType<BoxSet>()
             .FirstOrDefault(collection => string.Equals(collection.Name, title.Trim(), StringComparison.OrdinalIgnoreCase));
 }

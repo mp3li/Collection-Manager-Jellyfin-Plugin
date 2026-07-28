@@ -19,6 +19,8 @@
   all-native-collections scan and overview, as requested.
 - Collection scan failures now show only a safe scan stage and exception type,
   while the full exception remains in the Jellyfin server log.
+- Replaced the unsupported root recursive item query with Jellyfin's typed
+  `BoxSet` query when enumerating native collections on 10.11.11.
 - One malformed collection link no longer prevents the complete collection
   overview scan.
 

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.CollectionManager.Configuration;
 using Jellyfin.Plugin.CollectionManager.Models;
 using MediaBrowser.Controller.Entities;
@@ -47,7 +48,7 @@ public sealed class CollectionOverviewService
         try
         {
             phase = "reading native Jellyfin collections";
-            var allCollections = _libraryManager.GetItemList(new InternalItemsQuery { Recursive = true }).OfType<BoxSet>().ToArray();
+            var allCollections = _libraryManager.GetItemList(new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.BoxSet] }).OfType<BoxSet>().ToArray();
             phase = "reading the previous saved collection overview";
             var prior = GetSnapshot();
             var priorCollections = prior?.Libraries.SelectMany(library => library.Collections).GroupBy(collection => collection.CollectionId).ToDictionary(group => group.Key, group => group.First()) ?? [];

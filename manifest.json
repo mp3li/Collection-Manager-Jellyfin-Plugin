@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.19",
-        "changelog": "Keeps the flat all-collections overview and reports a safe scan failure stage and exception type if Jellyfin cannot complete a scan.",
+        "version": "0.1.0.20",
+        "changelog": "Uses Jellyfin's typed BoxSet query to enumerate native collections on Jellyfin 10.11.11.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.19/CollectionManager_0.1.0.19.zip",
-        "checksum": "158b94e2ba9fcab519e54c8357489797",
-        "timestamp": "2026-07-28T23:44:59Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.20/CollectionManager_0.1.0.20.zip",
+        "checksum": "baf565944620ab8bb2fda9c6fcadfcd0",
+        "timestamp": "2026-07-28T23:50:46Z"
       }
     ]
   }
