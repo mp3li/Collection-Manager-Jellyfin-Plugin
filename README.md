@@ -85,7 +85,7 @@ to a dedicated Collection Manager directory inside your Jellyfin plugins
 directory, restart Jellyfin, then open **Dashboard → Collection Manager**.
 
 For repository-manifest testing, first make a release ZIP containing the exact
-Release DLL, publish that ZIP as a GitHub Release asset, calculate its SHA-256,
+Release DLL, publish that ZIP as a GitHub Release asset, calculate its MD5,
 and create a manifest whose version, target ABI, framework, source URL,
 checksum, timestamp, branding image, and changelog all describe that exact
 asset. The current private-testing release is available through this repository
@@ -96,7 +96,7 @@ https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/
 ```
 
 In Jellyfin, open **Dashboard → Plugins → Repositories**, add that URL, then
-install the **0.1.0.1 Private Testing** prerelease from the catalog. Restart
+install the **0.1.0.2 Private Testing** prerelease from the catalog. Restart
 Jellyfin and record the real server results in the testing tracker.
 
 ## Private test tracking

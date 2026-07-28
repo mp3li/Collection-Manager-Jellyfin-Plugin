@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Corrected the repository manifest for Jellyfin 10.11.11: it now uses the
+  exact `10.11.11.0` target ABI and Jellyfin's required MD5 release-package
+  checksum format.
+- Pointed the repository card at the full Collection Manager promotional image
+  instead of the small transparent icon.
+- Reworked the Collection Manager icon and matching promotional graphic with
+  smooth, anti-aliased edges while retaining the shared Media Tagging Manager
+  visual system and background treatment.
+
 ### Changed
 
 - Renamed the plugin, project, assembly, dashboard route, manifest, branding,
