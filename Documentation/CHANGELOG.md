@@ -50,9 +50,13 @@
 
 ### Changed
 
-- Made every tab section heading use the same large, bold heading treatment as
-  the tab's own title. Moved outer library expand/collapse controls to the
-  left, while leaving nested metadata-type controls on the right.
+- Matched the Media Tagging Manager dashboard structure: each tab's
+  introduction now sits in the same bordered, padded section card as every
+  other area. There are no standalone, larger tab headings or indented
+  follow-on sections, and the redundant My Metadata Tags subheading is gone.
+- Made every section heading consistent and moved outer library
+  expand/collapse controls to the left, while leaving nested metadata-type
+  controls on the right.
 - Added separate metadata-type and metadata-tag searches above the saved-scan
   library overview, changed collection pickers to a two-column layout where
   there is room, and made the Individual draft's other-library scope a proper

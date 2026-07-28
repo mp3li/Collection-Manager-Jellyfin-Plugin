@@ -1,7 +1,7 @@
 <div id="collectionManagerPage" data-role="page" class="page type-interior" data-require="emby-input,emby-button,emby-checkbox,emby-select">
     <style>
         #collectionManagerPage .mcm-section { border:1px solid rgba(255,255,255,.16); border-radius:.65em; padding:1.25em; margin:0 0 1.25em; }
-        #collectionManagerPage h2 { font-size:1.5em; line-height:1.25; margin:0 0 .35em; font-weight:700; }
+        #collectionManagerPage .mcm-section h2 { font-size:1.35em; line-height:1.25; margin:0 0 .35em; }
         #collectionManagerPage .mcm-tabs { display:flex; flex-wrap:nowrap; gap:.5em; overflow-x:auto; overscroll-behavior-x:contain; border-bottom:1px solid rgba(255,255,255,.16); margin:1.5em 0; padding-bottom:.15em; }
         #collectionManagerPage .mcm-tab { flex:0 0 auto; white-space:nowrap; border:0; border-radius:.45em .45em 0 0; padding:.85em 1.25em; background:rgba(255,255,255,.08); color:inherit; cursor:pointer; font-size:1em; }
         #collectionManagerPage .mcm-tab.active { background:#00a4dc; color:#fff; font-weight:bold; }
@@ -51,10 +51,12 @@
         <div class="mcm-tabs" role="tablist" aria-label="Collection Manager sections"><button type="button" class="mcm-tab active" data-tab="main" role="tab" aria-selected="true">Main Settings</button><button type="button" class="mcm-tab" data-tab="individual" role="tab" aria-selected="false">Individual Tag Collections</button><button type="button" class="mcm-tab" data-tab="combined" role="tab" aria-selected="false">Combined Tag Collections</button><button type="button" class="mcm-tab" data-tab="multi" role="tab" aria-selected="false">Multi-Match Tag Collections</button></div>
 
         <div class="mcm-panel active" data-panel="main">
+        <section class="mcm-section">
         <h2>Main Settings</h2>
         <p class="fieldDescription">Collection Manager reads the metadata already assigned to your media and builds a local catalog you can later use to create and maintain Jellyfin collections.</p>
         <p class="fieldDescription">Metadata tags are descriptive information connected to a media item, such as genres, providers, networks, studios, directors, cast members, composers, years, custom tags, and other metadata already available in your Jellyfin libraries or local NFO files. For example, a title may have tags such as <code>Provider: MarqueeTV</code>, <code>Network: HBO</code>, <code>Opera</code>, <code>Broadway</code>, or <code>Live Performance</code>.</p>
         <p class="fieldDescription">This plugin uses all available metadata tags; it does not fetch, add, edit, or remove metadata from your media. It was especially designed to work alongside the <a href="https://github.com/mp3li/Media-Tagging-Manager-Jellyfin-Plugin" target="_blank" rel="noopener noreferrer">Media Tagging Manager Jellyfin Plugin</a>, which can create and assign many of the tags that Collection Manager can then use to organize your library into collections.</p>
+        </section>
 
         <section class="mcm-section">
             <h2>Selected Libraries</h2>
@@ -71,9 +73,8 @@
             <label class="checkboxContainer"><input type="radio" name="automaticallyAddNewMedia" value="yes" id="automaticallyAddNewMediaYes" /> <span>Yes</span></label>
             <label class="checkboxContainer"><input type="radio" name="automaticallyAddNewMedia" value="no" id="automaticallyAddNewMediaNo" /> <span>No</span></label>
             <p class="fieldDescription">This setting only affects collections configured to update automatically.</p>
-        </section>
-
         <div class="mcm-actions"><button is="emby-button" type="button" class="raised button-submit block" id="saveMainSettingsButton">Save Main Settings</button></div>
+        </section>
 
         <section class="mcm-section">
             <h2>Scan for Metadata Tags</h2>
@@ -86,7 +87,6 @@
         <section class="mcm-section">
             <h2>My Metadata Tags</h2>
             <p class="fieldDescription">View the metadata currently assigned to media in your selected and saved libraries. This includes all available metadata, including—but never limited to—metadata assigned by Media Tagging Manager.</p>
-            <h3>My Metadata Tags Overview</h3>
             <button is="emby-button" type="button" class="raised" id="toggleMetadataOverview">Click here to expand</button>
             <div id="metadataOverviewContent" class="mcm-overview-content" hidden>
                 <div class="mcm-overview-searches"><div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="metadataTypeSearch">Search metadata tag types</label><input is="emby-input" id="metadataTypeSearch" type="search" placeholder="For example: Genres or NFO" /></div><div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="metadataTagSearch">Search metadata tags</label><input is="emby-input" id="metadataTagSearch" type="search" placeholder="Filters values when you expand a type" /></div></div>
@@ -96,14 +96,13 @@
         </div>
 
         <div class="mcm-panel" data-panel="individual">
-            <h2>Individual Tag Collections</h2>
-            <p class="fieldDescription">Create individual Jellyfin collections for individual metadata tags selected. For example, selecting the Horror genre, Netflix provider, and A24 studio creates three separate collection drafts that can each be named, previewed, and created individually.</p>
+            <section class="mcm-section"><h2>Individual Tag Collections</h2><p class="fieldDescription">Create individual Jellyfin collections for individual metadata tags selected. For example, selecting the Horror genre, Netflix provider, and A24 studio creates three separate collection drafts that can each be named, previewed, and created individually.</p></section>
             <section class="mcm-section"><h2>Select Metadata Tags</h2><p class="fieldDescription">Browse the metadata tags found during the most recent scan and select the tags you want to turn into separate collections. Every selected metadata tag creates its own collection draft below.</p><div id="individualTagLibraryPickers"><p class="fieldDescription">Open a library to load its available metadata tag types.</p></div></section>
             <section class="mcm-section"><h2>Individual Collection Drafts</h2><p class="fieldDescription">Review and customize each selected metadata tag as its own individual collection before creating the collections.</p><div id="individualCollectionDrafts"><p class="fieldDescription">Select a metadata tag above to create its collection draft.</p></div></section>
             <section class="mcm-section"><h2>Create Collections</h2><p class="fieldDescription">Create the Jellyfin collections for every completed and selected draft shown above.</p><div class="mcm-actions"><button is="emby-button" type="button" class="raised button-submit" id="createIndividualCollectionsButton">Create Selected Collections</button></div><div class="mcm-progress"><div id="individualCreationProgress"></div></div><p id="individualCreationStatus" class="fieldDescription" aria-live="polite">No collection drafts are currently selected.</p><div id="individualCreationResults"></div></section>
         </div>
-        <div class="mcm-panel" data-panel="combined"><h2>Combined Tag Collections</h2><p class="fieldDescription">Create one Jellyfin collection at a time by combining all media connected to multiple selected metadata tags. For example, selecting the Horror genre and Thriller genre creates one collection containing media with Horror tags, media with Thriller tags, and media with both. Each matching Jellyfin media item is included once.</p><div class="mcm-combined-host" data-mode="combined"></div></div>
-        <div class="mcm-panel" data-panel="multi"><h2>Multi-Match Tag Collections</h2><p class="fieldDescription">Create one Jellyfin collection at a time containing only media that matches every selected metadata tag. For example, selecting the Horror genre and Thriller genre creates one collection containing only media with both metadata tags assigned.</p><div class="mcm-combined-host" data-mode="multi"></div></div>
+        <div class="mcm-panel" data-panel="combined"><section class="mcm-section"><h2>Combined Tag Collections</h2><p class="fieldDescription">Create one Jellyfin collection at a time by combining all media connected to multiple selected metadata tags. For example, selecting the Horror genre and Thriller genre creates one collection containing media with Horror tags, media with Thriller tags, and media with both. Each matching Jellyfin media item is included once.</p></section><div class="mcm-combined-host" data-mode="combined"></div></div>
+        <div class="mcm-panel" data-panel="multi"><section class="mcm-section"><h2>Multi-Match Tag Collections</h2><p class="fieldDescription">Create one Jellyfin collection at a time containing only media that matches every selected metadata tag. For example, selecting the Horror genre and Thriller genre creates one collection containing only media with both metadata tags assigned.</p></section><div class="mcm-combined-host" data-mode="multi"></div></div>
     </div></div>
 
     <script>
