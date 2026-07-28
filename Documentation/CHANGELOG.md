@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Replaced the incorrect per-title **My Metadata Tags** renderer with the
+  actual metadata-value picker. Each library now loads its tag categories, and
+  every expanded category shows only its real tags, matching-media counts,
+  search, alphabetical results, and fifty-tag pagination.
 - Saved the last completed metadata catalog in Collection Manager's local
   Jellyfin plugin data. **My Metadata Tags** now shows its local completion
   date and time and reuses that scan after dashboard reloads and server

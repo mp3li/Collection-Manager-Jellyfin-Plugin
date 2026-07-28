@@ -34,8 +34,9 @@ dashboard areas will be designed in a later planning round.
    - Provide an initially collapsed My Metadata Tags Overview. Opening it
      shows the last available completed scan with its date and time, including
      after a Jellyfin restart. The scan's libraries load expanded and remain
-     independently collapsible. Each metadata type is its own expandable,
-     readable Title-and-tag section with ten titles per page.
+     independently collapsible. Each metadata type is its own expandable tag
+     picker containing actual metadata values—never media-title rows—with
+     search, alphabetical values, matching-media counts, and fifty-tag pages.
    - Provide the overview color control used by the dashboard style.
 
 2. Individual Tag Collections

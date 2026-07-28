@@ -41,9 +41,10 @@ Main Settings
 [ ] Opening the overview expands the last-scan library sections by default,
     even when the current saved-library selection has since changed.
 [ ] Each overview library can be collapsed and expanded independently.
-[ ] Overview pagination contains ten media items per page and shows correct totals.
-[ ] Each overview metadata type is its own independently expandable section
-    with a readable Title and metadata-tag table.
+[ ] Each overview metadata type is its own independently expandable tag picker
+    showing actual metadata values, never media-title rows or placeholders.
+[ ] Overview tag searching, alphabetical ordering, matching-media counts, and
+    fifty-tag Previous/Next pagination work correctly within the opened type.
 [ ] After a Jellyfin restart, the last completed scan and its timestamp remain
     available without starting a new scan.
 [ ] Overview color saves and persists after reopening the dashboard.

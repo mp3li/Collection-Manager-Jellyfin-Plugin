@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.4",
-        "changelog": "Persists and reuses the last completed metadata scan, with its local date and time shown in My Metadata Tags. The dashboard no longer requires a fresh scan to show existing catalog data.",
+        "version": "0.1.0.5",
+        "changelog": "Corrected My Metadata Tags to show actual metadata tag values by category, with search, alphabetical results, matching-media counts, and 50-tag pagination instead of media-title rows and empty placeholders.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.4/CollectionManager_0.1.0.4.zip",
-        "checksum": "6d624284bb3309dfd6a46365d7021402",
-        "timestamp": "2026-07-28T03:57:27Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.5/CollectionManager_0.1.0.5.zip",
+        "checksum": "35af62a75bdc4a02010309b442ac7ef4",
+        "timestamp": "2026-07-28T04:50:12Z"
       }
     ]
   }
