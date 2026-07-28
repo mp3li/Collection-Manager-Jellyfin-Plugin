@@ -70,7 +70,7 @@ public sealed class CollectionReconciler
     /// <summary>Runs every enabled plugin-managed collection rule.</summary>
     public async Task<IReadOnlyList<ReconciliationResult>> ReconcileEnabledRulesAsync(CancellationToken cancellationToken)
     {
-        var rules = Plugin.Instance?.Configuration.Rules.Where(rule => rule.Enabled).ToArray() ?? [];
+        var rules = Plugin.Instance?.GetRulesSnapshot().Where(rule => rule.Enabled).ToArray() ?? [];
         var results = new List<ReconciliationResult>(rules.Length);
         foreach (var rule in rules)
         {
@@ -87,10 +87,10 @@ public sealed class CollectionReconciler
         await ReconciliationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var configuration = RequireConfiguration();
-            var rule = configuration.Rules.SingleOrDefault(candidate => candidate.Id == ruleId)
+            var plugin = RequirePlugin();
+            var rule = plugin.GetRuleSnapshot(ruleId)
                 ?? throw new KeyNotFoundException("The requested collection rule no longer exists.");
-            var matchingItems = GetMediaItems(rule.LibraryIds)
+            var matchingItems = GetMediaItems()
                 .Where(item => Matches(rule, item))
                 .Select(item => item.Id)
                 .Distinct()
@@ -106,9 +106,7 @@ public sealed class CollectionReconciler
                     Name = rule.Name,
                     ItemIdList = matchingItems.Select(itemId => itemId.ToString("N", System.Globalization.CultureInfo.InvariantCulture)).ToArray(),
                 }).ConfigureAwait(false);
-                rule.CollectionId = collection.Id;
-                rule.LastRunUtc = DateTime.UtcNow;
-                Save(configuration);
+                UpdateRuleRunState(plugin, rule.Id, collection.Id);
                 return new ReconciliationResult(rule.Id, collection.Id, matchingItems.Length, matchingItems.Length, 0, rule.Name);
             }
 
@@ -129,8 +127,7 @@ public sealed class CollectionReconciler
                 await _collectionManager.RemoveFromCollectionAsync(collection.Id, removals).ConfigureAwait(false);
             }
 
-            rule.LastRunUtc = DateTime.UtcNow;
-            Save(configuration);
+            UpdateRuleRunState(plugin, rule.Id, collection.Id);
             _logger.LogInformation(
                 "Reconciled collection {CollectionName}: {Matching} matching, {Added} added, {Removed} removed.",
                 rule.Name,
@@ -199,11 +196,24 @@ public sealed class CollectionReconciler
         await _libraryManager.UpdateItemAsync(collection, collection, ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
     }
 
+    private static Plugin RequirePlugin() =>
+        Plugin.Instance ?? throw new InvalidOperationException("Media Collection Manager has not finished initializing.");
+
     private static PluginConfiguration RequireConfiguration() =>
         Plugin.Instance?.Configuration ?? throw new InvalidOperationException("Media Collection Manager is not initialized.");
 
-    private static void Save(PluginConfiguration configuration) =>
-        Plugin.Instance?.SaveConfiguration(configuration);
+    private static void UpdateRuleRunState(Plugin plugin, Guid ruleId, Guid collectionId) =>
+        plugin.UpdateConfigurationSafely(configuration =>
+        {
+            var storedRule = configuration.Rules.SingleOrDefault(candidate => candidate.Id == ruleId);
+            if (storedRule is not null)
+            {
+                storedRule.CollectionId = collectionId;
+                storedRule.LastRunUtc = DateTime.UtcNow;
+            }
+
+            return 0;
+        });
 
     private static IReadOnlyList<string> Values(IEnumerable<string?> values) =>
         values.Where(value => !string.IsNullOrWhiteSpace(value))
@@ -217,15 +227,10 @@ public sealed class CollectionReconciler
             .Where(person => string.Equals(person.Type.ToString(), personType, StringComparison.OrdinalIgnoreCase))
             .Select(person => person.Name);
 
-    private IEnumerable<BaseItem> GetMediaItems(IEnumerable<Guid>? libraryIds = null)
+    private IEnumerable<BaseItem> GetMediaItems()
     {
-        var requestedLibraries = libraryIds?.Distinct().ToArray() ?? [];
         var configuration = RequireConfiguration();
-        var selectedLibraries = configuration.UseAllLibraries
-            ? requestedLibraries
-            : (requestedLibraries.Length == 0
-                ? configuration.LibraryIds.Distinct().ToArray()
-                : requestedLibraries.Intersect(configuration.LibraryIds).ToArray());
+        var selectedLibraries = configuration.UseAllLibraries ? Array.Empty<Guid>() : configuration.LibraryIds.Distinct().ToArray();
         if (selectedLibraries.Length == 0)
         {
             if (!configuration.UseAllLibraries)

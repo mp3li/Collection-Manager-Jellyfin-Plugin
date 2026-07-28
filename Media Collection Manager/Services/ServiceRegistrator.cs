@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Plugins;
+using MediaBrowser.Model.Tasks;
+using Jellyfin.Plugin.MediaCollectionManager.Tasks;
 
 namespace Jellyfin.Plugin.MediaCollectionManager.Services;
 
@@ -11,6 +13,9 @@ public sealed class ServiceRegistrator : IPluginServiceRegistrator
     public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
     {
         serviceCollection.AddSingleton<CollectionReconciler>();
+        serviceCollection.AddSingleton<MetadataCatalogService>();
+        serviceCollection.AddSingleton<ManualReconciliationRequestQueue>();
+        serviceCollection.AddSingleton<IScheduledTask, ReconcileCollectionsTask>();
         serviceCollection.AddHostedService<MetadataChangeListener>();
     }
 }

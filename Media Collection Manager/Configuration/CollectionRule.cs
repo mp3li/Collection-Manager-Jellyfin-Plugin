@@ -39,9 +39,6 @@ public sealed class CollectionRule
     /// <summary>Gets or sets values matched with OR logic.</summary>
     public List<string> Values { get; set; } = [];
 
-    /// <summary>Gets or sets optional library root ids. Empty means every library.</summary>
-    public List<Guid> LibraryIds { get; set; } = [];
-
     /// <summary>Gets or sets a value indicating whether this rule participates in automatic reconciliation.</summary>
     public bool Enabled { get; set; } = true;
 

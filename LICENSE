@@ -1,70 +1,47 @@
-Media Collection Manager Non-Commercial Source-Available License
+Media Collection Manager Noncommercial License 1.0
 
-Copyright (c) 2026 mp3li. All rights reserved.
+Copyright (c) 2026 mp3li
 
-This repository is source-available. It is publicly visible so people can use,
-study, fork, modify, and share Media Collection Manager for non-commercial
-purposes while crediting mp3li.
+1. Permission
 
-This is not an open-source license as defined by the Open Source Initiative,
-because commercial use is restricted.
+Subject to the conditions below, you may use, copy, modify, and redistribute
+this software and modified versions of it for personal, educational, hobby,
+research, charitable, and other noncommercial purposes.
 
-Permission is granted to:
+2. Credit and redistribution
 
-1. View, study, and download the source code and documentation.
-2. Fork, copy, modify, adapt, and build on the project for non-commercial
-   purposes.
-3. Share non-commercial forks or modified versions, as long as they follow all
-   requirements in this license.
+Every redistributed copy or modified version, including a fork, must retain:
 
-Requirements for any fork, copy, or modified version:
+- this copyright notice and this license;
+- the credit "Media Collection Manager Jellyfin Plugin by mp3li"; and
+- a link to https://github.com/mp3li/Collection-Maker-Jellyfin-Plugin.
 
-1. Clearly credit the original project as:
+Modified versions must also clearly state that they were modified and must not
+claim to be the original project.
 
-   Media Collection Manager by mp3li
+3. Commercial use is not permitted
 
-2. State that the work is based on Media Collection Manager by mp3li if changes
-   are made.
-3. Do not imply endorsement, partnership, sponsorship, or approval by mp3li
-   without written permission.
-4. Keep the project's read-only metadata, authentication, access-control, and
-   other safety boundaries intact. A fork must not claim to fetch, alter, or
-   bypass access controls for metadata or media.
+Without prior written permission from mp3li, you may not sell, license for a
+fee, commercially distribute, bundle into a paid product, offer paid hosting,
+installation, support, or managed services based on this software or a modified
+version, or otherwise use this software or a modified version for commercial
+advantage or monetary compensation.
 
-You may not, without prior written permission from mp3li:
+4. No trademark permission
 
-1. Sell, rent, sublicense, monetize, or commercially exploit this project or
-   any fork, modified version, hosted version, documentation, or substantial
-   portion of it.
-2. Use this project or any fork or modified version as part of a paid product,
-   paid service, subscription, advertisement-supported service, commercial
-   website, commercial app, client work, agency work, or business workflow.
-3. Remove or obscure attribution to mp3li.
+This license does not grant permission to use the name "mp3li" or the name
+"Media Collection Manager Jellyfin Plugin" to imply endorsement, sponsorship,
+or official status for a modified version.
 
-Commercial rights reserved:
+5. Termination
 
-mp3li reserves the full right to monetize, sell, commercially license,
-relicense, dual-license, or otherwise commercially use this project in the
-future. This license does not prevent mp3li from offering paid versions,
-commercial licences, sponsorships, donations, subscriptions, or other
-monetized Media Collection Manager-related work.
+The permissions granted by this license end automatically if you do not comply
+with its conditions.
 
-User data and third-party material:
+6. No warranty
 
-This license does not grant rights to media files, NFO sidecars, metadata,
-artwork, trademarks, or other third-party material. Users are responsible for
-ensuring that they have the rights and permissions needed for material in their
-own Jellyfin libraries.
-
-Third-party software:
-
-Jellyfin, .NET, and any other third-party software used with this project
-remain subject to their own licences. This license does not replace or restrict
-those licences.
-
-No warranty:
-
-This project is provided as-is, without warranty of any kind. mp3li is not
-liable for data loss, incomplete metadata, server incompatibility, collection
-changes, availability changes, copyright issues, or any damages arising from
-use of the project.
+This software is provided "as is", without warranty of any kind, express or
+implied, including warranties of merchantability, fitness for a particular
+purpose, and noninfringement. To the maximum extent permitted by law, mp3li is
+not liable for any claim, damages, or other liability arising from use of this
+software or a modified version.

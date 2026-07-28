@@ -7,9 +7,14 @@ namespace Jellyfin.Plugin.MediaCollectionManager.Tasks;
 public sealed class ReconcileCollectionsTask : IScheduledTask
 {
     private readonly CollectionReconciler _reconciler;
+    private readonly ManualReconciliationRequestQueue _requests;
 
     /// <summary>Initializes a new instance of the <see cref="ReconcileCollectionsTask"/> class.</summary>
-    public ReconcileCollectionsTask(CollectionReconciler reconciler) => _reconciler = reconciler;
+    public ReconcileCollectionsTask(CollectionReconciler reconciler, ManualReconciliationRequestQueue requests)
+    {
+        _reconciler = reconciler;
+        _requests = requests;
+    }
 
     /// <inheritdoc />
     public string Name => "Reconcile Media Collection Manager rules";
@@ -26,6 +31,26 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
     /// <inheritdoc />
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
+        if (_requests.TryTakeAllEnabledRulesRequest())
+        {
+            await _reconciler.ReconcileEnabledRulesAsync(cancellationToken).ConfigureAwait(false);
+            progress.Report(100);
+            return;
+        }
+
+        var requestedRuleIds = _requests.DrainRuleIds();
+        if (requestedRuleIds.Count > 0)
+        {
+            for (var index = 0; index < requestedRuleIds.Count; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await _reconciler.ReconcileRuleAsync(requestedRuleIds[index], cancellationToken).ConfigureAwait(false);
+                progress.Report((index + 1) * 100d / requestedRuleIds.Count);
+            }
+
+            return;
+        }
+
         var configuration = Plugin.Instance?.Configuration;
         if (configuration?.ScheduledReconciliationEnabled != true)
         {
@@ -41,12 +66,27 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
         }
 
         await _reconciler.ReconcileEnabledRulesAsync(cancellationToken).ConfigureAwait(false);
-        configuration.LastScheduledReconciliationUtc = DateTime.UtcNow;
-        Plugin.Instance?.SaveConfiguration(configuration);
+        Plugin.Instance?.UpdateConfigurationSafely(updated =>
+        {
+            updated.LastScheduledReconciliationUtc = DateTime.UtcNow;
+            return 0;
+        });
         progress.Report(100);
     }
 
     /// <inheritdoc />
-    public IEnumerable<TaskTriggerInfo> GetDefaultTriggers() =>
-        [new TaskTriggerInfo { Type = TaskTriggerInfoType.IntervalTrigger, IntervalTicks = TimeSpan.TicksPerHour }];
+    public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
+    {
+        var configuration = Plugin.Instance?.Configuration;
+        if (configuration?.ScheduledReconciliationEnabled != true)
+        {
+            return [];
+        }
+
+        return [new TaskTriggerInfo
+        {
+            Type = TaskTriggerInfoType.IntervalTrigger,
+            IntervalTicks = TimeSpan.FromMinutes(Math.Clamp(configuration.ScheduledReconciliationMinutes, 15, 10080)).Ticks,
+        }];
+    }
 }

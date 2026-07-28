@@ -1,180 +1,28 @@
-MEDIA COLLECTION MANAGER — PRIVATE TESTING AND RESULTS TRACKER
-===============================================================
+MEDIA COLLECTION MANAGER — TESTING TRACKER
+===========================================
 
-Purpose
--------
-This document records every private verification activity for Media Collection
-Manager. It is deliberately separate from project-goals.txt: goals describe
-what the product must do; this file records what was actually exercised, the
-environment used, the observed result, and any follow-up work.
+Use this file to record private Jellyfin 10.11.11 results. Do not put tests in
+project-goals.txt. Do not record server URLs, private media paths, credentials,
+or API keys here.
 
-Result key
-----------
-[ ] Not run
-[~] In progress or needs follow-up
-[x] Passed
-[!] Failed
-[?] Blocked or environment-dependent
-
-Testing rules
--------------
-- Record the Jellyfin version, plugin build/version, operating system, and
-  relevant library/NFO setup for each result.
-- Describe observed behavior, not expected behavior alone.
-- Preserve sample item names, source values, and error messages when useful.
-- Do not place credentials, API keys, server URLs, or private media paths here.
-- A failed or incomplete check should state the next action needed.
-
-0. Development checks completed locally
--------------------------------------
-
-[x] Build the Release DLL with `dotnet build` against Jellyfin.Controller and
-    Jellyfin.Model 10.11.10 with zero compiler warnings or errors.
-[x] Check the embedded dashboard JavaScript for syntax errors.
-[x] Confirm the repository ignore rules exclude compiled output, IDE state,
-    operating-system metadata such as `.DS_Store`, local settings, logs,
-    private NFO fixtures, and generated distribution archives.
-
-Recorded outcome:
-- Date: 2026-07-21
-- Build output: `Media Collection Manager/bin/Release/net9.0/`
-- Result: Release build completed with zero warnings and zero errors; dashboard
-  script parsed successfully; no local `.DS_Store`, private NFO, log, or
-  credential-pattern file was found in the source-only audit.
-
-1. Plugin installation and startup
-----------------------------------
-
-[ ] Install the Release DLL in a clean private Jellyfin 10.11.x server.
-[ ] Restart Jellyfin and confirm Media Collection Manager appears as an
-    installed plugin without load, ABI, or dependency errors.
-[ ] Open the dashboard configuration page and confirm it renders fully.
-
-2. Dashboard settings and persistence
---------------------------------------
-
-[ ] Save watcher, scheduler, source-scope, source-seniority, and library-scope
-    settings; restart Jellyfin; confirm each saved value persists.
-[ ] Create, edit, pause, run, and stop managing an automatic collection rule.
-[ ] Confirm an invalid or incomplete form gives an understandable error and
-    does not corrupt saved rules.
-
-3. Existing Jellyfin metadata sources
---------------------------------------
-
-[ ] Confirm genres, ordinary tags, studios, actors, directors, writers,
-    countries/production locations, languages, content ratings, and production
-    years appear as usable source values when present in Jellyfin.
-[ ] Confirm Media Tagging Manager tags use the separate clean pickers:
-    `Provider: OperaVision` appears as `OperaVision` under Provider, and
-    `Network: BBC` appears as `BBC` under Network.
-[ ] Confirm ordinary tags do not appear in the Provider or Network picker unless
-    they use the corresponding established prefix.
-
-4. Local NFO-only metadata sources
------------------------------------
-
-[ ] Use output from Media Metadata and Extras Getter and confirm its `<source>`
-    values appear as Provider values.
-[ ] Use output from Live Performance Metadata and Extras Getter and confirm its
-    `<source_site>` values appear as Provider values.
-[ ] Confirm Composer, Music & Lyrics, Producer, and Executive Producer custom
-    fields in adjacent NFO files can drive their matching collection sources.
-[ ] Confirm standard NFO tags, genres, studios, directors, writers/credits,
-    countries, languages, content ratings, and years are available when present.
-[ ] Confirm malformed, missing, inaccessible, or non-matching NFO sidecars do
-    not stop collection management or alter the media item.
-
-5. Metadata-source scope and seniority
---------------------------------------
-
-[ ] Jellyfin-only mode: confirm NFO-only values are excluded from discovery and
-    rule matching.
-[ ] NFO-only mode: confirm Jellyfin-only values are excluded from discovery and
-    rule matching.
-[ ] Both mode: confirm values present only in one source remain available.
-[ ] Both mode with Jellyfin seniority: confirm a conflict follows Jellyfin's
-    value/order without discarding unrelated NFO values.
-[ ] Both mode with local-NFO seniority: confirm a conflict follows the NFO's
-    value/order without discarding unrelated Jellyfin values.
-
-6. Library scope
-----------------
-
-[ ] All-libraries setting: confirm discovery and rules consider every selected
-    eligible library.
-[ ] Selected-libraries setting: confirm only chosen library roots contribute
-    source values and collection memberships.
-[ ] Confirm changing scope does not modify media metadata or memberships outside
-    the selected rule's intended scope.
-
-7. Collections, bulk work, and native controls
------------------------------------------------
-
-[ ] Create one automatic collection from a single value.
-[ ] Create one automatic collection from multiple OR-matched values.
-[ ] Bulk-create one collection per selected provider, network, genre, or other
-    source value.
-[ ] Search and select multiple media items; create a manual collection.
-[ ] Bulk-add and bulk-remove selected media from an existing collection.
-[ ] Rename an automatic rule's collection and confirm the normal Jellyfin
-    collection is renamed.
-[ ] Confirm standard Jellyfin collection image, metadata, sharing, deletion,
-    and three-dot-menu controls remain available.
-[ ] Stop managing a rule and confirm its normal Jellyfin collection remains.
-
-8. Metadata watcher and reconciliation
----------------------------------------
-
-[ ] Add an item that matches a rule and confirm it joins the collection after
-    the watcher quiet period.
-[ ] Change or remove a matching Jellyfin tag/genre/person value and confirm
-    membership is updated according to the rule's stale-item setting.
-[ ] Change a matching local NFO value, refresh/scan the item in Jellyfin, and
-    confirm NFO-driven membership is updated.
-[ ] Run a large Media Tagging Manager update or library scan; confirm changes
-    are debounced and do not cause repeated reconciliation loops.
-[ ] Delete media and confirm it is no longer retained by a managed collection.
-
-9. Scheduled reconciliation
----------------------------
-
-[ ] Confirm the Scheduled Tasks page lists the Media Collection Manager task.
-[ ] Run it manually and confirm enabled rules reconcile.
-[ ] Confirm disabled scheduling does not reconcile automatically.
-[ ] Confirm the configured minimum interval is respected.
-[ ] Confirm cancellation and progress reporting behave normally.
-
-10. Safety, scale, and regression checks
------------------------------------------
-
-[ ] Confirm the plugin never writes, renames, normalizes, fetches, or deletes
-    local NFO files, media files, or Jellyfin metadata.
-[ ] Exercise a realistic large library and record dashboard responsiveness,
-    reconciliation time, and any errors.
-[ ] Restart Jellyfin after rules and collections exist; confirm configuration
-    loads and no duplicate collections are created.
-[ ] Repeat the most important provider, network, NFO, watcher, and scheduled
-    checks after each significant code change.
-
-11. Future public-release checks
---------------------------------
-
-[ ] Verify the release ZIP contains the correct plugin DLL and no local/private
-    files.
-[ ] Verify manifest metadata, ABI, source URL, and checksum before publication.
-[ ] Add the repository manifest URL to Jellyfin and complete a catalog install,
-    update, and restart check.
+Current checks
+--------------
+[x] Release build compiles against Jellyfin.Controller and Jellyfin.Model 10.11.11 with zero warnings.
+[x] Embedded dashboard JavaScript parses successfully.
+[ ] Install the DLL on a private Jellyfin server.
+[ ] Open every dashboard tab and verify its visual layout.
+[ ] Save and restart Main Settings selections.
+[ ] Scan a small selected library and verify catalog progress and pagination.
+[ ] Verify Individual Tag Collections previews, conflict choices, and results.
+[ ] Verify Combined Tag Collections union matching and additional-library scope.
+[ ] Verify Multi-Match Tag Collections intersection matching and zero-match handling.
+[ ] Verify native Jellyfin collection controls remain available.
 
 Results log
 -----------
-
-Use this format for each completed or failed check:
-
 Date:
-Test section/item:
+Test:
 Environment:
-Sample metadata or media item:
 Observed result:
 Status: [x] / [~] / [!] / [?]
-Follow-up required:
+Follow-up:

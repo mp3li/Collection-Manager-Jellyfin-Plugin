@@ -65,3 +65,51 @@ public sealed record ReconciliationResult(
 
 /// <summary>A media item available to the dashboard's scoped manual search.</summary>
 public sealed record MediaSearchResult(Guid Id, string Name, string Type, int? ProductionYear);
+
+/// <summary>Progress and availability information for the local metadata catalog.</summary>
+public sealed record MetadataCatalogStatus(
+    bool IsScanning,
+    int ProcessedItems,
+    int TotalItems,
+    DateTime? LastCompletedUtc,
+    string Message);
+
+/// <summary>One media item and the existing metadata values found for it during a catalog scan.</summary>
+public sealed record MetadataCatalogItem(
+    Guid Id,
+    string Title,
+    IReadOnlyDictionary<string, IReadOnlyList<string>> Metadata);
+
+/// <summary>One page from a selected library's local metadata catalog.</summary>
+public sealed record MetadataCatalogPage(
+    Guid LibraryId,
+    string LibraryName,
+    int Page,
+    int PageSize,
+    int TotalItems,
+    IReadOnlyList<string> Columns,
+    IReadOnlyList<MetadataCatalogItem> Items);
+
+/// <summary>One available metadata type and its number of distinct values in a library catalog.</summary>
+public sealed record MetadataCatalogType(string Name, int ValueCount);
+
+/// <summary>One distinct metadata value with its matching media count.</summary>
+public sealed record MetadataCatalogValue(string Value, int MatchingItems, string? PersonImageUrl);
+
+/// <summary>A bounded page of metadata values for one library and metadata type.</summary>
+public sealed record MetadataCatalogValuePage(
+    Guid LibraryId,
+    string MetadataType,
+    int Page,
+    int PageSize,
+    int TotalValues,
+    IReadOnlyList<MetadataCatalogValue> Values);
+
+/// <summary>Preview of the current media items that a collection draft would include.</summary>
+public sealed record IndividualCollectionDraftPreview(int MatchingItems, IReadOnlyList<MediaSearchResult> Items);
+
+/// <summary>Conflict information found before an individual collection draft is created.</summary>
+public sealed record IndividualCollectionDraftConflict(string CollectionTitle, bool ExistingCollectionFound);
+
+/// <summary>The completed outcome for one individual collection draft.</summary>
+public sealed record IndividualCollectionDraftResult(string CollectionTitle, string Outcome, string Message);

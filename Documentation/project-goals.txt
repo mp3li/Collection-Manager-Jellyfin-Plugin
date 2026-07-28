@@ -1,175 +1,45 @@
-MEDIA COLLECTION MANAGER — PROJECT GOALS AND IMPLEMENTATION TRACKER
-====================================================================
+MEDIA COLLECTION MANAGER — PRODUCT GOALS
+=========================================
 
 Purpose
 -------
-Media Collection Manager is a Jellyfin server plugin intended to make personal
-media-library discovery and organization dramatically easier than Jellyfin's
-default one-item-at-a-time collection workflow. It must create and maintain
-normal Jellyfin collections from the metadata already present in a user's own
-library, while retaining Jellyfin's standard collection behavior and controls.
+Media Collection Manager is a Jellyfin 10.11.11 dashboard plugin for turning
+existing local library metadata into normal Jellyfin collections. It never
+fetches, adds, changes, or removes media metadata or NFO files.
 
-This document turns the feature brief into a clear product-delivery checklist.
-It contains product scope only; recorded outcomes belong in the separate
-`Documentation/goal-testing.txt` record.
+Current dashboard plan
+----------------------
 
-Status key
-----------
-[x] Implemented in the project
-[~] Partly implemented
-[ ] Planned / not yet implemented
+1. Main Settings
+   - Select and save one or more Jellyfin libraries.
+   - Save the newly-added-media preference.
+   - Scan saved libraries into a local, read-only metadata catalog.
+   - Show an expandable, paginated per-library metadata overview.
 
-1. Product identity and scope
------------------------------
+2. Individual Tag Collections
+   - Create one draft per selected metadata value.
+   - Let each draft include matching media from selected additional libraries.
+   - Preview, title, skip, and create each native Jellyfin collection safely.
 
-[x] The project and plugin are named "Media Collection Manager".
-[x] The plugin is a Jellyfin server plugin, rather than a separate application.
-[x] The plugin is useful as a standalone collection-management tool.
-[x] The plugin can work alongside Media Tagging Manager without a required
-    shared database, credential, or special handoff.
-[x] The plugin does not fetch, alter, or invent media metadata. Its role is to
-    read local Jellyfin metadata and manage collection membership.
+3. Combined Tag Collections
+   - Create one draft from two or more selected metadata values.
+   - Include the unique union of media matching any selected value.
+   - Support selected additional libraries, previews, title conflicts, and
+     native collection creation.
 
-2. Visual server-side settings and management area
---------------------------------------------------
+4. Multi-Match Tag Collections
+   - Create one draft from two or more selected metadata values.
+   - Include only media matching every selected value.
+   - Support selected additional libraries, previews, title conflicts, and
+     native collection creation.
 
-[x] Provide a visual configuration page in the Jellyfin server dashboard.
-[x] Explain the feature, source fields, watcher, schedule, and safety behavior
-    in the UI rather than relying on a config file or terminal workflow.
-[x] Display saved automatic collection rules with their source, values, enabled
-    state, and stale-item-removal behavior.
-[x] Allow an administrator to create, edit, pause, run, and stop managing rules.
-[x] Provide a manual "run all enabled rules now" action.
+Future tabs will be planned separately before implementation.
 
-3. Metadata-driven automatic collections
------------------------------------------
-
-[x] Create a collection from one or more selected local metadata values.
-[x] Support provider-tag collections.
-[x] Support network-tag collections.
-[x] Support generic Jellyfin-tag collections.
-[x] Support genre collections.
-[x] Support cast-member / actor collections.
-[x] Support studio collections.
-[x] Support director collections.
-[x] Support composer collections.
-[x] Support production-year collections.
-[x] Let users select values discovered from the current library.
-[x] Let users enter custom comma-separated source values when a value is not
-    currently shown in the discovered list.
-[x] Let users give every rule and resulting collection a custom editable name.
-[x] Use case-insensitive exact matching and OR logic for multiple values in one
-    rule.
-[x] Keep Provider and Network as deliberately separate collection sources and
-    rule types. They must not be combined in this plugin. A future separate
-    home-screen plugin may decide how to display the resulting collections;
-    home-screen presentation is outside this plugin's scope.
-[x] Read provider source metadata and tags already written by the user's
-    downloader and tagging tools. Provider values such as OperaVision,
-    BroadwayHD, and MarqueeTV are discovered from existing NFO `source` /
-    `source_site` values and Media Tagging Manager's existing `Provider: `
-    Jellyfin tags. Network values are separately discovered from existing
-    `Network: ` Jellyfin tags and NFO network fields.
-[x] Read the currently implemented *existing local metadata* sources written by
-    the two niche metadata tools: genres, tags, studios/productions, actors,
-    directors, writers, composers, producers, countries/production locations,
-    languages, content ratings, and production years. Composer/Producer values
-    stored in NFO custom fields are read directly and never written back.
-
-3a. Metadata source scope and seniority
----------------------------------------
-
-[x] Read all usable scalar metadata that Jellyfin has assigned to a media item,
-    alongside the dedicated collection sources for tags, genres, people, and
-    other multi-value fields.
-[x] Read usable direct fields from the matching local NFO sidecar, including
-    custom fields and fields Jellyfin does not display or import into its normal
-    item model.
-[x] Add a visual per-plugin metadata-source setting with these modes:
-    - Jellyfin library metadata only
-    - Local NFO metadata only
-    - Both Jellyfin and local NFO metadata
-[x] When both sources are enabled, add a visual seniority setting:
-    - Jellyfin metadata takes precedence when both sources provide the same
-      logical field/value.
-    - Local NFO metadata takes precedence when both sources provide the same
-      logical field/value.
-[x] Apply the chosen source scope and seniority consistently to facet lists,
-    rule matching, bulk collection creation, manual previews, and watcher or
-    scheduled reconciliation.
-[x] Preserve values available from only one enabled source. Seniority resolves
-    conflicts; it must not silently erase unrelated values from the other source.
-[x] Never write, normalize, rename, fetch, or otherwise modify either source.
-
-4. Bulk and manual collection management
------------------------------------------
-
-[x] Bulk-create one automatic collection per selected source value.
-[x] Search local media from the dashboard and select multiple results.
-[x] Create a normal Jellyfin collection from the selected media in one action.
-[x] Bulk-add selected media to an existing normal Jellyfin collection.
-[x] Bulk-remove selected media from an existing normal Jellyfin collection.
-[x] Edit a saved rule's name and rename its tracked Jellyfin collection.
-[x] Add required dashboard library selection/scoping controls so the user can
-    choose all libraries or one or more specific library roots for the plugin's
-    source discovery, rules, and manual-media search.
-
-5. Preserve normal Jellyfin collection behavior
-------------------------------------------------
-
-[x] Create collections through Jellyfin's standard collection manager.
-[x] Preserve native Jellyfin three-dot-menu actions and collection detail pages.
-[x] Preserve normal collection image selection, artwork management, metadata
-    editing, sharing, and deletion behavior.
-[x] Keep the plugin focused on rules and bulk membership rather than duplicating
-    or replacing native collection controls.
-
-6. Watching metadata changes and reconciliation
-------------------------------------------------
-
-[x] Watch Jellyfin library item-added events.
-[x] Watch Jellyfin library item-updated events.
-[x] Watch Jellyfin library item-removed events.
-[x] Ignore collection events to avoid recursive update loops.
-[x] Debounce update bursts before reconciling enabled rules.
-[x] Add newly matching media to a managed collection.
-[x] Optionally remove media that no longer matches a managed collection rule.
-[x] Treat tags, genres, people, studios, production years, and NFO-backed
-    metadata as local metadata sources once Jellyfin has loaded the change.
-
-7. Manual, scheduled, and disabled operation modes
----------------------------------------------------
-
-[x] Provide a manual dashboard action for all enabled rules.
-[x] Register a Jellyfin Scheduled Task for rule reconciliation.
-[x] Provide a dashboard setting to turn metadata watching on or off.
-[x] Provide a dashboard setting to turn scheduled reconciliation on or off.
-[x] Provide a configurable 15-minute to seven-day minimum interval.
-[x] Keep individual rules independently enabled or paused.
-
-8. Documentation, packaging, and quality
------------------------------------------
-
-[x] Use the requested established README conventions without copying another
-    project's sections verbatim: centered title/summary/badges, expandable table
-    of contents, practical workflow, settings, limitations, and structure.
-[x] Document standalone use and Media Tagging Manager interoperability.
-[x] Document exact provider/network existing-metadata semantics and the safety boundary.
-[x] Add Jellyfin package metadata in `Jellyfin Package/build.yaml`.
-[x] Build the Release plugin successfully against Jellyfin.Controller and
-    Jellyfin.Model 10.11.10 with zero warnings.
-[ ] Prepare public-release files (license, repository manifest/release feed,
-    screenshots, and release documentation) when publication is requested.
-
-Primary files
--------------
-- README.md: public project guide and user-facing behavior.
-- Documentation/CHANGELOG.md: chronological record of user-visible changes.
-- Documentation/project-goals.txt: product-delivery checklist.
-- Documentation/goal-testing.txt: private outcomes record.
-- Jellyfin Package/build.yaml: Jellyfin package metadata.
-- Media Collection Manager/Configuration/configPage.html: visual dashboard page.
-- Media Collection Manager/Services/CollectionReconciler.cs: collection creation,
-  membership updates, matching, and reconciliation logic.
-- Media Collection Manager/Services/MetadataChangeListener.cs: metadata watcher.
-- Media Collection Manager/Tasks/ReconcileCollectionsTask.cs: scheduled task.
+Safety boundaries
+-----------------
+- Use normal Jellyfin collections and retain native Jellyfin collection controls.
+- Read all available existing Jellyfin and local-NFO metadata, including values
+  created by Media Tagging Manager, without limiting the catalog to that plugin.
+- Keep Provider and Network distinct metadata types where the source metadata
+  identifies them as such.
+- Never create duplicate collections silently; require an administrator choice.

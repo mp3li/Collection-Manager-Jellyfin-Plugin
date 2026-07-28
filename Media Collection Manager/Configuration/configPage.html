@@ -1,489 +1,325 @@
-<div id="mediaCollectionManagerPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox,emby-select">
-    <div data-role="content">
-        <div class="content-primary">
-            <form id="mediaCollectionManagerForm">
-                <h1>Media Collection Manager</h1>
-                <p class="fieldDescription">Build normal Jellyfin collections from the metadata already in your server. Collections created here remain ordinary collections: use their three-dot menus for images, metadata, sharing, deletion, and every other native Jellyfin collection action.</p>
-
-                <div class="verticalSection">
-                    <h2>Metadata sources and library scope</h2>
-                    <p class="fieldDescription">Media Collection Manager only reads metadata that already exists. Choose whether it reads Jellyfin's library metadata, matching local NFO sidecars, or both. Nothing here changes your media files, NFOs, tags, or Jellyfin metadata.</p>
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="metadataSourceMode">Use metadata from</label>
-                        <select id="metadataSourceMode" is="emby-select">
-                            <option value="Both">Both Jellyfin metadata and local NFO sidecars</option>
-                            <option value="JellyfinOnly">Jellyfin library metadata only</option>
-                            <option value="NfoOnly">Local NFO sidecars only</option>
-                        </select>
-                    </div>
-                    <div id="metadataPriorityContainer" class="selectContainer">
-                        <label class="selectLabel" for="metadataSourcePriority">When both provide the same kind of value, show first</label>
-                        <select id="metadataSourcePriority" is="emby-select">
-                            <option value="Jellyfin">Jellyfin library metadata</option>
-                            <option value="LocalNfo">Local NFO metadata</option>
-                        </select>
-                    </div>
-                    <label class="emby-checkbox-label">
-                        <input id="useAllLibraries" type="checkbox" is="emby-checkbox" checked />
-                        <span>Use all libraries on this server</span>
-                    </label>
-                    <div id="libraryScopeContainer" class="selectContainer">
-                        <label class="selectLabel" for="libraryIds">Or use only these libraries</label>
-                        <select id="libraryIds" is="emby-select" multiple size="7"></select>
-                    </div>
-                    <p class="fieldDescription">This scope applies to discovered values, automatic rules, and the manual-media search area.</p>
-                </div>
-
-                <div class="verticalSection">
-                    <h2>Automatic collections</h2>
-                    <p class="fieldDescription">A rule creates one collection from one or more selected values. Provider and Network rules read existing local provider/network metadata and tags, including values written by your downloader and metadata tools.</p>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel" for="ruleName">Collection name</label>
-                        <input id="ruleName" type="text" is="emby-input" required autocomplete="off" placeholder="e.g. Criterion Collection" />
-                    </div>
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="ruleField">Build from</label>
-                        <select id="ruleField" is="emby-select">
-                            <option value="Provider">Provider</option>
-                            <option value="Network">Network</option>
-                            <option value="Genre">Genre</option>
-                            <option value="Tag">Any tag</option>
-                            <option value="Actor">Cast member</option>
-                            <option value="Studio">Studio</option>
-                            <option value="Director">Director</option>
-                            <option value="Composer">Composer</option>
-                            <option value="Writer">Writer</option>
-                            <option value="Producer">Producer</option>
-                            <option value="Country">Country / production location</option>
-                            <option value="Language">Language</option>
-                            <option value="ContentRating">Content rating</option>
-                            <option value="ProductionYear">Production year</option>
-                            <option value="JellyfinField">Other Jellyfin metadata field</option>
-                            <option value="NfoField">Other local NFO field</option>
-                        </select>
-                    </div>
-                    <div id="ruleMetadataFieldContainer" class="selectContainer" style="display:none">
-                        <label class="selectLabel" for="ruleMetadataField">Metadata field</label>
-                        <select id="ruleMetadataField" is="emby-select"></select>
-                    </div>
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="ruleValues">Choose values already in the server</label>
-                        <select id="ruleValues" is="emby-select" multiple size="9"></select>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel" for="customValues">Or enter values yourself</label>
-                        <input id="customValues" type="text" is="emby-input" placeholder="Separate additional values with commas" />
-                    </div>
-                    <label class="emby-checkbox-label">
-                        <input id="ruleEnabled" type="checkbox" is="emby-checkbox" checked />
-                        <span>Keep this collection in sync automatically</span>
-                    </label>
-                    <label class="emby-checkbox-label">
-                        <input id="removeNonMatching" type="checkbox" is="emby-checkbox" checked />
-                        <span>Remove items that no longer match (recommended)</span>
-                    </label>
-                    <div class="inputContainer">
-                        <button id="saveRule" is="emby-button" type="button" class="raised button-submit block">Create collection rule</button>
-                    </div>
-                    <div id="ruleMessage" class="fieldDescription" aria-live="polite"></div>
-                </div>
-
-                <div class="verticalSection">
-                    <h2>Saved rules</h2>
-                    <p class="fieldDescription">Run a rule immediately, edit its definition, or stop managing it without deleting its Jellyfin collection.</p>
-                    <div id="ruleList"></div>
-                    <button id="runAll" is="emby-button" type="button" class="raised">Run all enabled rules now</button>
-                </div>
-
-                <div class="verticalSection">
-                    <h2>Bulk create by metadata</h2>
-                    <p class="fieldDescription">Select several values to create one standard collection for each of them. This is useful for making a whole provider, network, genre, cast, studio, director, composer, or year shelf at once.</p>
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="bulkField">Make collections from</label>
-                        <select id="bulkField" is="emby-select"></select>
-                    </div>
-                    <div id="bulkMetadataFieldContainer" class="selectContainer" style="display:none">
-                        <label class="selectLabel" for="bulkMetadataField">Metadata field</label>
-                        <select id="bulkMetadataField" is="emby-select"></select>
-                    </div>
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="bulkValues">Values</label>
-                        <select id="bulkValues" is="emby-select" multiple size="10"></select>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel" for="bulkPrefix">Optional collection-name prefix</label>
-                        <input id="bulkPrefix" type="text" is="emby-input" placeholder="e.g. Network —" />
-                    </div>
-                    <button id="bulkCreate" is="emby-button" type="button" class="raised">Create selected collections</button>
-                </div>
-
-                <div class="verticalSection">
-                    <h2>Manual collection and bulk membership</h2>
-                    <p class="fieldDescription">Search your media, select as many results as you need, then create a collection in one action. For existing collections, use their normal Jellyfin three-dot menu; this plugin never replaces those controls.</p>
-                    <div class="inputContainer">
-                        <label class="inputLabel" for="itemSearch">Find media</label>
-                        <input id="itemSearch" type="search" is="emby-input" placeholder="Search titles, then press Enter" />
-                    </div>
-                    <div id="itemResults" class="paperList"></div>
-                    <div class="inputContainer">
-                        <label class="inputLabel" for="manualCollectionName">New collection name</label>
-                        <input id="manualCollectionName" type="text" is="emby-input" placeholder="e.g. Rainy Sunday movies" />
-                    </div>
-                    <button id="createManualCollection" is="emby-button" type="button" class="raised">Create collection from selected media</button>
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="existingCollection">Or change an existing collection</label>
-                        <select id="existingCollection" is="emby-select"></select>
-                    </div>
-                    <div class="ruleActions">
-                        <button id="addSelectedToCollection" is="emby-button" type="button" class="raised">Add selected media</button>
-                        <button id="removeSelectedFromCollection" is="emby-button" type="button">Remove selected media</button>
-                    </div>
-                </div>
-
-                <div class="verticalSection">
-                    <h2>Watching and scheduled reconciliation</h2>
-                    <label class="emby-checkbox-label">
-                        <input id="watchMetadataChanges" type="checkbox" is="emby-checkbox" />
-                        <span>Watch library additions and metadata edits</span>
-                    </label>
-                    <p class="fieldDescription">When enabled, changed tags, genres, people, studios, years, and NFO-backed metadata trigger a quiet-period reconciliation. Changes made by Media Tagging Manager are handled through this same path.</p>
-                    <label class="emby-checkbox-label">
-                        <input id="scheduledReconciliationEnabled" type="checkbox" is="emby-checkbox" />
-                        <span>Also check on a schedule</span>
-                    </label>
-                    <div class="inputContainer">
-                        <label class="inputLabel" for="scheduledMinutes">Minimum minutes between scheduled checks</label>
-                        <input id="scheduledMinutes" type="number" min="15" max="10080" step="15" is="emby-input" />
-                    </div>
-                    <p class="fieldDescription">The dashboard task checks hourly but respects this minimum. You can also run it immediately from Scheduled Tasks or with the button above.</p>
-                    <button is="emby-button" type="submit" class="raised button-submit">Save watching settings</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
+<div id="mediaCollectionManagerPage" data-role="page" class="page type-interior" data-require="emby-input,emby-button,emby-checkbox,emby-select">
     <style>
-        #mediaCollectionManagerPage .verticalSection { margin: 2.5em 0; max-width: 54em; }
-        #mediaCollectionManagerPage .ruleCard { border: 1px solid var(--theme-accent-fill, #444); border-radius: .4em; margin: .75em 0; padding: 1em; }
-        #mediaCollectionManagerPage .ruleCard h3 { margin: 0 0 .25em; }
-        #mediaCollectionManagerPage .ruleActions { display: flex; flex-wrap: wrap; gap: .5em; margin-top: .75em; }
-        #mediaCollectionManagerPage .itemResult { display: flex; align-items: center; gap: .75em; padding: .55em 0; }
-        #mediaCollectionManagerPage .itemResult small { opacity: .75; }
+        #mediaCollectionManagerPage .mcm-section { border:1px solid rgba(255,255,255,.16); border-radius:.65em; padding:1.25em; margin:0 0 1.25em; }
+        #mediaCollectionManagerPage .mcm-section h2 { font-size:1.35em; line-height:1.25; margin:0 0 .35em; }
+        #mediaCollectionManagerPage .mcm-tabs { display:flex; flex-wrap:nowrap; gap:.5em; overflow-x:auto; overscroll-behavior-x:contain; border-bottom:1px solid rgba(255,255,255,.16); margin:1.5em 0; padding-bottom:.15em; }
+        #mediaCollectionManagerPage .mcm-tab { flex:0 0 auto; white-space:nowrap; border:0; border-radius:.45em .45em 0 0; padding:.85em 1.25em; background:rgba(255,255,255,.08); color:inherit; cursor:pointer; font-size:1em; }
+        #mediaCollectionManagerPage .mcm-tab.active { background:#00a4dc; color:#fff; font-weight:bold; }
+        #mediaCollectionManagerPage .mcm-panel { display:none; }
+        #mediaCollectionManagerPage .mcm-panel.active { display:block; }
+        #mediaCollectionManagerPage .mcm-actions { display:flex; flex-wrap:wrap; gap:.65em; margin-top:1em; }
+        #mediaCollectionManagerPage .mcm-library-list { margin:.75em 0 0; }
+        #mediaCollectionManagerPage .mcm-progress { height:.6em; overflow:hidden; margin:1em 0 .55em; border-radius:999px; background:rgba(255,255,255,.14); }
+        #mediaCollectionManagerPage .mcm-progress > div { width:0; height:100%; background:linear-gradient(90deg,#AA5CC3,#00A4DC); transition:width .2s ease; }
+        #mediaCollectionManagerPage .mcm-overview-content[hidden] { display:none !important; }
+        #mediaCollectionManagerPage .mcm-library-overview { margin-top:1em; }
+        #mediaCollectionManagerPage .mcm-library-overview + .mcm-library-overview { border-top:1px solid rgba(255,255,255,.16); padding-top:1em; }
+        #mediaCollectionManagerPage .mcm-library-heading { display:flex; align-items:center; justify-content:space-between; gap:1em; }
+        #mediaCollectionManagerPage .mcm-library-heading h3 { margin:0; }
+        #mediaCollectionManagerPage .mcm-catalog-table { width:100%; min-width:44em; table-layout:auto; }
+        #mediaCollectionManagerPage .mcm-catalog-table th, #mediaCollectionManagerPage .mcm-catalog-table td { padding:.7em .8em; vertical-align:top; white-space:normal; overflow-wrap:anywhere; }
+        #mediaCollectionManagerPage .mcm-catalog-table th + th, #mediaCollectionManagerPage .mcm-catalog-table td + td { border-left:1px solid rgba(255,255,255,.16); }
+        #mediaCollectionManagerPage .mcm-catalog-table th:first-child { min-width:15em; }
+        #mediaCollectionManagerPage .mcm-tag-value { color:var(--mcm-metadata-tag-color,#00A4DC); }
+        #mediaCollectionManagerPage .mcm-pagination { display:flex; flex-wrap:wrap; align-items:center; gap:.65em; margin-top:.85em; }
+        #mediaCollectionManagerPage .mcm-tag-type + .mcm-tag-type { border-top:1px solid rgba(255,255,255,.16); margin-top:.75em; padding-top:.75em; }
+        #mediaCollectionManagerPage .mcm-tag-type-content[hidden], #mediaCollectionManagerPage .mcm-picker-library-content[hidden] { display:none !important; }
+        #mediaCollectionManagerPage .mcm-draft-card { border:1px solid rgba(255,255,255,.16); border-radius:.45em; margin:.85em 0; padding:1em; }
+        #mediaCollectionManagerPage .mcm-draft-card h3 { margin:0 0 .35em; }
+        #mediaCollectionManagerPage .mcm-draft-preview[hidden] { display:none !important; }
+        #mediaCollectionManagerPage .mcm-person-image { width:2em; height:2em; vertical-align:middle; object-fit:cover; border-radius:50%; margin-right:.45em; }
+        #mediaCollectionManagerPage .mcm-empty { margin:.75em 0 0; }
+        #mediaCollectionManagerPage button:disabled { opacity:.45; cursor:not-allowed; }
     </style>
 
+    <div data-role="content"><div class="content-primary">
+        <h1>Media Collection Manager</h1>
+        <h2>Main Settings</h2>
+        <p class="fieldDescription">Media Collection Manager reads the metadata already assigned to your media and builds a local catalog you can later use to create and maintain Jellyfin collections.</p>
+        <p class="fieldDescription">Metadata tags are descriptive information connected to a media item, such as genres, providers, networks, studios, directors, cast members, composers, years, custom tags, and other metadata already available in your Jellyfin libraries or local NFO files. For example, a title may have tags such as <code>Provider: MarqueeTV</code>, <code>Network: HBO</code>, <code>Opera</code>, <code>Broadway</code>, or <code>Live Performance</code>.</p>
+        <p class="fieldDescription">This plugin uses all available metadata tags; it does not fetch, add, edit, or remove metadata from your media. It was especially designed to work alongside the <a href="https://github.com/mp3li/Media-Tagging-Manager-Jellyfin-Plugin" target="_blank" rel="noopener noreferrer">Media Tagging Manager Jellyfin Plugin</a>, which can create and assign many of the tags that Media Collection Manager can then use to organize your library into collections.</p>
+
+        <div class="mcm-tabs" role="tablist" aria-label="Media Collection Manager sections"><button type="button" class="mcm-tab active" data-tab="main" role="tab" aria-selected="true">Main Settings</button><button type="button" class="mcm-tab" data-tab="individual" role="tab" aria-selected="false">Individual Tag Collections</button><button type="button" class="mcm-tab" data-tab="combined" role="tab" aria-selected="false">Combined Tag Collections</button><button type="button" class="mcm-tab" data-tab="multi" role="tab" aria-selected="false">Multi-Match Tag Collections</button></div>
+
+        <div class="mcm-panel active" data-panel="main">
+
+        <section class="mcm-section">
+            <h2>Selected Libraries</h2>
+            <p class="fieldDescription">Choose which Jellyfin libraries Media Collection Manager will scan for metadata.</p>
+            <p class="fieldDescription">Select one or more libraries to include in Media Collection Manager.</p>
+            <div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="selectAllLibrariesButton">Select All</button><button is="emby-button" type="button" class="raised" id="selectNoLibrariesButton">Select None</button></div>
+            <div id="libraryChoices" class="mcm-library-list"></div>
+            <div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="saveLibrariesButton">Save Libraries</button></div>
+        </section>
+
+        <section class="mcm-section">
+            <h2>Newly Added Media Settings</h2>
+            <p class="fieldDescription">Do you want media in your selected and saved libraries that is added after creating collections to automatically be added to applicable collections based on its existing metadata tags?</p>
+            <label class="checkboxContainer"><input type="radio" name="automaticallyAddNewMedia" value="yes" id="automaticallyAddNewMediaYes" /> <span>Yes</span></label>
+            <label class="checkboxContainer"><input type="radio" name="automaticallyAddNewMedia" value="no" id="automaticallyAddNewMediaNo" /> <span>No</span></label>
+            <p class="fieldDescription">This setting only affects collections configured to update automatically.</p>
+        </section>
+
+        <div class="mcm-actions"><button is="emby-button" type="button" class="raised button-submit block" id="saveMainSettingsButton">Save Main Settings</button></div>
+
+        <section class="mcm-section">
+            <h2>Scan for Metadata Tags</h2>
+            <p class="fieldDescription">After saving your selections above, click Scan to examine the media in your selected libraries and build the metadata catalog used for collection creation and maintenance.</p>
+            <div class="mcm-actions"><button is="emby-button" type="button" class="raised button-submit" id="scanMetadataTagsButton">Scan Metadata Tags</button></div>
+            <div class="mcm-progress" aria-label="Metadata tag scan progress"><div id="scanProgressBar"></div></div>
+            <p id="scanStatus" class="fieldDescription" aria-live="polite">Ready to scan your selected libraries.</p>
+        </section>
+
+        <section class="mcm-section">
+            <h2>My Metadata Tags</h2>
+            <p class="fieldDescription">View the metadata currently assigned to media in your selected and saved libraries. This includes all available metadata, including—but never limited to—metadata assigned by Media Tagging Manager.</p>
+            <h3>My Metadata Tags Overview</h3>
+            <button is="emby-button" type="button" class="raised" id="toggleMetadataOverview">Click here to expand</button>
+            <div id="metadataOverviewContent" class="mcm-overview-content" hidden>
+                <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="metadataOverviewColor">Metadata tag text color</label><input is="emby-input" id="metadataOverviewColor" type="color" value="#00A4DC" /></div>
+                <div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="saveMetadataOverviewColorButton">Save Overview Color</button></div>
+                <div id="metadataOverviewGroups"></div>
+            </div>
+        </section>
+        </div>
+
+        <div class="mcm-panel" data-panel="individual">
+            <h2>Individual Tag Collections</h2>
+            <p class="fieldDescription">Create individual Jellyfin collections for individual metadata tags selected. For example, selecting the Horror genre, Netflix provider, and A24 studio creates three separate collection drafts that can each be named, previewed, and created individually.</p>
+            <section class="mcm-section"><h2>Select Metadata Tags</h2><p class="fieldDescription">Browse the metadata tags found during the most recent scan and select the tags you want to turn into separate collections. Every selected metadata tag creates its own collection draft below.</p><div id="individualTagLibraryPickers"><p class="fieldDescription">Open a library to load its available metadata tag types.</p></div></section>
+            <section class="mcm-section"><h2>Individual Collection Drafts</h2><p class="fieldDescription">Review and customize each selected metadata tag as its own individual collection before creating the collections.</p><div id="individualCollectionDrafts"><p class="fieldDescription">Select a metadata tag above to create its collection draft.</p></div></section>
+            <section class="mcm-section"><h2>Create Collections</h2><p class="fieldDescription">Create the Jellyfin collections for every completed and selected draft shown above.</p><div class="mcm-actions"><button is="emby-button" type="button" class="raised button-submit" id="createIndividualCollectionsButton">Create Selected Collections</button></div><div class="mcm-progress"><div id="individualCreationProgress"></div></div><p id="individualCreationStatus" class="fieldDescription" aria-live="polite">No collection drafts are currently selected.</p><div id="individualCreationResults"></div></section>
+        </div>
+        <div class="mcm-panel" data-panel="combined"><h2>Combined Tag Collections</h2><p class="fieldDescription">Create one Jellyfin collection at a time by combining all media connected to multiple selected metadata tags.</p><div class="mcm-combined-host" data-mode="combined"></div></div>
+        <div class="mcm-panel" data-panel="multi"><h2>Multi-Match Tag Collections</h2><p class="fieldDescription">Create one Jellyfin collection at a time containing only media that matches every selected metadata tag.</p><div class="mcm-combined-host" data-mode="multi"></div></div>
+    </div></div>
+
     <script>
-        (function () {
-            'use strict';
-            var pluginId = '5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9';
-            var page = document.querySelector('#mediaCollectionManagerPage');
-            var fields = ['Provider', 'Network', 'Genre', 'Tag', 'Actor', 'Studio', 'Director', 'Composer', 'Writer', 'Producer', 'Country', 'Language', 'ContentRating', 'ProductionYear', 'JellyfinField', 'NfoField'];
-            var facets = {};
-            var rules = [];
-            var editingRuleId = null;
+    (function () {
+        'use strict';
+        var page = document.querySelector('#mediaCollectionManagerPage');
+        var config, libraries = [], lastStatus;
+        var $ = function (selector) { return page.querySelector(selector); };
+        var url = function (path) { return ApiClient.getUrl('MediaCollectionManager/' + path); };
+        var get = function (path) { return ApiClient.getJSON(url(path)); };
+        var send = function (method, path, data) { return ApiClient.ajax({ type: method, url: url(path), data: data === undefined ? undefined : JSON.stringify(data), contentType: 'application/json', dataType: 'json' }); };
+        var prop = function (object, name) { return object && (object[name] !== undefined ? object[name] : object[name.charAt(0).toLowerCase() + name.slice(1)]); };
+        var escapeHtml = function (value) { var element = document.createElement('span'); element.textContent = value === undefined || value === null ? '' : String(value); return element.innerHTML; };
+        var err = function (error) { return error && (error.responseText || error.message || error.statusText) || 'An unknown error occurred.'; };
+        var selectedLibraryIds = function () { return Array.prototype.map.call(page.querySelectorAll('[data-library-choice]:checked'), function (input) { return input.value; }); };
 
-            function api(path, type, data) {
-                return ApiClient.ajax({
-                    url: ApiClient.getUrl('MediaCollectionManager/' + path),
-                    type: type || 'GET',
-                    data: data ? JSON.stringify(data) : undefined,
-                    contentType: data ? 'application/json' : undefined
-                });
-            }
+        function normalize(raw) {
+            return {
+                LibraryIds: prop(raw, 'LibraryIds') || [],
+                AutomaticallyAddNewMediaToApplicableCollections: prop(raw, 'AutomaticallyAddNewMediaToApplicableCollections') === true,
+                MetadataTagOverviewColor: prop(raw, 'MetadataTagOverviewColor') || '#00A4DC'
+            };
+        }
 
-            function facetName(field) {
-                return field === 'Provider' ? 'providers' : field === 'Network' ? 'networks' : field === 'Tag' ? 'tags' :
-                    field === 'Genre' ? 'genres' : field === 'Actor' ? 'actors' :
-                    field === 'Studio' ? 'studios' : field === 'Director' ? 'directors' :
-                    field === 'Composer' ? 'composers' : field === 'Writer' ? 'writers' :
-                    field === 'Producer' ? 'producers' : field === 'Country' ? 'countries' :
-                    field === 'Language' ? 'languages' : field === 'ContentRating' ? 'contentRatings' : 'productionYears';
-            }
+        function renderLibraries() {
+            var selected = (config.LibraryIds || []).map(String);
+            $('#libraryChoices').innerHTML = libraries.map(function (library) {
+                var id = prop(library, 'ItemId'), name = prop(library, 'Name');
+                return '<label class="checkboxContainer"><input is="emby-checkbox" data-library-choice type="checkbox" value="' + escapeHtml(id) + '"' + (selected.indexOf(String(id)) >= 0 ? ' checked' : '') + ' /> <span>' + escapeHtml(name) + '</span></label>';
+            }).join('') || '<p class="fieldDescription">No Jellyfin libraries were found.</p>';
+        }
 
-            function isGenericField(field) { return field === 'JellyfinField' || field === 'NfoField'; }
+        function applyOverviewColor() {
+            page.style.setProperty('--mcm-metadata-tag-color', $('#metadataOverviewColor').value || '#00A4DC');
+        }
 
-            function genericFacetName(field) { return field === 'JellyfinField' ? 'jellyfinFields' : 'nfoFields'; }
+        function updateStatus(status) {
+            var priorStatus = lastStatus;
+            lastStatus = status || lastStatus;
+            if (!lastStatus) { return; }
+            var scanning = prop(lastStatus, 'IsScanning') === true;
+            var processed = Number(prop(lastStatus, 'ProcessedItems') || 0);
+            var total = Number(prop(lastStatus, 'TotalItems') || 0);
+            var percent = total > 0 ? Math.min(100, Math.round(processed * 100 / total)) : (scanning ? 0 : 0);
+            $('#scanProgressBar').style.width = percent + '%';
+            $('#scanStatus').textContent = prop(lastStatus, 'Message') || 'Ready to scan your selected libraries.';
+            $('#scanMetadataTagsButton').disabled = scanning;
+            if (priorStatus && prop(priorStatus, 'IsScanning') === true && !scanning && $('#metadataOverviewContent').hidden === false && total > 0) { loadMetadataOverview(); }
+        }
 
-            function fieldLabel(field) {
-                return field === 'JellyfinField' ? 'Other Jellyfin metadata field' :
-                    field === 'NfoField' ? 'Other local NFO field' : field;
-            }
+        function loadSettings() {
+            get('settings/main').then(function (result) {
+                config = normalize(prop(result, 'Configuration') || result.configuration || {});
+                libraries = prop(result, 'Libraries') || result.libraries || [];
+                renderLibraries();
+                $('#automaticallyAddNewMediaYes').checked = config.AutomaticallyAddNewMediaToApplicableCollections;
+                $('#automaticallyAddNewMediaNo').checked = !config.AutomaticallyAddNewMediaToApplicableCollections;
+                $('#metadataOverviewColor').value = config.MetadataTagOverviewColor;
+                applyOverviewColor();
+                refreshStatus();
+            }, function (error) { $('#libraryChoices').innerHTML = '<p class="fieldDescription">Could not load plugin settings: ' + escapeHtml(err(error)) + '</p>'; });
+        }
 
-            function selectedValues(select) {
-                return Array.prototype.slice.call(select.selectedOptions).map(function (option) { return option.value; });
-            }
+        function saveLibraries() {
+            var libraryIds = selectedLibraryIds();
+            if (!libraryIds.length) { Dashboard.alert('Select one or more libraries before saving.'); return; }
+            send('POST', 'settings/libraries', { LibraryIds: libraryIds }).then(function (updated) {
+                config = normalize(updated || config);
+                renderLibraries();
+                Dashboard.alert('Libraries saved successfully.');
+            }, function (error) { Dashboard.alert('Libraries could not be saved: ' + err(error)); });
+        }
 
-            function availableValues(field, metadataFieldName) {
-                return isGenericField(field)
-                    ? ((facets[genericFacetName(field)] || {})[metadataFieldName] || [])
-                    : (facets[facetName(field)] || []);
-            }
+        function saveMainSettings() {
+            var libraryIds = selectedLibraryIds();
+            if (!libraryIds.length) { Dashboard.alert('Select one or more libraries before saving Main Settings.'); return; }
+            send('POST', 'settings/main', {
+                LibraryIds: libraryIds,
+                AutomaticallyAddNewMediaToApplicableCollections: $('#automaticallyAddNewMediaYes').checked
+            }).then(function (result) {
+                config = normalize(prop(result, 'Configuration') || result.configuration || config);
+                renderLibraries();
+                Dashboard.alert('Main Settings saved successfully.');
+            }, function (error) { Dashboard.alert('Main Settings could not be saved. Please try again. ' + err(error)); });
+        }
 
-            function populateMetadataFields(select, field) {
-                var selected = select.value;
-                var container = select.parentNode;
-                container.style.display = isGenericField(field) ? '' : 'none';
-                select.innerHTML = '';
-                if (!isGenericField(field)) { return; }
-                Object.keys(facets[genericFacetName(field)] || {}).sort().forEach(function (name) {
-                    var option = document.createElement('option');
-                    option.value = name;
-                    option.textContent = name;
-                    option.selected = name === selected;
-                    select.appendChild(option);
-                });
-            }
+        function refreshStatus() {
+            get('metadata-catalog/status').then(updateStatus, function () { /* The next regular poll retries safely. */ });
+        }
 
-            function optionsFor(select, field, metadataFieldName) {
-                var selected = selectedValues(select);
-                select.innerHTML = '';
-                availableValues(field, metadataFieldName).forEach(function (value) {
-                    var option = document.createElement('option');
-                    option.value = value;
-                    option.textContent = value;
-                    option.selected = selected.indexOf(value) !== -1;
-                    select.appendChild(option);
-                });
-            }
+        function startScan() {
+            send('POST', 'metadata-catalog/scan', {}).then(function (status) {
+                updateStatus(status);
+            }, function (error) { Dashboard.alert(err(error)); });
+        }
 
-            function refreshRuleFieldOptions() {
-                var field = page.querySelector('#ruleField').value;
-                var metadataField = page.querySelector('#ruleMetadataField');
-                populateMetadataFields(metadataField, field);
-                optionsFor(page.querySelector('#ruleValues'), field, metadataField.value);
-            }
+        function selectedCatalogLibraryIds() { return (config.LibraryIds || []).map(String); }
 
-            function refreshBulkFieldOptions() {
-                var field = page.querySelector('#bulkField').value;
-                var metadataField = page.querySelector('#bulkMetadataField');
-                populateMetadataFields(metadataField, field);
-                optionsFor(page.querySelector('#bulkValues'), field, metadataField.value);
-            }
+        function loadMetadataOverview() {
+            var groups = $('#metadataOverviewGroups');
+            var ids = selectedCatalogLibraryIds();
+            if (!ids.length) { groups.innerHTML = '<p class="fieldDescription mcm-empty">No libraries have been saved yet.</p>'; return; }
+            groups.innerHTML = ids.map(function (id) { return '<div class="mcm-library-overview" data-catalog-library="' + escapeHtml(id) + '"><div class="mcm-library-heading"><h3>Loading library…</h3><button is="emby-button" type="button" class="raised" data-toggle-library="' + escapeHtml(id) + '">Click here to collapse</button></div><div data-catalog-content="' + escapeHtml(id) + '"><p class="fieldDescription">Loading metadata tags…</p></div></div>'; }).join('');
+            ids.forEach(function (id) { loadCatalogPage(id, 1); });
+        }
 
-            function renderRules() {
-                var list = page.querySelector('#ruleList');
-                list.innerHTML = '';
-                if (!rules.length) {
-                    list.textContent = 'No automatic collection rules have been created yet.';
-                    return;
-                }
-                rules.forEach(function (rule) {
-                    var card = document.createElement('div');
-                    card.className = 'ruleCard';
-                    card.innerHTML = '<h3></h3><div class="fieldDescription"></div><div class="ruleActions"><button is="emby-button" type="button" class="raised runRule">Run now</button><button is="emby-button" type="button" class="editRule">Edit rule</button><button is="emby-button" type="button" class="deleteRule">Stop managing</button></div>';
-                    card.querySelector('h3').textContent = rule.name + (rule.enabled ? '' : ' (paused)');
-                    card.querySelector('.fieldDescription').textContent = (isGenericField(rule.field) ? rule.field + ' — ' + (rule.metadataFieldName || 'field') : rule.field) + ': ' + rule.values.join(', ') + (rule.removeItemsNoLongerMatching ? ' — removes items that no longer match.' : ' — only adds matches.');
-                    card.querySelector('.runRule').addEventListener('click', function () {
-                        api('rules/' + rule.id + '/reconcile', 'POST').then(function (result) {
-                            page.querySelector('#ruleMessage').textContent = result.collectionName + ': ' + result.matchingItems + ' matching, ' + result.addedItems + ' added, ' + result.removedItems + ' removed.';
-                            loadRules();
-                        });
-                    });
-                    card.querySelector('.editRule').addEventListener('click', function () {
-                        editingRuleId = rule.id;
-                        page.querySelector('#ruleName').value = rule.name;
-                        page.querySelector('#ruleField').value = rule.field;
-                        populateMetadataFields(page.querySelector('#ruleMetadataField'), rule.field);
-                        page.querySelector('#ruleMetadataField').value = rule.metadataFieldName || '';
-                        optionsFor(page.querySelector('#ruleValues'), rule.field, rule.metadataFieldName);
-                        Array.prototype.slice.call(page.querySelector('#ruleValues').options).forEach(function (option) {
-                            option.selected = rule.values.indexOf(option.value) !== -1;
-                        });
-                        page.querySelector('#customValues').value = rule.values.filter(function (value) {
-                            return !availableValues(rule.field, rule.metadataFieldName).some(function (facetValue) { return facetValue === value; });
-                        }).join(', ');
-                        page.querySelector('#ruleEnabled').checked = rule.enabled;
-                        page.querySelector('#removeNonMatching').checked = rule.removeItemsNoLongerMatching;
-                        page.querySelector('#saveRule').textContent = 'Save rule changes';
-                        page.querySelector('#ruleName').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    });
-                    card.querySelector('.deleteRule').addEventListener('click', function () {
-                        if (!confirm('Stop managing “' + rule.name + '”? Its normal Jellyfin collection will stay in place.')) { return; }
-                        api('rules/' + rule.id, 'DELETE').then(loadRules);
-                    });
-                    list.appendChild(card);
-                });
-            }
-
-            function loadRules() {
-                return api('rules').then(function (result) { rules = result || []; renderRules(); });
-            }
-
-            function loadFacets() {
-                return api('facets').then(function (result) {
-                    facets = result || {};
-                    refreshRuleFieldOptions();
-                    refreshBulkFieldOptions();
-                });
-            }
-
-            function loadCollections() {
-                return ApiClient.ajax({ url: ApiClient.getUrl('Items', { Recursive: true, IncludeItemTypes: 'BoxSet', SortBy: 'SortName', SortOrder: 'Ascending', Limit: 500 }), type: 'GET' })
-                    .then(function (result) {
-                        var select = page.querySelector('#existingCollection');
-                        select.innerHTML = '<option value="">Choose a collection</option>';
-                        (result.Items || []).forEach(function (item) {
-                            var option = document.createElement('option');
-                            option.value = item.Id;
-                            option.textContent = item.Name;
-                            select.appendChild(option);
-                        });
-                    });
-            }
-
-            function loadLibraries(config) {
-                return ApiClient.ajax({ url: ApiClient.getUrl('Library/VirtualFolders'), type: 'GET' }).then(function (libraries) {
-                    var select = page.querySelector('#libraryIds');
-                    var selected = (config.LibraryIds || []).map(String);
-                    select.innerHTML = '';
-                    (libraries || []).forEach(function (library) {
-                        var id = library.ItemId || library.Id;
-                        if (!id) { return; }
-                        var option = document.createElement('option');
-                        option.value = id;
-                        option.textContent = library.Name || id;
-                        option.selected = selected.indexOf(String(id)) !== -1;
-                        select.appendChild(option);
-                    });
-                });
-            }
-
-            function updateSourceScopeControls() {
-                var both = page.querySelector('#metadataSourceMode').value === 'Both';
-                page.querySelector('#metadataPriorityContainer').style.display = both ? '' : 'none';
-                page.querySelector('#libraryScopeContainer').style.display = page.querySelector('#useAllLibraries').checked ? 'none' : '';
-            }
-
-            function renderSearch(results) {
-                var area = page.querySelector('#itemResults');
-                area.innerHTML = '';
-                (results || []).forEach(function (item) {
-                    var row = document.createElement('label');
-                    row.className = 'itemResult';
-                    row.innerHTML = '<input type="checkbox" class="manualItem" /><span></span>';
-                    row.querySelector('input').value = item.Id;
-                    row.querySelector('span').innerHTML = '<strong></strong><br /><small></small>';
-                    row.querySelector('strong').textContent = item.Name;
-                    row.querySelector('small').textContent = item.Type + (item.ProductionYear ? ' • ' + item.ProductionYear : '');
-                    area.appendChild(row);
-                });
-                if (!results || !results.length) { area.textContent = 'No media found.'; }
-            }
-
-            page.addEventListener('viewshow', function () {
-                Dashboard.getPluginConfiguration(pluginId).then(function (config) {
-                    page.querySelector('#metadataSourceMode').value = config.MetadataSourceMode || 'Both';
-                    page.querySelector('#metadataSourcePriority').value = config.MetadataSourcePriority || 'Jellyfin';
-                    page.querySelector('#useAllLibraries').checked = config.UseAllLibraries !== false;
-                    page.querySelector('#watchMetadataChanges').checked = !!config.WatchMetadataChanges;
-                    page.querySelector('#scheduledReconciliationEnabled').checked = !!config.ScheduledReconciliationEnabled;
-                    page.querySelector('#scheduledMinutes').value = config.ScheduledReconciliationMinutes || 360;
-                    updateSourceScopeControls();
-                    loadLibraries(config);
-                });
-                var bulkField = page.querySelector('#bulkField');
-                bulkField.innerHTML = fields.map(function (field) { return '<option value="' + field + '">' + fieldLabel(field) + '</option>'; }).join('');
-                loadFacets().then(loadRules);
-                loadCollections();
+        function loadCatalogPage(libraryId, requestedPage) {
+            get('metadata-catalog?libraryId=' + encodeURIComponent(libraryId) + '&page=' + encodeURIComponent(requestedPage)).then(function (catalog) {
+                renderCatalogPage(libraryId, catalog);
+            }, function (error) {
+                var container = page.querySelector('[data-catalog-content="' + libraryId + '"]');
+                if (container) { container.innerHTML = '<p class="fieldDescription">Could not load this library overview: ' + escapeHtml(err(error)) + '</p>'; }
             });
+        }
 
-            page.querySelector('#ruleField').addEventListener('change', refreshRuleFieldOptions);
-            page.querySelector('#bulkField').addEventListener('change', refreshBulkFieldOptions);
-            page.querySelector('#ruleMetadataField').addEventListener('change', function () { optionsFor(page.querySelector('#ruleValues'), page.querySelector('#ruleField').value, this.value); });
-            page.querySelector('#bulkMetadataField').addEventListener('change', function () { optionsFor(page.querySelector('#bulkValues'), page.querySelector('#bulkField').value, this.value); });
-            page.querySelector('#metadataSourceMode').addEventListener('change', updateSourceScopeControls);
-            page.querySelector('#useAllLibraries').addEventListener('change', updateSourceScopeControls);
+        function renderCatalogPage(libraryId, catalog) {
+            var container = page.querySelector('[data-catalog-content="' + libraryId + '"]');
+            var section = page.querySelector('[data-catalog-library="' + libraryId + '"]');
+            if (!container || !section) { return; }
+            var name = prop(catalog, 'LibraryName') || 'Selected library';
+            var items = prop(catalog, 'Items') || [];
+            var columns = prop(catalog, 'Columns') || [];
+            var currentPage = Number(prop(catalog, 'Page') || 1);
+            var pageSize = Number(prop(catalog, 'PageSize') || 10);
+            var total = Number(prop(catalog, 'TotalItems') || 0);
+            section.querySelector('h3').textContent = name;
+            if (!total) { container.innerHTML = '<p class="fieldDescription mcm-empty">No metadata tags have been scanned for this library yet. Save your library selections, then run a metadata tag scan.</p>'; return; }
+            var head = '<tr><th>Title</th>' + columns.map(function (column) { return '<th>' + escapeHtml(column) + '</th>'; }).join('') + '</tr>';
+            var rows = items.map(function (item) {
+                var metadata = prop(item, 'Metadata') || {};
+                return '<tr><td>' + escapeHtml(prop(item, 'Title')) + '</td>' + columns.map(function (column) {
+                    var values = metadata[column] || metadata[column.charAt(0).toLowerCase() + column.slice(1)] || [];
+                    return '<td class="mcm-tag-value">' + values.map(escapeHtml).join('<br />') + '</td>';
+                }).join('') + '</tr>';
+            }).join('');
+            var first = ((currentPage - 1) * pageSize) + 1;
+            var last = Math.min(currentPage * pageSize, total);
+            var pages = Math.max(1, Math.ceil(total / pageSize));
+            container.innerHTML = '<div style="overflow-x:auto"><table class="detailTable mcm-catalog-table"><thead>' + head + '</thead><tbody>' + rows + '</tbody></table></div><div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-catalog-page="' + escapeHtml(libraryId) + '" data-page="' + (currentPage - 1) + '"' + (currentPage <= 1 ? ' disabled' : '') + '>Previous</button><span class="fieldDescription">Showing ' + first + '–' + last + ' of ' + total + ' titles · Page ' + currentPage + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-catalog-page="' + escapeHtml(libraryId) + '" data-page="' + (currentPage + 1) + '"' + (currentPage >= pages ? ' disabled' : '') + '>Next</button></div>';
+        }
 
-            page.querySelector('#saveRule').addEventListener('click', function () {
-                var values = selectedValues(page.querySelector('#ruleValues')).concat(page.querySelector('#customValues').value.split(',').map(function (value) { return value.trim(); }).filter(Boolean));
-                api('rules', 'POST', {
-                    id: editingRuleId,
-                    name: page.querySelector('#ruleName').value,
-                    field: page.querySelector('#ruleField').value,
-                    metadataFieldName: page.querySelector('#ruleMetadataField').value,
-                    values: values,
-                    enabled: page.querySelector('#ruleEnabled').checked,
-                    removeItemsNoLongerMatching: page.querySelector('#removeNonMatching').checked
-                }).then(function (rule) {
-                    page.querySelector('#ruleMessage').textContent = 'Saved “' + rule.name + '”. Run it now to create or update the collection.';
-                    page.querySelector('#ruleName').value = '';
-                    page.querySelector('#customValues').value = '';
-                    page.querySelector('#ruleValues').selectedIndex = -1;
-                    editingRuleId = null;
-                    page.querySelector('#saveRule').textContent = 'Create collection rule';
-                    loadRules();
-                }).catch(function (error) { page.querySelector('#ruleMessage').textContent = error.responseText || 'The rule could not be saved.'; });
-            });
+        var individualDrafts = {}, individualConflictActions = {};
+        function draftKey(libraryId, type, value) { return String(libraryId) + '|' + type + '|' + value; }
+        function catalogLibraryName(id) { var library = libraries.filter(function (candidate) { return String(prop(candidate, 'ItemId')) === String(id); })[0]; return library ? prop(library, 'Name') : 'Selected library'; }
+        function selectedSavedLibraries() { return (config.LibraryIds || []).map(String); }
+        function draftRequest(draft) { return { SourceLibraryId: draft.sourceLibraryId, MetadataType: draft.metadataType, MetadataValue: draft.metadataValue, AdditionalLibraryIds: draft.additionalLibraryIds, CollectionTitle: draft.collectionTitle, ExistingCollectionAction: individualConflictActions[draft.key] || '' }; }
 
-            page.querySelector('#runAll').addEventListener('click', function () {
-                api('reconcile', 'POST').then(function (result) {
-                    page.querySelector('#ruleMessage').textContent = 'Reconciled ' + result.length + ' enabled rule' + (result.length === 1 ? '' : 's') + '.';
-                    loadRules();
-                });
-            });
+        function renderIndividualLibraryPickers() {
+            var ids = selectedSavedLibraries(), host = $('#individualTagLibraryPickers');
+            host.innerHTML = ids.length ? ids.map(function (id) { return '<div class="mcm-library-overview" data-picker-library="' + escapeHtml(id) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(catalogLibraryName(id)) + '</h3><button is="emby-button" type="button" class="raised" data-toggle-picker-library="' + escapeHtml(id) + '">Click here to expand</button></div><div class="mcm-picker-library-content" data-picker-library-content="' + escapeHtml(id) + '" hidden></div></div>'; }).join('') : '<p class="fieldDescription">Save one or more libraries and run a metadata tag scan before selecting tags.</p>';
+        }
 
-            page.querySelector('#bulkCreate').addEventListener('click', function () {
-                api('rules/bulk', 'POST', {
-                    field: page.querySelector('#bulkField').value,
-                    metadataFieldName: page.querySelector('#bulkMetadataField').value,
-                    values: selectedValues(page.querySelector('#bulkValues')),
-                    namePrefix: page.querySelector('#bulkPrefix').value
-                }).then(function (created) {
-                    page.querySelector('#ruleMessage').textContent = 'Created and filled ' + created.length + ' collection rule' + (created.length === 1 ? '' : 's') + '.';
-                    loadRules();
-                });
-            });
+        function loadIndividualTypes(libraryId) {
+            var host = page.querySelector('[data-picker-library-content="' + libraryId + '"]');
+            if (!host) { return; }
+            host.innerHTML = '<p class="fieldDescription">Loading metadata tag types…</p>';
+            get('metadata-catalog/types?libraryId=' + encodeURIComponent(libraryId)).then(function (types) {
+                host.innerHTML = types.length ? types.map(function (type) { var name = prop(type, 'Name'), count = prop(type, 'ValueCount'); return '<div class="mcm-tag-type" data-tag-type="' + escapeHtml(name) + '" data-tag-library="' + escapeHtml(libraryId) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(name) + ' (' + escapeHtml(count) + ')</h3><button is="emby-button" type="button" class="raised" data-toggle-tag-type="1">Click here to expand</button></div><div class="mcm-tag-type-content" hidden></div></div>'; }).join('') : '<p class="fieldDescription">No scanned metadata tags are available for this library yet.</p>';
+            }, function (error) { host.innerHTML = '<p class="fieldDescription">Could not load metadata tag types: ' + escapeHtml(err(error)) + '</p>'; });
+        }
 
-            page.querySelector('#itemSearch').addEventListener('keydown', function (event) {
-                if (event.key !== 'Enter') { return; }
-                event.preventDefault();
-                api('items?searchTerm=' + encodeURIComponent(event.target.value)).then(renderSearch);
-            });
+        function loadIndividualValues(section, pageNumber) {
+            var libraryId = section.getAttribute('data-tag-library'), type = section.getAttribute('data-tag-type'), content = section.querySelector('.mcm-tag-type-content');
+            var existingSearch = content.querySelector('[data-tag-search]'), search = existingSearch ? existingSearch.value : '';
+            content.innerHTML = '<p class="fieldDescription">Loading metadata tags…</p>';
+            get('metadata-catalog/values?libraryId=' + encodeURIComponent(libraryId) + '&metadataType=' + encodeURIComponent(type) + '&searchTerm=' + encodeURIComponent(search) + '&page=' + encodeURIComponent(pageNumber)).then(function (result) {
+                var values = prop(result, 'Values') || [], current = Number(prop(result, 'Page') || 1), total = Number(prop(result, 'TotalValues') || 0), pageSize = Number(prop(result, 'PageSize') || 50), pages = Math.max(1, Math.ceil(total / pageSize));
+                content.innerHTML = '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search ' + escapeHtml(type) + '</label><input is="emby-input" type="search" data-tag-search placeholder="Search ' + escapeHtml(type) + '" /></div>' + (values.length ? values.map(function (entry) { var value = prop(entry, 'Value'), key = draftKey(libraryId, type, value), image = prop(entry, 'PersonImageUrl'); return '<label class="checkboxContainer">' + (image ? '<img class="mcm-person-image" src="' + escapeHtml(ApiClient.getUrl('Items/' + image + '/Images/Primary')) + '" alt="" />' : '') + '<input is="emby-checkbox" type="checkbox" data-individual-tag-value="1" data-library="' + escapeHtml(libraryId) + '" data-type="' + escapeHtml(type) + '" data-value="' + escapeHtml(value) + '"' + (individualDrafts[key] ? ' checked' : '') + ' /> <span>' + escapeHtml(value) + ' (' + escapeHtml(prop(entry, 'MatchingItems')) + ')</span></label>'; }).join('') : '<p class="fieldDescription">No metadata tags match this search.</p>') + '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-tag-values-page="' + (current - 1) + '"' + (current <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + current + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-tag-values-page="' + (current + 1) + '"' + (current >= pages ? ' disabled' : '') + '>Next Page</button></div>';
+            }, function (error) { content.innerHTML = '<p class="fieldDescription">Could not load metadata tags: ' + escapeHtml(err(error)) + '</p>'; });
+        }
 
-            page.querySelector('#createManualCollection').addEventListener('click', function () {
-                var ids = Array.prototype.slice.call(page.querySelectorAll('.manualItem:checked')).map(function (input) { return input.value; });
-                api('collections', 'POST', { name: page.querySelector('#manualCollectionName').value, itemIds: ids }).then(function (collection) {
-                    page.querySelector('#ruleMessage').textContent = 'Created normal Jellyfin collection “' + collection.name + '” from ' + ids.length + ' selected item' + (ids.length === 1 ? '' : 's') + '.';
-                    page.querySelector('#manualCollectionName').value = '';
-                    loadCollections();
-                });
-            });
+        function addOrRemoveDraft(input) {
+            var libraryId = input.getAttribute('data-library'), type = input.getAttribute('data-type'), value = input.getAttribute('data-value'), key = draftKey(libraryId, type, value);
+            if (input.checked) { individualDrafts[key] = { key:key, sourceLibraryId:libraryId, metadataType:type, metadataValue:value, additionalLibraryIds:[], collectionTitle:value, included:true, preview:null }; }
+            else { delete individualDrafts[key]; delete individualConflictActions[key]; }
+            renderIndividualDrafts();
+        }
 
-            function selectedManualItemIds() {
-                return Array.prototype.slice.call(page.querySelectorAll('.manualItem:checked')).map(function (input) { return input.value; });
-            }
+        function renderIndividualDrafts() {
+            var drafts = Object.keys(individualDrafts).map(function (key) { return individualDrafts[key]; }), host = $('#individualCollectionDrafts');
+            host.innerHTML = drafts.length ? drafts.map(function (draft) { var otherLibraries = selectedSavedLibraries().filter(function (id) { return id !== String(draft.sourceLibraryId); }); return '<div class="mcm-draft-card" data-draft="' + escapeHtml(draft.key) + '"><h3>' + escapeHtml(draft.metadataValue) + '</h3><p class="fieldDescription">Selected library: ' + escapeHtml(catalogLibraryName(draft.sourceLibraryId)) + '<br />Metadata tag type: ' + escapeHtml(draft.metadataType) + '<br />Selected metadata tag value: ' + escapeHtml(draft.metadataValue) + '</p><label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" data-draft-included="1"' + (draft.included ? ' checked' : '') + ' /> <span>Create this draft</span></label><div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Collection Title</label><input is="emby-input" type="text" data-draft-title value="' + escapeHtml(draft.collectionTitle) + '" /></div><p class="fieldDescription" data-draft-explanation>Loading matching media…</p><p class="fieldDescription">Also Add Media With Selected Tag From Other Libraries</p><p class="fieldDescription">Choose additional saved libraries to include in this collection. The library where you selected this metadata tag is always included. Selecting other libraries adds only media with this same metadata tag from those libraries.</p><p class="fieldDescription">Included from selected library: ' + escapeHtml(catalogLibraryName(draft.sourceLibraryId)) + '</p><div class="mcm-actions"><button is="emby-button" type="button" class="raised" data-draft-select-all="1">Select All</button><button is="emby-button" type="button" class="raised" data-draft-select-none="1">Select None</button></div><p class="fieldDescription">Select None to include matching media from only the library where this metadata tag was selected.</p>' + otherLibraries.map(function (id) { return '<label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" data-draft-other-library="' + escapeHtml(id) + '"' + (draft.additionalLibraryIds.map(String).indexOf(String(id)) >= 0 ? ' checked' : '') + ' /> <span>' + escapeHtml(catalogLibraryName(id)) + '</span></label>'; }).join('') + '<button is="emby-button" type="button" class="raised" data-toggle-draft-preview="1">Click here to expand included media</button><div class="mcm-draft-preview" hidden></div><div class="mcm-actions"><button is="emby-button" type="button" class="raised" data-remove-draft="1">Remove Collection Draft</button></div></div>'; }).join('') : '<p class="fieldDescription">Select a metadata tag above to create its collection draft.</p>';
+            drafts.forEach(loadDraftPreview);
+        }
 
-            function changeExistingCollection(action) {
-                var collectionId = page.querySelector('#existingCollection').value;
-                var itemIds = selectedManualItemIds();
-                if (!collectionId || !itemIds.length) {
-                    page.querySelector('#ruleMessage').textContent = 'Choose an existing collection and at least one media item first.';
-                    return;
-                }
-                api('collections/' + action, 'POST', { collectionId: collectionId, itemIds: itemIds }).then(function () {
-                    page.querySelector('#ruleMessage').textContent = (action === 'add' ? 'Added ' : 'Removed ') + itemIds.length + ' selected item' + (itemIds.length === 1 ? '' : 's') + '.';
-                });
-            }
+        function loadDraftPreview(draft) { send('POST', 'individual-collection-drafts/preview', draftRequest(draft)).then(function (preview) { draft.preview = preview; var card = page.querySelector('[data-draft="' + CSS.escape(draft.key) + '"]'); if (!card) { return; } var count = Number(prop(preview, 'MatchingItems') || 0), names = (prop(preview, 'Items') || []).map(function (item) { return escapeHtml(prop(item, 'Name')); }); card.querySelector('[data-draft-explanation]').textContent = 'This collection will include ' + count + ' matching media item' + (count === 1 ? '' : 's') + ' with the ' + draft.metadataType + ': ' + draft.metadataValue + ' metadata tag from ' + [catalogLibraryName(draft.sourceLibraryId)].concat(draft.additionalLibraryIds.map(catalogLibraryName)).join(', ') + '.'; card.querySelector('.mcm-draft-preview').innerHTML = names.length ? '<ul>' + names.map(function (name) { return '<li>' + name + '</li>'; }).join('') + '</ul>' : '<p class="fieldDescription">No current catalog media matches this draft.</p>'; }); }
 
-            page.querySelector('#addSelectedToCollection').addEventListener('click', function () { changeExistingCollection('add'); });
-            page.querySelector('#removeSelectedFromCollection').addEventListener('click', function () { changeExistingCollection('remove'); });
+        function createIndividualCollections() {
+            var drafts = Object.keys(individualDrafts).map(function (key) { return individualDrafts[key]; }).filter(function (draft) { return draft.included && draft.collectionTitle.trim(); });
+            if (!drafts.length) { Dashboard.alert('Select at least one completed collection draft.'); return; }
+            send('POST', 'individual-collection-drafts/conflicts', drafts.map(draftRequest)).then(function (conflicts) {
+                var unresolved = conflicts.filter(function (conflict) { var draft = drafts.filter(function (candidate) { return candidate.collectionTitle.trim() === prop(conflict, 'CollectionTitle'); })[0]; return prop(conflict, 'ExistingCollectionFound') && !individualConflictActions[draft.key]; });
+                if (unresolved.length) { $('#individualCreationResults').innerHTML = '<p class="fieldDescription">A collection with the following title already exists. Choose what to do before creating collections.</p>' + unresolved.map(function (conflict) { var draft = drafts.filter(function (candidate) { return candidate.collectionTitle.trim() === prop(conflict, 'CollectionTitle'); })[0]; return '<div class="mcm-draft-card"><strong>' + escapeHtml(draft.collectionTitle) + '</strong><label class="checkboxContainer"><input type="radio" name="conflict-' + escapeHtml(draft.key) + '" data-conflict-action="UseExisting" data-conflict-key="' + escapeHtml(draft.key) + '" /> <span>Use existing collection without changing it</span></label><label class="checkboxContainer"><input type="radio" name="conflict-' + escapeHtml(draft.key) + '" data-conflict-action="Skip" data-conflict-key="' + escapeHtml(draft.key) + '" /> <span>Skip this draft</span></label></div>'; }).join(''); $('#individualCreationStatus').textContent = 'Resolve every existing collection conflict, then click Create Selected Collections again.'; return; }
+                runIndividualCreation(drafts, 0, []);
+            }, function (error) { Dashboard.alert('Could not check collection conflicts: ' + err(error)); });
+        }
 
-            page.querySelector('#mediaCollectionManagerForm').addEventListener('submit', function (event) {
-                event.preventDefault();
-                Dashboard.getPluginConfiguration(pluginId).then(function (config) {
-                    config.MetadataSourceMode = page.querySelector('#metadataSourceMode').value;
-                    config.MetadataSourcePriority = page.querySelector('#metadataSourcePriority').value;
-                    config.UseAllLibraries = page.querySelector('#useAllLibraries').checked;
-                    config.LibraryIds = selectedValues(page.querySelector('#libraryIds'));
-                    config.WatchMetadataChanges = page.querySelector('#watchMetadataChanges').checked;
-                    config.ScheduledReconciliationEnabled = page.querySelector('#scheduledReconciliationEnabled').checked;
-                    config.ScheduledReconciliationMinutes = Math.max(15, Math.min(10080, parseInt(page.querySelector('#scheduledMinutes').value, 10) || 360));
-                    Dashboard.processPluginConfigurationUpdate(pluginId, config).then(function () {
-                        loadFacets();
-                        page.querySelector('#ruleMessage').textContent = 'Metadata, library scope, and watching settings were saved.';
-                    });
-                });
-            });
-        }());
+        function runIndividualCreation(drafts, index, results) { if (index >= drafts.length) { $('#individualCreationProgress').style.width = '100%'; $('#individualCreationStatus').textContent = 'Completed ' + drafts.length + ' of ' + drafts.length + ' collection drafts.'; $('#individualCreationResults').innerHTML = results.map(function (result) { return '<p class="fieldDescription"><strong>' + escapeHtml(prop(result, 'Outcome')) + ':</strong> ' + escapeHtml(prop(result, 'CollectionTitle')) + ' — ' + escapeHtml(prop(result, 'Message')) + '</p>'; }).join(''); return; } var draft = drafts[index]; $('#individualCreationStatus').textContent = 'Creating ' + (index + 1) + ' of ' + drafts.length + ': ' + draft.collectionTitle; $('#individualCreationProgress').style.width = Math.round(index * 100 / drafts.length) + '%'; send('POST', 'individual-collection-drafts/create', draftRequest(draft)).then(function (result) { results.push(result); runIndividualCreation(drafts, index + 1, results); }, function (error) { results.push({ CollectionTitle:draft.collectionTitle, Outcome:'Failed', Message:err(error) }); runIndividualCreation(drafts, index + 1, results); }); }
+
+        var tagCollectionStates = { combined:{ tags:{}, title:'', additional:[], action:'' }, multi:{ tags:{}, title:'', additional:[], action:'' } };
+        function modeRequest(mode) { var state = tagCollectionStates[mode]; return { SelectedTags:Object.keys(state.tags).map(function (key) { return state.tags[key]; }), AdditionalLibraryIds:state.additional, RequireAllTags:mode === 'multi', CollectionTitle:state.title, ExistingCollectionAction:state.action }; }
+        function renderMode(mode) { var host = page.querySelector('[data-mode="' + mode + '"]'), state = tagCollectionStates[mode], ids = selectedSavedLibraries(), tags = Object.keys(state.tags).map(function (key) { return state.tags[key]; }); host.innerHTML = '<section class="mcm-section"><h2>Select Metadata Tags</h2><p class="fieldDescription">Browse the metadata tags found during the most recent scan and select the tags you want to ' + (mode === 'multi' ? 'require together' : 'combine into one collection') + '.</p>' + ids.map(function (id) { return '<div class="mcm-library-overview"><button is="emby-button" type="button" class="raised" data-mode-library="' + mode + '" data-library="' + id + '">' + escapeHtml(catalogLibraryName(id)) + ' — Click here to load metadata tag types</button><div data-mode-types="' + mode + '|' + id + '"></div></div>'; }).join('') + '</section><section class="mcm-section"><h2>' + (mode === 'multi' ? 'Multi-Match' : 'Combined') + ' Collection Draft</h2>' + (tags.length ? tags.map(function(tag){return '<div class="mcm-draft-card"><strong>' + escapeHtml(catalogLibraryName(tag.SourceLibraryId)) + '</strong><br />' + escapeHtml(tag.MetadataType) + ': ' + escapeHtml(tag.MetadataValue) + '<div class="mcm-actions"><button is="emby-button" type="button" class="raised" data-mode-remove="' + mode + '" data-key="' + escapeHtml(draftKey(tag.SourceLibraryId,tag.MetadataType,tag.MetadataValue)) + '">Remove Selected Tag</button></div></div>';}).join('') : '<p class="fieldDescription">Select at least two metadata tags above.</p>') + '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Collection Title</label><input is="emby-input" data-mode-title="' + mode + '" value="' + escapeHtml(state.title) + '" /></div><p class="fieldDescription">Also Add Media With Selected Tags From Other Libraries</p><p class="fieldDescription">Select None to use only the libraries where you selected metadata tags. No additional libraries will be included.</p>' + ids.map(function (id) { return '<label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" data-mode-other="' + mode + '" value="' + id + '"' + (state.additional.indexOf(id) >= 0 ? ' checked' : '') + ' /> <span>' + escapeHtml(catalogLibraryName(id)) + '</span></label>'; }).join('') + '<div class="mcm-actions"><button is="emby-button" type="button" class="raised" data-mode-all="' + mode + '">Select All</button><button is="emby-button" type="button" class="raised" data-mode-none="' + mode + '">Select None</button><button is="emby-button" type="button" class="raised" data-mode-clear="' + mode + '">Clear Collection Draft</button></div><p class="fieldDescription" data-mode-preview="' + mode + '"></p><button is="emby-button" type="button" class="raised" data-mode-create="' + mode + '">Create Collection</button><p class="fieldDescription" data-mode-result="' + mode + '"></p></section>'; if (tags.length) previewMode(mode); }
+        function loadModeTypes(mode, libraryId) { var host = page.querySelector('[data-mode-types="' + mode + '|' + libraryId + '"]'); get('metadata-catalog/types?libraryId=' + libraryId).then(function (types) { host.innerHTML = types.map(function (type) { return '<button is="emby-button" type="button" class="raised" data-mode-type="' + mode + '" data-library="' + libraryId + '" data-type="' + escapeHtml(prop(type,'Name')) + '">' + escapeHtml(prop(type,'Name')) + '</button>'; }).join(' '); }, function (e) { host.textContent = err(e); }); }
+        function loadModeValues(mode, libraryId, type) { var host = page.querySelector('[data-mode-types="' + mode + '|' + libraryId + '"]'); get('metadata-catalog/values?libraryId=' + libraryId + '&metadataType=' + encodeURIComponent(type) + '&page=1').then(function (data) { host.innerHTML = '<p class="fieldDescription">' + escapeHtml(type) + '</p>' + (prop(data,'Values') || []).map(function (value) { var name=prop(value,'Value'), key=draftKey(libraryId,type,name), checked=tagCollectionStates[mode].tags[key] ? ' checked' : ''; return '<label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" data-mode-value="' + mode + '" data-library="' + libraryId + '" data-type="' + escapeHtml(type) + '" data-value="' + escapeHtml(name) + '"' + checked + ' /> <span>' + escapeHtml(name) + ' (' + escapeHtml(prop(value,'MatchingItems')) + ')</span></label>'; }).join(''); }); }
+        function previewMode(mode) { var state=tagCollectionStates[mode]; send('POST','tag-collection-drafts/preview',modeRequest(mode)).then(function (preview) { var count=prop(preview,'MatchingItems') || 0, text=mode === 'multi' ? 'This collection will include only media matching every selected metadata tag. ' : 'This collection will include media matching any selected metadata tag. '; page.querySelector('[data-mode-preview="' + mode + '"]').textContent=text + count + ' unique media item' + (count===1?'':'s') + ' will be added.'; }); }
+
+        $('#selectAllLibrariesButton').addEventListener('click', function () { Array.prototype.forEach.call(page.querySelectorAll('[data-library-choice]'), function (input) { input.checked = true; }); });
+        $('#selectNoLibrariesButton').addEventListener('click', function () { Array.prototype.forEach.call(page.querySelectorAll('[data-library-choice]'), function (input) { input.checked = false; }); });
+        $('#saveLibrariesButton').addEventListener('click', saveLibraries);
+        $('#saveMainSettingsButton').addEventListener('click', saveMainSettings);
+        $('#scanMetadataTagsButton').addEventListener('click', startScan);
+        $('#toggleMetadataOverview').addEventListener('click', function () { var content = $('#metadataOverviewContent'), expanded = !content.hidden; content.hidden = expanded; this.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadMetadataOverview(); } });
+        $('#metadataOverviewColor').addEventListener('input', applyOverviewColor);
+        $('#saveMetadataOverviewColorButton').addEventListener('click', function () { send('POST', 'settings/metadata-overview-color', { Color: $('#metadataOverviewColor').value }).then(function (updated) { config = normalize(updated || config); $('#metadataOverviewColor').value = config.MetadataTagOverviewColor; applyOverviewColor(); Dashboard.alert('Overview color saved.'); }, function (error) { Dashboard.alert('Overview color could not be saved: ' + err(error)); }); });
+        $('#metadataOverviewGroups').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-library]')) { var id = target.getAttribute('data-toggle-library'), content = page.querySelector('[data-catalog-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; } if (target.matches('[data-catalog-page]')) { loadCatalogPage(target.getAttribute('data-catalog-page'), Number(target.getAttribute('data-page'))); } });
+        Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (button) { button.addEventListener('click', function () { var selectedTab=button.getAttribute('data-tab'); Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (tab) { var active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', active ? 'true' : 'false'); }); Array.prototype.forEach.call(page.querySelectorAll('.mcm-panel'), function (panel) { panel.classList.toggle('active', panel.getAttribute('data-panel') === selectedTab); }); if (selectedTab === 'individual') { renderIndividualLibraryPickers(); renderIndividualDrafts(); } if (selectedTab === 'combined' || selectedTab === 'multi') { renderMode(selectedTab); } }); });
+        $('#individualTagLibraryPickers').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-picker-library]')) { var id = target.getAttribute('data-toggle-picker-library'), content = page.querySelector('[data-picker-library-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualTypes(id); } } if (target.matches('[data-toggle-tag-type]')) { var section = target.closest('[data-tag-type]'), content = section.querySelector('.mcm-tag-type-content'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualValues(section, 1); } } if (target.matches('[data-tag-values-page]')) { loadIndividualValues(target.closest('[data-tag-type]'), Number(target.getAttribute('data-tag-values-page'))); } });
+        $('#individualTagLibraryPickers').addEventListener('change', function (event) { if (event.target.matches('[data-individual-tag-value]')) { addOrRemoveDraft(event.target); } });
+        $('#individualTagLibraryPickers').addEventListener('input', function (event) { if (event.target.matches('[data-tag-search]')) { var section = event.target.closest('[data-tag-type]'); window.clearTimeout(event.target.searchTimer); event.target.searchTimer = window.setTimeout(function () { loadIndividualValues(section, 1); }, 250); } });
+        $('#individualCollectionDrafts').addEventListener('input', function (event) { var card = event.target.closest('[data-draft]'); if (!card) { return; } var draft = individualDrafts[card.getAttribute('data-draft')]; if (event.target.matches('[data-draft-title]')) { draft.collectionTitle = event.target.value; } });
+        $('#individualCollectionDrafts').addEventListener('change', function (event) { var card = event.target.closest('[data-draft]'); if (!card) { return; } var draft = individualDrafts[card.getAttribute('data-draft')]; if (event.target.matches('[data-draft-included]')) { draft.included = event.target.checked; } if (event.target.matches('[data-draft-other-library]')) { var id = event.target.getAttribute('data-draft-other-library'); draft.additionalLibraryIds = event.target.checked ? draft.additionalLibraryIds.concat([id]).filter(function (value, index, values) { return values.indexOf(value) === index; }) : draft.additionalLibraryIds.filter(function (value) { return String(value) !== String(id); }); loadDraftPreview(draft); } });
+        $('#individualCollectionDrafts').addEventListener('click', function (event) { var target = event.target, card = target.closest('[data-draft]'); if (!card) { return; } var draft = individualDrafts[card.getAttribute('data-draft')]; if (target.matches('[data-remove-draft]')) { delete individualDrafts[draft.key]; delete individualConflictActions[draft.key]; renderIndividualDrafts(); } if (target.matches('[data-draft-select-all]')) { draft.additionalLibraryIds = selectedSavedLibraries().filter(function (id) { return id !== String(draft.sourceLibraryId); }); renderIndividualDrafts(); } if (target.matches('[data-draft-select-none]')) { draft.additionalLibraryIds = []; renderIndividualDrafts(); } if (target.matches('[data-toggle-draft-preview]')) { var preview = card.querySelector('.mcm-draft-preview'), expanded = !preview.hidden; preview.hidden = expanded; target.textContent = expanded ? 'Click here to expand included media' : 'Click here to collapse included media'; } });
+        $('#individualCreationResults').addEventListener('change', function (event) { if (event.target.matches('[data-conflict-action]')) { individualConflictActions[event.target.getAttribute('data-conflict-key')] = event.target.getAttribute('data-conflict-action'); } });
+        $('#createIndividualCollectionsButton').addEventListener('click', createIndividualCollections);
+        Array.prototype.forEach.call(page.querySelectorAll('.mcm-combined-host'), function (host) { host.addEventListener('click', function (event) { var target=event.target, mode=host.getAttribute('data-mode'), state=tagCollectionStates[mode]; if (target.matches('[data-mode-library]')) loadModeTypes(mode,target.getAttribute('data-library')); if (target.matches('[data-mode-type]')) loadModeValues(mode,target.getAttribute('data-library'),target.getAttribute('data-type')); if (target.matches('[data-mode-all]')) { state.additional=selectedSavedLibraries(); renderMode(mode); } if (target.matches('[data-mode-none]')) { state.additional=[]; renderMode(mode); } if (target.matches('[data-mode-clear]')) { state.tags={}; state.title=''; state.additional=[]; renderMode(mode); } if (target.matches('[data-mode-create]')) { var request=modeRequest(mode); if (request.SelectedTags.length < 2 || !request.CollectionTitle.trim()) { Dashboard.alert('Choose at least two metadata tags and enter a collection title.'); return; } send('POST','tag-collection-drafts/conflict',request).then(function (conflict) { if (prop(conflict,'ExistingCollectionFound') && !request.ExistingCollectionAction) { state.action=window.confirm('A collection with this title already exists. Click OK to use the existing collection without changing it, or Cancel to skip this draft.') ? 'UseExisting' : 'Skip'; request=modeRequest(mode); } send('POST','tag-collection-drafts/create',request).then(function (result) { page.querySelector('[data-mode-result="' + mode + '"]').textContent=prop(result,'Outcome') + ': ' + prop(result,'Message'); if (prop(result,'Outcome') === 'Created') { state.tags={}; state.title=''; state.additional=[]; } }); }); } }); host.addEventListener('change', function (event) { var target=event.target, mode=host.getAttribute('data-mode'), state=tagCollectionStates[mode]; if (target.matches('[data-mode-value]')) { var key=draftKey(target.getAttribute('data-library'),target.getAttribute('data-type'),target.getAttribute('data-value')); if(target.checked)state.tags[key]={SourceLibraryId:target.getAttribute('data-library'),MetadataType:target.getAttribute('data-type'),MetadataValue:target.getAttribute('data-value'),AdditionalLibraryIds:[]};else delete state.tags[key]; renderMode(mode); } if(target.matches('[data-mode-other]')) { var id=target.value; state.additional=target.checked?state.additional.concat([id]).filter(function(v,i,a){return a.indexOf(v)===i;}):state.additional.filter(function(v){return v!==id;}); previewMode(mode); } }); host.addEventListener('input',function(event){if(event.target.matches('[data-mode-title]'))tagCollectionStates[host.getAttribute('data-mode')].title=event.target.value;}); });
+        Array.prototype.forEach.call(page.querySelectorAll('.mcm-combined-host'), function (host) { host.addEventListener('click', function (event) { if (!event.target.matches('[data-mode-remove]')) return; var mode=host.getAttribute('data-mode'); delete tagCollectionStates[mode].tags[event.target.getAttribute('data-key')]; renderMode(mode); }); });
+
+        loadSettings();
+        setInterval(refreshStatus, 1500);
+    }());
     </script>
 </div>

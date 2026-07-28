@@ -12,10 +12,17 @@ public sealed class PluginConfiguration : BasePluginConfiguration
     public MetadataSourcePriority MetadataSourcePriority { get; set; } = MetadataSourcePriority.Jellyfin;
 
     /// <summary>Gets or sets a value indicating whether every library is available to this plugin.</summary>
-    public bool UseAllLibraries { get; set; } = true;
+    /// <remarks>Retained for existing configurations. New dashboard settings save explicit library selections.</remarks>
+    public bool UseAllLibraries { get; set; }
 
     /// <summary>Gets or sets the library roots available when <see cref="UseAllLibraries"/> is false.</summary>
     public List<Guid> LibraryIds { get; set; } = [];
+
+    /// <summary>Gets or sets whether newly added media may join applicable managed collections.</summary>
+    public bool AutomaticallyAddNewMediaToApplicableCollections { get; set; }
+
+    /// <summary>Gets or sets the overview metadata text color selected by the administrator.</summary>
+    public string MetadataTagOverviewColor { get; set; } = "#00A4DC";
     /// <summary>Gets or sets a value indicating whether metadata-change events can reconcile enabled rules.</summary>
     public bool WatchMetadataChanges { get; set; } = true;
 

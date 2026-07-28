@@ -1,6 +1,8 @@
 using Jellyfin.Plugin.MediaCollectionManager.Configuration;
+using Jellyfin.Plugin.MediaCollectionManager.Tasks;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -10,7 +12,8 @@ namespace Jellyfin.Plugin.MediaCollectionManager.Services;
 public sealed class MetadataChangeListener : IHostedService, IDisposable
 {
     private readonly ILibraryManager _libraryManager;
-    private readonly CollectionReconciler _reconciler;
+    private readonly ManualReconciliationRequestQueue _requests;
+    private readonly ITaskManager _taskManager;
     private readonly ILogger<MetadataChangeListener> _logger;
     private readonly object _timerLock = new();
     private Timer? _timer;
@@ -18,11 +21,13 @@ public sealed class MetadataChangeListener : IHostedService, IDisposable
     /// <summary>Initializes a new instance of the <see cref="MetadataChangeListener"/> class.</summary>
     public MetadataChangeListener(
         ILibraryManager libraryManager,
-        CollectionReconciler reconciler,
+        ManualReconciliationRequestQueue requests,
+        ITaskManager taskManager,
         ILogger<MetadataChangeListener> logger)
     {
         _libraryManager = libraryManager;
-        _reconciler = reconciler;
+        _requests = requests;
+        _taskManager = taskManager;
         _logger = logger;
     }
 
@@ -56,16 +61,17 @@ public sealed class MetadataChangeListener : IHostedService, IDisposable
 
         lock (_timerLock)
         {
-            _timer ??= new Timer(_ => _ = ReconcileAfterQuietPeriodAsync(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            _timer ??= new Timer(_ => QueueReconciliationAfterQuietPeriod(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _timer.Change(TimeSpan.FromSeconds(10), Timeout.InfiniteTimeSpan);
         }
     }
 
-    private async Task ReconcileAfterQuietPeriodAsync()
+    private void QueueReconciliationAfterQuietPeriod()
     {
         try
         {
-            await _reconciler.ReconcileEnabledRulesAsync(CancellationToken.None).ConfigureAwait(false);
+            _requests.EnqueueAllEnabledRules();
+            _taskManager.QueueScheduledTask<ReconcileCollectionsTask>();
         }
         catch (Exception exception)
         {

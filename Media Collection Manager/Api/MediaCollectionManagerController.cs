@@ -1,6 +1,11 @@
 using Jellyfin.Plugin.MediaCollectionManager.Configuration;
 using Jellyfin.Plugin.MediaCollectionManager.Models;
 using Jellyfin.Plugin.MediaCollectionManager.Services;
+using Jellyfin.Plugin.MediaCollectionManager.Tasks;
+using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Model.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,9 +18,189 @@ namespace Jellyfin.Plugin.MediaCollectionManager.Api;
 public sealed class MediaCollectionManagerController : ControllerBase
 {
     private readonly CollectionReconciler _reconciler;
+    private readonly MetadataCatalogService _metadataCatalog;
+    private readonly ILibraryManager _libraryManager;
+    private readonly ManualReconciliationRequestQueue _requests;
+    private readonly ITaskManager _taskManager;
 
     /// <summary>Initializes a new instance of the <see cref="MediaCollectionManagerController"/> class.</summary>
-    public MediaCollectionManagerController(CollectionReconciler reconciler) => _reconciler = reconciler;
+    public MediaCollectionManagerController(
+        CollectionReconciler reconciler,
+        MetadataCatalogService metadataCatalog,
+        ILibraryManager libraryManager,
+        ManualReconciliationRequestQueue requests,
+        ITaskManager taskManager)
+    {
+        _reconciler = reconciler;
+        _metadataCatalog = metadataCatalog;
+        _libraryManager = libraryManager;
+        _requests = requests;
+        _taskManager = taskManager;
+    }
+
+    /// <summary>Returns settings and selectable Jellyfin libraries for the dashboard's main settings tab.</summary>
+    [HttpGet("settings/main")]
+    public IActionResult GetSettings()
+    {
+        var plugin = RequirePlugin();
+        return Ok(new
+        {
+            Configuration = plugin.Configuration,
+            Libraries = _libraryManager.GetVirtualFolders(true).Select(folder => new { folder.ItemId, folder.Name }),
+        });
+    }
+
+    /// <summary>Saves main settings through the plugin dashboard API.</summary>
+    [HttpPost("settings/main")]
+    public IActionResult UpdateSettings([FromBody] MainSettingsRequest request)
+    {
+        if (!HasOnlyKnownLibraries(request.LibraryIds))
+        {
+            return BadRequest("One or more selected libraries are no longer available on this server.");
+        }
+
+        var configuration = RequirePlugin().UpdateMainSettings(request);
+        ReloadScheduledTaskTriggers();
+        return Ok(new
+        {
+            Configuration = configuration,
+            Libraries = _libraryManager.GetVirtualFolders(true).Select(folder => new { folder.ItemId, folder.Name }),
+        });
+    }
+
+    /// <summary>Saves only the selected library roots from the Main Settings page.</summary>
+    [HttpPost("settings/libraries")]
+    public IActionResult UpdateLibraries([FromBody] LibrarySelectionRequest request)
+    {
+        if (!HasOnlyKnownLibraries(request.LibraryIds))
+        {
+            return BadRequest("One or more selected libraries are no longer available on this server.");
+        }
+
+        return Ok(RequirePlugin().UpdateSelectedLibraries(request.LibraryIds));
+    }
+
+    /// <summary>Saves the metadata overview's selected text color.</summary>
+    [HttpPost("settings/metadata-overview-color")]
+    public IActionResult UpdateMetadataOverviewColor([FromBody] MetadataOverviewColorRequest request)
+    {
+        var color = request.Color?.Trim() ?? string.Empty;
+        if (!System.Text.RegularExpressions.Regex.IsMatch(color, "^#[0-9a-fA-F]{6}$"))
+        {
+            return BadRequest("Choose a valid six-digit hexadecimal color.");
+        }
+
+        return Ok(RequirePlugin().UpdateMetadataTagOverviewColor(color));
+    }
+
+    /// <summary>Starts a background scan that builds the local read-only metadata catalog.</summary>
+    [HttpPost("metadata-catalog/scan")]
+    public ActionResult<MetadataCatalogStatus> ScanMetadataCatalog()
+    {
+        if (RequirePlugin().Configuration.LibraryIds.Count == 0)
+        {
+            return BadRequest("Save one or more libraries before scanning metadata tags.");
+        }
+
+        return Accepted(_metadataCatalog.StartScan());
+    }
+
+    /// <summary>Returns the current local metadata-catalog scan progress.</summary>
+    [HttpGet("metadata-catalog/status")]
+    public ActionResult<MetadataCatalogStatus> GetMetadataCatalogStatus() => Ok(_metadataCatalog.GetStatus());
+
+    /// <summary>Returns one bounded page from a saved library's metadata catalog.</summary>
+    [HttpGet("metadata-catalog")]
+    public ActionResult<MetadataCatalogPage> GetMetadataCatalogPage([FromQuery] Guid libraryId, [FromQuery] int page = 1) =>
+        Ok(_metadataCatalog.GetPage(libraryId, page, 10));
+
+    /// <summary>Gets metadata types for one saved library after the most recent catalog scan.</summary>
+    [HttpGet("metadata-catalog/types")]
+    public ActionResult<IReadOnlyList<MetadataCatalogType>> GetMetadataCatalogTypes([FromQuery] Guid libraryId) =>
+        Ok(_metadataCatalog.GetTypes(libraryId));
+
+    /// <summary>Gets a lazy, searchable page of values for one scanned metadata type.</summary>
+    [HttpGet("metadata-catalog/values")]
+    public ActionResult<MetadataCatalogValuePage> GetMetadataCatalogValues(
+        [FromQuery] Guid libraryId,
+        [FromQuery] string metadataType,
+        [FromQuery] string? searchTerm,
+        [FromQuery] int page = 1) =>
+        Ok(_metadataCatalog.GetValues(libraryId, metadataType, searchTerm, page));
+
+    /// <summary>Previews the current catalog media a single individual collection draft would include.</summary>
+    [HttpPost("individual-collection-drafts/preview")]
+    public ActionResult<IndividualCollectionDraftPreview> PreviewIndividualCollectionDraft([FromBody] IndividualCollectionDraftRequest draft) =>
+        Ok(_metadataCatalog.PreviewDraft(draft));
+
+    /// <summary>Checks selected draft titles for existing native Jellyfin collection conflicts.</summary>
+    [HttpPost("individual-collection-drafts/conflicts")]
+    public ActionResult<IReadOnlyList<IndividualCollectionDraftConflict>> FindIndividualCollectionDraftConflicts([FromBody] List<IndividualCollectionDraftRequest> drafts) =>
+        Ok(drafts.Where(IsCompletedDraft)
+            .Select(draft => new IndividualCollectionDraftConflict(draft.CollectionTitle.Trim(), FindCollectionByName(draft.CollectionTitle) is not null))
+            .ToArray());
+
+    /// <summary>Creates one reviewed individual collection draft, or records its administrator-selected conflict outcome.</summary>
+    [HttpPost("individual-collection-drafts/create")]
+    public async Task<ActionResult<IndividualCollectionDraftResult>> CreateIndividualCollectionDraft([FromBody] IndividualCollectionDraftRequest draft)
+    {
+        if (!IsCompletedDraft(draft))
+        {
+            return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle?.Trim() ?? string.Empty, "Skipped", "The draft is incomplete or has no collection title."));
+        }
+
+        var existing = FindCollectionByName(draft.CollectionTitle);
+        if (existing is not null)
+        {
+            if (string.Equals(draft.ExistingCollectionAction, "UseExisting", StringComparison.OrdinalIgnoreCase))
+            {
+                return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Matched an existing collection", "The existing Jellyfin collection was left unchanged."));
+            }
+
+            if (string.Equals(draft.ExistingCollectionAction, "Skip", StringComparison.OrdinalIgnoreCase))
+            {
+                return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Skipped", "The draft was skipped because a collection with this title already exists."));
+            }
+
+            return Conflict("A Jellyfin collection with this title already exists. Choose whether to use the existing collection or skip this draft.");
+        }
+
+        var itemIds = _metadataCatalog.GetMatchingItemIds(draft);
+        if (itemIds.Count == 0)
+        {
+            return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Skipped", "No current catalog media matches this draft."));
+        }
+
+        await _reconciler.CreateCollectionAsync(draft.CollectionTitle, itemIds).ConfigureAwait(false);
+        return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Created", $"Created with {itemIds.Count} matching media item(s)."));
+    }
+
+    /// <summary>Previews a combined or multi-match draft from multiple selected metadata tags.</summary>
+    [HttpPost("tag-collection-drafts/preview")]
+    public ActionResult<IndividualCollectionDraftPreview> PreviewTagCollectionDraft([FromBody] TagCollectionDraftRequest draft) => Ok(_metadataCatalog.PreviewTagCollection(draft));
+
+    /// <summary>Checks one combined or multi-match collection title for a native Jellyfin conflict.</summary>
+    [HttpPost("tag-collection-drafts/conflict")]
+    public ActionResult<IndividualCollectionDraftConflict> FindTagCollectionDraftConflict([FromBody] TagCollectionDraftRequest draft) =>
+        Ok(new IndividualCollectionDraftConflict(draft.CollectionTitle?.Trim() ?? string.Empty, FindCollectionByName(draft.CollectionTitle ?? string.Empty) is not null));
+
+    /// <summary>Creates one reviewed combined or multi-match collection draft.</summary>
+    [HttpPost("tag-collection-drafts/create")]
+    public async Task<ActionResult<IndividualCollectionDraftResult>> CreateTagCollectionDraft([FromBody] TagCollectionDraftRequest draft)
+    {
+        if (draft.SelectedTags.Count < 2 || string.IsNullOrWhiteSpace(draft.CollectionTitle)) return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle?.Trim() ?? string.Empty, "Skipped", "At least two selected metadata tags and a collection title are required."));
+        var existing = FindCollectionByName(draft.CollectionTitle);
+        if (existing is not null)
+        {
+            if (string.Equals(draft.ExistingCollectionAction, "UseExisting", StringComparison.OrdinalIgnoreCase)) return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Matched an existing collection", "The existing Jellyfin collection was left unchanged."));
+            if (string.Equals(draft.ExistingCollectionAction, "Skip", StringComparison.OrdinalIgnoreCase)) return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Skipped", "The draft was skipped because a collection with this title already exists."));
+            return Conflict("A Jellyfin collection with this title already exists. Choose whether to use it or skip this draft.");
+        }
+        var itemIds = _metadataCatalog.GetMatchingItemIds(draft);
+        if (itemIds.Count == 0) return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Skipped", draft.RequireAllTags ? "No media currently matches every selected metadata tag." : "No current catalog media matches the selected metadata tags."));
+        await _reconciler.CreateCollectionAsync(draft.CollectionTitle, itemIds).ConfigureAwait(false);
+        return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Created", $"Created with {itemIds.Count} unique media item(s)."));
+    }
 
     /// <summary>Returns metadata values currently present in the server libraries.</summary>
     [HttpGet("facets")]
@@ -29,7 +214,7 @@ public sealed class MediaCollectionManagerController : ControllerBase
     /// <summary>Returns persisted automatic collection rules.</summary>
     [HttpGet("rules")]
     public ActionResult<IReadOnlyList<CollectionRule>> GetRules() =>
-        Ok(Plugin.Instance?.Configuration.Rules ?? []);
+        Ok(RequirePlugin().GetRulesSnapshot());
 
     /// <summary>Creates or updates an automatic collection rule.</summary>
     [HttpPost("rules")]
@@ -54,31 +239,45 @@ public sealed class MediaCollectionManagerController : ControllerBase
             return BadRequest("Choose the metadata field to use.");
         }
 
-        var configuration = RequireConfiguration();
-        var rule = request.Id.HasValue
-            ? configuration.Rules.SingleOrDefault(candidate => candidate.Id == request.Id.Value)
-            : null;
-        if (request.Id.HasValue && rule is null)
+        var plugin = RequirePlugin();
+        var existing = request.Id.HasValue ? plugin.GetRuleSnapshot(request.Id.Value) : null;
+        if (request.Id.HasValue && existing is null)
         {
             return NotFound();
         }
 
-        rule ??= new CollectionRule();
-        var renamedCollectionId = rule.CollectionId;
-        var renamed = !string.Equals(rule.Name, request.Name.Trim(), StringComparison.Ordinal);
-        rule.Name = request.Name.Trim();
-        rule.Field = request.Field;
-        rule.MetadataFieldName = string.IsNullOrWhiteSpace(request.MetadataFieldName) ? null : request.MetadataFieldName.Trim();
-        rule.Values = values;
-        rule.LibraryIds = request.LibraryIds.Distinct().ToList();
-        rule.Enabled = request.Enabled;
-        rule.RemoveItemsNoLongerMatching = request.RemoveItemsNoLongerMatching;
-        if (!configuration.Rules.Contains(rule))
+        var renamedCollectionId = existing?.CollectionId;
+        var renamed = existing is not null && !string.Equals(existing.Name, request.Name.Trim(), StringComparison.Ordinal);
+        var rule = plugin.UpdateConfigurationSafely(configuration =>
         {
-            configuration.Rules.Add(rule);
-        }
+            var updated = request.Id.HasValue
+                ? configuration.Rules.Single(candidate => candidate.Id == request.Id.Value)
+                : new CollectionRule();
+            updated.Name = request.Name.Trim();
+            updated.Field = request.Field;
+            updated.MetadataFieldName = string.IsNullOrWhiteSpace(request.MetadataFieldName) ? null : request.MetadataFieldName.Trim();
+            updated.Values = values;
+            // Library scope belongs to the Main Settings tab for every rule.
+            updated.Enabled = request.Enabled;
+            updated.RemoveItemsNoLongerMatching = request.RemoveItemsNoLongerMatching;
+            if (!configuration.Rules.Contains(updated))
+            {
+                configuration.Rules.Add(updated);
+            }
 
-        Plugin.Instance?.SaveConfiguration(configuration);
+            return new CollectionRule
+            {
+                Id = updated.Id,
+                Name = updated.Name,
+                Field = updated.Field,
+                MetadataFieldName = updated.MetadataFieldName,
+                Values = updated.Values.ToList(),
+                Enabled = updated.Enabled,
+                RemoveItemsNoLongerMatching = updated.RemoveItemsNoLongerMatching,
+                CollectionId = updated.CollectionId,
+                LastRunUtc = updated.LastRunUtc,
+            };
+        });
         if (renamed && renamedCollectionId.HasValue)
         {
             await _reconciler.RenameCollectionAsync(renamedCollectionId.Value, rule.Name, cancellationToken).ConfigureAwait(false);
@@ -89,9 +288,7 @@ public sealed class MediaCollectionManagerController : ControllerBase
 
     /// <summary>Creates one rule per selected metadata value, ready for a bulk reconciliation.</summary>
     [HttpPost("rules/bulk")]
-    public async Task<ActionResult<IReadOnlyList<CollectionRule>>> CreateRulesInBulk(
-        [FromBody] BulkCreateRulesRequest request,
-        CancellationToken cancellationToken)
+    public ActionResult<IReadOnlyList<CollectionRule>> CreateRulesInBulk([FromBody] BulkCreateRulesRequest request)
     {
         var values = request.Values.Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value.Trim())
@@ -107,37 +304,43 @@ public sealed class MediaCollectionManagerController : ControllerBase
             return BadRequest("Choose the metadata field to use.");
         }
 
-        var configuration = RequireConfiguration();
-        var created = new List<CollectionRule>(values.Length);
-        foreach (var value in values)
+        var created = RequirePlugin().UpdateConfigurationSafely(configuration =>
         {
-            var name = string.Concat(request.NamePrefix?.Trim(), request.NamePrefix?.Length > 0 ? " " : string.Empty, value);
-            var duplicate = configuration.Rules.Any(rule =>
-                rule.Field == request.Field &&
-                rule.Values.Count == 1 &&
-                string.Equals(rule.Values[0], value, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(rule.Name, name, StringComparison.OrdinalIgnoreCase));
-            if (duplicate)
+            var createdRules = new List<CollectionRule>(values.Length);
+            foreach (var value in values)
             {
-                continue;
+                var name = string.Concat(request.NamePrefix?.Trim(), request.NamePrefix?.Length > 0 ? " " : string.Empty, value);
+                var duplicate = configuration.Rules.Any(rule =>
+                    rule.Field == request.Field &&
+                    rule.Values.Count == 1 &&
+                    string.Equals(rule.Values[0], value, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(rule.Name, name, StringComparison.OrdinalIgnoreCase));
+                if (duplicate)
+                {
+                    continue;
+                }
+
+                var rule = new CollectionRule
+                {
+                    Name = name,
+                    Field = request.Field,
+                    MetadataFieldName = string.IsNullOrWhiteSpace(request.MetadataFieldName) ? null : request.MetadataFieldName.Trim(),
+                    Values = [value],
+                };
+                configuration.Rules.Add(rule);
+                createdRules.Add(rule);
             }
 
-            var rule = new CollectionRule
-            {
-                Name = name,
-                Field = request.Field,
-                MetadataFieldName = string.IsNullOrWhiteSpace(request.MetadataFieldName) ? null : request.MetadataFieldName.Trim(),
-                Values = [value],
-                LibraryIds = request.LibraryIds.Distinct().ToList(),
-            };
-            configuration.Rules.Add(rule);
-            created.Add(rule);
-        }
-
-        Plugin.Instance?.SaveConfiguration(configuration);
+            return createdRules;
+        });
         foreach (var rule in created)
         {
-            await _reconciler.ReconcileRuleAsync(rule.Id, cancellationToken).ConfigureAwait(false);
+            _requests.EnqueueRule(rule.Id);
+        }
+
+        if (created.Count > 0)
+        {
+            _taskManager.QueueScheduledTask<ReconcileCollectionsTask>();
         }
 
         return Ok(created);
@@ -147,27 +350,41 @@ public sealed class MediaCollectionManagerController : ControllerBase
     [HttpDelete("rules/{ruleId:guid}")]
     public IActionResult DeleteRule(Guid ruleId)
     {
-        var configuration = RequireConfiguration();
-        var rule = configuration.Rules.SingleOrDefault(candidate => candidate.Id == ruleId);
-        if (rule is null)
+        if (RequirePlugin().GetRuleSnapshot(ruleId) is null)
         {
             return NotFound();
         }
 
-        configuration.Rules.Remove(rule);
-        Plugin.Instance?.SaveConfiguration(configuration);
+        RequirePlugin().UpdateConfigurationSafely(configuration =>
+        {
+            configuration.Rules.RemoveAll(candidate => candidate.Id == ruleId);
+            return 0;
+        });
         return NoContent();
     }
 
     /// <summary>Runs one rule now, including its add and optional remove actions.</summary>
     [HttpPost("rules/{ruleId:guid}/reconcile")]
-    public async Task<ActionResult<ReconciliationResult>> ReconcileRule(Guid ruleId, CancellationToken cancellationToken) =>
-        Ok(await _reconciler.ReconcileRuleAsync(ruleId, cancellationToken).ConfigureAwait(false));
+    public IActionResult ReconcileRule(Guid ruleId)
+    {
+        if (RequirePlugin().GetRuleSnapshot(ruleId) is null)
+        {
+            return NotFound();
+        }
+
+        _requests.EnqueueRule(ruleId);
+        _taskManager.QueueScheduledTask<ReconcileCollectionsTask>();
+        return Accepted();
+    }
 
     /// <summary>Runs every enabled automatic collection rule now.</summary>
     [HttpPost("reconcile")]
-    public async Task<ActionResult<IReadOnlyList<ReconciliationResult>>> ReconcileAll(CancellationToken cancellationToken) =>
-        Ok(await _reconciler.ReconcileEnabledRulesAsync(cancellationToken).ConfigureAwait(false));
+    public IActionResult ReconcileAll()
+    {
+        _requests.EnqueueAllEnabledRules();
+        _taskManager.QueueScheduledTask<ReconcileCollectionsTask>();
+        return Accepted();
+    }
 
     /// <summary>Creates a standard Jellyfin collection with the selected items in one action.</summary>
     [HttpPost("collections")]
@@ -193,6 +410,39 @@ public sealed class MediaCollectionManagerController : ControllerBase
         return NoContent();
     }
 
-    private static PluginConfiguration RequireConfiguration() =>
-        Plugin.Instance?.Configuration ?? throw new InvalidOperationException("Media Collection Manager is not initialized.");
+    private static Plugin RequirePlugin() =>
+        Plugin.Instance ?? throw new InvalidOperationException("Media Collection Manager has not finished initializing.");
+
+    private void ReloadScheduledTaskTriggers()
+    {
+        var worker = _taskManager.ScheduledTasks
+            .FirstOrDefault(candidate => candidate.ScheduledTask is ReconcileCollectionsTask);
+        if (worker is null)
+        {
+            return;
+        }
+
+        worker.Triggers = [.. ((ReconcileCollectionsTask)worker.ScheduledTask).GetDefaultTriggers()];
+        worker.ReloadTriggerEvents();
+    }
+
+    private bool HasOnlyKnownLibraries(IEnumerable<Guid> libraryIds)
+    {
+        var known = _libraryManager.GetVirtualFolders(true)
+            .Select(folder => Guid.TryParse(folder.ItemId, out var id) ? id : Guid.Empty)
+            .Where(id => id != Guid.Empty)
+            .ToHashSet();
+        return libraryIds.Distinct().All(id => known.Contains(id));
+    }
+
+    private bool IsCompletedDraft(IndividualCollectionDraftRequest draft) =>
+        draft.SourceLibraryId != Guid.Empty &&
+        !string.IsNullOrWhiteSpace(draft.MetadataType) &&
+        !string.IsNullOrWhiteSpace(draft.MetadataValue) &&
+        !string.IsNullOrWhiteSpace(draft.CollectionTitle);
+
+    private BoxSet? FindCollectionByName(string title) =>
+        _libraryManager.GetItemList(new InternalItemsQuery { Recursive = true })
+            .OfType<BoxSet>()
+            .FirstOrDefault(collection => string.Equals(collection.Name, title.Trim(), StringComparison.OrdinalIgnoreCase));
 }
