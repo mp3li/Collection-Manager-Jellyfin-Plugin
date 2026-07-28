@@ -36,10 +36,16 @@ Main Settings
 [ ] A scan shows a progressing status and completes without exposing media paths.
 [ ] Starting a second scan while one is running does not start a conflicting scan.
 [ ] My Metadata Tags Overview starts collapsed.
-[ ] Opening the overview expands the saved-library sections by default.
+[ ] Opening the overview displays "Showing Last Available Scan" with the
+    completed scan's local date and time.
+[ ] Opening the overview expands the last-scan library sections by default,
+    even when the current saved-library selection has since changed.
 [ ] Each overview library can be collapsed and expanded independently.
 [ ] Overview pagination contains ten media items per page and shows correct totals.
-[ ] Overview begins with Title and includes a column for every discovered metadata type.
+[ ] Each overview metadata type is its own independently expandable section
+    with a readable Title and metadata-tag table.
+[ ] After a Jellyfin restart, the last completed scan and its timestamp remain
+    available without starting a new scan.
 [ ] Overview color saves and persists after reopening the dashboard.
 
 Catalog fidelity and scale

@@ -32,9 +32,10 @@ dashboard areas will be designed in a later planning round.
      tags, and values assigned by companion tools.
    - Show scan progress and status.
    - Provide an initially collapsed My Metadata Tags Overview. Opening it
-     loads every saved library expanded, with each library independently
-     collapsible, ten titles per page, Title first, and one column for every
-     discovered metadata type.
+     shows the last available completed scan with its date and time, including
+     after a Jellyfin restart. The scan's libraries load expanded and remain
+     independently collapsible. Each metadata type is its own expandable,
+     readable Title-and-tag section with ten titles per page.
    - Provide the overview color control used by the dashboard style.
 
 2. Individual Tag Collections
@@ -99,7 +100,9 @@ Native Jellyfin and safety requirements
 - Collections created by this plugin are normal Jellyfin collections. Native
   Jellyfin collection actions, including artwork and image controls, remain
   available in Jellyfin.
-- The catalog and previews use only the most recent completed metadata scan.
+- The catalog and previews use only the most recent completed metadata scan,
+  which is saved in Collection Manager's local Jellyfin plugin data so it can
+  be reopened without rescanning.
 - Matching remains server-side and bounded: overview pages contain ten media
   items and metadata-value pages contain fifty values.
 - No same-title collection is silently duplicated or changed. The visible

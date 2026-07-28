@@ -109,6 +109,10 @@ public sealed class CollectionManagerController : ControllerBase
     [HttpGet("metadata-catalog/status")]
     public ActionResult<MetadataCatalogStatus> GetMetadataCatalogStatus() => Ok(_metadataCatalog.GetStatus());
 
+    /// <summary>Returns the local last-completed scan timestamp and its captured libraries.</summary>
+    [HttpGet("metadata-catalog/last-available-scan")]
+    public ActionResult<MetadataCatalogAvailability> GetLastAvailableMetadataCatalog() => Ok(_metadataCatalog.GetLastAvailableCatalog());
+
     /// <summary>Returns one bounded page from a saved library's metadata catalog.</summary>
     [HttpGet("metadata-catalog")]
     public ActionResult<MetadataCatalogPage> GetMetadataCatalogPage([FromQuery] Guid libraryId, [FromQuery] int page = 1) =>

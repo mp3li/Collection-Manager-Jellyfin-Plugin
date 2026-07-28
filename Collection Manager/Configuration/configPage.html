@@ -192,14 +192,23 @@
             }, function (error) { Dashboard.alert(err(error)); });
         }
 
-        function selectedCatalogLibraryIds() { return (config.LibraryIds || []).map(String); }
+        function formatLastAvailableScan(value) {
+            var date = value ? new Date(value) : null;
+            return date && !isNaN(date.getTime()) ? date.toLocaleString() : 'Unknown date and time';
+        }
 
         function loadMetadataOverview() {
             var groups = $('#metadataOverviewGroups');
-            var ids = selectedCatalogLibraryIds();
-            if (!ids.length) { groups.innerHTML = '<p class="fieldDescription mcm-empty">No libraries have been saved yet.</p>'; return; }
-            groups.innerHTML = ids.map(function (id) { return '<div class="mcm-library-overview" data-catalog-library="' + escapeHtml(id) + '"><div class="mcm-library-heading"><h3>Loading library…</h3><button is="emby-button" type="button" class="raised" data-toggle-library="' + escapeHtml(id) + '">Click here to collapse</button></div><div data-catalog-content="' + escapeHtml(id) + '"><p class="fieldDescription">Loading metadata tags…</p></div></div>'; }).join('');
-            ids.forEach(function (id) { loadCatalogPage(id, 1); });
+            groups.innerHTML = '<p class="fieldDescription">Loading the last available metadata scan…</p>';
+            get('metadata-catalog/last-available-scan').then(function (scan) {
+                var completed = prop(scan, 'LastCompletedUtc'), scanLibraries = prop(scan, 'Libraries') || [];
+                if (!completed || !scanLibraries.length) {
+                    groups.innerHTML = '<p class="fieldDescription mcm-empty">No metadata tag scan is available yet. Save your library selections, then run a metadata tag scan.</p>';
+                    return;
+                }
+                groups.innerHTML = '<p class="fieldDescription"><strong>Showing Last Available Scan:</strong> ' + escapeHtml(formatLastAvailableScan(completed)) + '</p><p class="fieldDescription">This overview uses the most recent completed scan. Run a new scan only when you want to refresh the catalog.</p>' + scanLibraries.map(function (library) { var id = prop(library, 'LibraryId'), name = prop(library, 'LibraryName'), count = prop(library, 'ItemCount'); return '<div class="mcm-library-overview" data-catalog-library="' + escapeHtml(id) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(name) + ' (' + escapeHtml(count) + ' titles)</h3><button is="emby-button" type="button" class="raised" data-toggle-library="' + escapeHtml(id) + '">Click here to collapse</button></div><div data-catalog-content="' + escapeHtml(id) + '"><p class="fieldDescription">Loading metadata tags…</p></div></div>'; }).join('');
+                scanLibraries.forEach(function (library) { loadCatalogPage(prop(library, 'LibraryId'), 1); });
+            }, function (error) { groups.innerHTML = '<p class="fieldDescription mcm-empty">Could not load the last available metadata scan: ' + escapeHtml(err(error)) + '</p>'; });
         }
 
         function loadCatalogPage(libraryId, requestedPage) {

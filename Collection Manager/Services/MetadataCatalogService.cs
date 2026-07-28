@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reflection;
+using System.Text.Json;
 using Jellyfin.Plugin.CollectionManager.Models;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -12,6 +13,7 @@ namespace Jellyfin.Plugin.CollectionManager.Services;
 /// <summary>Builds an in-server, read-only catalog of existing metadata for the dashboard overview.</summary>
 public sealed class MetadataCatalogService
 {
+    private const string CatalogFileName = "metadata-catalog.json";
     private static readonly HashSet<string> ExcludedScalarFields = new(StringComparer.Ordinal)
     {
         "Id", "Path", "InternalId", "ServerId", "FileNameWithoutExtension", "DateCreated",
@@ -21,6 +23,7 @@ public sealed class MetadataCatalogService
 
     private readonly ILibraryManager _libraryManager;
     private readonly ILogger<MetadataCatalogService> _logger;
+    private readonly string _catalogFilePath;
     private readonly object _sync = new();
     private Dictionary<Guid, CatalogLibrary> _catalogs = [];
     private MetadataCatalogStatus _status = new(false, 0, 0, null, "Save one or more libraries, then scan metadata tags.");
@@ -30,6 +33,10 @@ public sealed class MetadataCatalogService
     {
         _libraryManager = libraryManager;
         _logger = logger;
+        _catalogFilePath = Plugin.Instance is { } plugin
+            ? Path.Combine(plugin.DataFolderPath, CatalogFileName)
+            : string.Empty;
+        LoadLastAvailableCatalog();
     }
 
     /// <summary>Gets the current scan status without exposing any media paths or private file information.</summary>
@@ -38,6 +45,20 @@ public sealed class MetadataCatalogService
         lock (_sync)
         {
             return _status;
+        }
+    }
+
+    /// <summary>Gets the timestamp and library list captured by the last completed metadata scan.</summary>
+    public MetadataCatalogAvailability GetLastAvailableCatalog()
+    {
+        lock (_sync)
+        {
+            return new MetadataCatalogAvailability(
+                _status.LastCompletedUtc,
+                _catalogs.Values
+                    .OrderBy(catalog => catalog.LibraryName, StringComparer.OrdinalIgnoreCase)
+                    .Select(catalog => new MetadataCatalogScanLibrary(catalog.LibraryId, catalog.LibraryName, catalog.Items.Count))
+                    .ToArray());
         }
     }
 
@@ -54,7 +75,7 @@ public sealed class MetadataCatalogService
             var savedLibraryIds = Plugin.Instance?.Configuration.LibraryIds.Distinct().ToArray() ?? [];
             if (savedLibraryIds.Length == 0)
             {
-                _status = new MetadataCatalogStatus(false, 0, 0, null, "Save one or more libraries before scanning metadata tags.");
+                _status = new MetadataCatalogStatus(false, 0, 0, _status.LastCompletedUtc, "Save one or more libraries before scanning metadata tags.");
                 return _status;
             }
 
@@ -213,11 +234,14 @@ public sealed class MetadataCatalogService
                     columns);
             }
 
+            var completedAt = DateTime.UtcNow;
             lock (_sync)
             {
                 _catalogs = nextCatalogs;
-                _status = new MetadataCatalogStatus(false, processed, totalItems, DateTime.UtcNow, "Metadata tag scan complete. Your overview has been updated.");
+                _status = new MetadataCatalogStatus(false, processed, totalItems, completedAt, "Metadata tag scan complete. Your overview has been updated.");
             }
+
+            PersistLastAvailableCatalog(completedAt, nextCatalogs);
         }
         catch (Exception exception)
         {
@@ -439,6 +463,70 @@ public sealed class MetadataCatalogService
         lock (_sync)
         {
             _status = new MetadataCatalogStatus(isScanning, processedItems, totalItems, _status.LastCompletedUtc, message);
+        }
+    }
+
+    private void LoadLastAvailableCatalog()
+    {
+        if (string.IsNullOrWhiteSpace(_catalogFilePath) || !File.Exists(_catalogFilePath))
+        {
+            return;
+        }
+
+        try
+        {
+            var snapshot = JsonSerializer.Deserialize<MetadataCatalogSnapshot>(File.ReadAllText(_catalogFilePath));
+            if (snapshot is null || snapshot.LastCompletedUtc == default || snapshot.Libraries.Count == 0)
+            {
+                return;
+            }
+
+            var restored = snapshot.Libraries
+                .GroupBy(library => library.LibraryId)
+                .ToDictionary(
+                    group => group.Key,
+                    group =>
+                    {
+                        var library = group.First();
+                        return new CatalogLibrary(library.LibraryId, library.LibraryName, library.Items, library.Columns);
+                    });
+            var itemCount = restored.Values.Sum(library => library.Items.Count);
+            lock (_sync)
+            {
+                _catalogs = restored;
+                _status = new MetadataCatalogStatus(false, itemCount, itemCount, snapshot.LastCompletedUtc, "Last available metadata tag scan loaded.");
+            }
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Collection Manager could not load its last available metadata catalog.");
+        }
+    }
+
+    private void PersistLastAvailableCatalog(DateTime completedAt, IReadOnlyDictionary<Guid, CatalogLibrary> catalogs)
+    {
+        if (string.IsNullOrWhiteSpace(_catalogFilePath))
+        {
+            return;
+        }
+
+        try
+        {
+            var snapshot = new MetadataCatalogSnapshot(
+                completedAt,
+                catalogs.Values.Select(catalog => new MetadataCatalogSnapshotLibrary(
+                    catalog.LibraryId,
+                    catalog.LibraryName,
+                    catalog.Items,
+                    catalog.Columns)).ToArray());
+            Directory.CreateDirectory(Path.GetDirectoryName(_catalogFilePath)!);
+            var temporaryPath = _catalogFilePath + ".tmp";
+            File.WriteAllText(temporaryPath, JsonSerializer.Serialize(snapshot));
+            File.Move(temporaryPath, _catalogFilePath, true);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Collection Manager could not save its last available metadata catalog.");
         }
     }
 

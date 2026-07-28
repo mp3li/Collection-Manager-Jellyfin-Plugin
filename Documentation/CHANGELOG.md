@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Saved the last completed metadata catalog in Collection Manager's local
+  Jellyfin plugin data. **My Metadata Tags** now shows its local completion
+  date and time and reuses that scan after dashboard reloads and server
+  restarts, rather than requiring a fresh scan.
 - Replaced the unreadable all-tag-type metadata table in **My Metadata Tags**.
   Every selected library now has separate, independently expandable metadata
   type sections; each section uses a readable two-column **Title** and

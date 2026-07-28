@@ -39,7 +39,7 @@ libraries.
 
 | Dashboard tab | What it does |
 | --- | --- |
-| **Main Settings** | Select libraries, save the newly-added-media preference, scan the local read-only metadata catalog, and inspect a paginated library overview. |
+| **Main Settings** | Select libraries, save the newly-added-media preference, scan the local read-only metadata catalog, and inspect the saved most-recent scan in a paginated library overview. |
 | **Individual Tag Collections** | Select values such as `Horror`, `Netflix`, or `A24` and make one independently titled, reviewed native collection draft for each value. |
 | **Combined Tag Collections** | Select two or more values and make one collection containing the unique union of media matching any selected value. |
 | **Multi-Match Tag Collections** | Select two or more values and make one collection containing only media matching every selected value. |
@@ -53,9 +53,10 @@ normal Jellyfin artwork, image, and three-dot-menu controls remain available.
 
 Collection Manager is read-only with respect to your library metadata. It
 does not fetch metadata from the internet, create tags, modify tags, rewrite NFO
-files, rename media, move files, or access streaming services. It builds a
-temporary in-server catalog from the latest scan and does all matching on the
-server. The catalog and dashboard previews do not expose media paths.
+files, rename media, move files, or access streaming services. It stores its
+latest completed catalog only in Collection Manager's local Jellyfin plugin
+data and does all matching on the server. The catalog and dashboard previews do
+not expose media paths.
 
 The plugin does not silently duplicate or alter a same-title collection. When a
 title already exists, the dashboard shows an in-page choice to use the existing
@@ -96,7 +97,7 @@ https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/
 ```
 
 In Jellyfin, open **Dashboard → Plugins → Repositories**, add that URL, then
-install the **0.1.0.3 Private Testing** prerelease from the catalog. Restart
+install the **0.1.0.4 Private Testing** prerelease from the catalog. Restart
 Jellyfin and record the real server results in the testing tracker.
 
 ## Private test tracking

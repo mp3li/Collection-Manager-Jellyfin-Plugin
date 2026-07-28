@@ -74,6 +74,26 @@ public sealed record MetadataCatalogStatus(
     DateTime? LastCompletedUtc,
     string Message);
 
+/// <summary>Persisted, read-only metadata-catalog data from the last completed scan.</summary>
+public sealed record MetadataCatalogSnapshot(
+    DateTime LastCompletedUtc,
+    IReadOnlyList<MetadataCatalogSnapshotLibrary> Libraries);
+
+/// <summary>One selected library and its captured metadata catalog from the last completed scan.</summary>
+public sealed record MetadataCatalogSnapshotLibrary(
+    Guid LibraryId,
+    string LibraryName,
+    IReadOnlyList<MetadataCatalogItem> Items,
+    IReadOnlyList<string> Columns);
+
+/// <summary>Small dashboard response identifying the libraries and timestamp of the last available scan.</summary>
+public sealed record MetadataCatalogAvailability(
+    DateTime? LastCompletedUtc,
+    IReadOnlyList<MetadataCatalogScanLibrary> Libraries);
+
+/// <summary>One library available in the last completed metadata scan.</summary>
+public sealed record MetadataCatalogScanLibrary(Guid LibraryId, string LibraryName, int ItemCount);
+
 /// <summary>One media item and the existing metadata values found for it during a catalog scan.</summary>
 public sealed record MetadataCatalogItem(
     Guid Id,
