@@ -125,7 +125,8 @@ public sealed class MetadataCatalogService
                     column,
                     catalog.ValuesByType.TryGetValue(column, out var values) ? values.Count : 0))
                 .Where(type => type.ValueCount > 0)
-                .OrderBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(type => type.Name.StartsWith("Jellyfin: ", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+                .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
         }
     }
@@ -490,7 +491,7 @@ public sealed class MetadataCatalogService
                             library.LibraryName,
                             library.Items,
                             library.Columns,
-                            library.ValuesByType ?? BuildValueIndex(library.Items, library.Columns));
+                            NormalizeValueIndex(library.ValuesByType ?? BuildValueIndex(library.Items, library.Columns)));
                     });
             var itemCount = restored.Values.Sum(library => library.Items.Count);
             lock (_sync)
@@ -571,6 +572,15 @@ public sealed class MetadataCatalogService
                 .ToArray(),
             StringComparer.OrdinalIgnoreCase);
     }
+
+    private static IReadOnlyDictionary<string, IReadOnlyList<MetadataCatalogValue>> NormalizeValueIndex(
+        IReadOnlyDictionary<string, IReadOnlyList<MetadataCatalogValue>> valuesByType) =>
+        valuesByType.ToDictionary(
+            entry => entry.Key,
+            entry => (IReadOnlyList<MetadataCatalogValue>)(entry.Value ?? [])
+                .OrderBy(value => value.Value, StringComparer.OrdinalIgnoreCase)
+                .ToArray(),
+            StringComparer.OrdinalIgnoreCase);
 
     private sealed record ScanLibrary(Guid Id, string Name, BaseItem[] Items);
     private sealed record CatalogLibrary(

@@ -20,10 +20,14 @@
         #collectionManagerPage .mcm-overview-type-heading { display:flex; align-items:center; justify-content:space-between; gap:1em; }
         #collectionManagerPage .mcm-overview-type-heading h4 { margin:0; font-size:1.1em; }
         #collectionManagerPage .mcm-overview-type-content[hidden] { display:none !important; }
-        #collectionManagerPage .mcm-overview-tag-picker { display:grid; grid-template-columns:repeat(auto-fit,minmax(16em,1fr)); gap:.55em; margin-top:.85em; }
-        #collectionManagerPage .mcm-overview-tag-value { display:flex; align-items:baseline; justify-content:space-between; gap:.65em; border:1px solid rgba(255,255,255,.16); border-radius:.4em; padding:.65em .75em; overflow-wrap:anywhere; }
-        #collectionManagerPage .mcm-overview-tag-count { color:rgba(255,255,255,.7); flex:0 0 auto; font-size:.9em; }
-        #collectionManagerPage .mcm-tag-value { color:var(--mcm-metadata-tag-color,#00A4DC); }
+        #collectionManagerPage .mcm-overview-searches { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1em; margin:1em 0; }
+        #collectionManagerPage .mcm-overview-tag-picker, #collectionManagerPage .mcm-tag-picker-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55em 1em; margin-top:.85em; }
+        #collectionManagerPage .mcm-overview-tag-value { display:flex; align-items:baseline; justify-content:space-between; gap:.65em; border:1px solid rgba(128,128,128,.35); border-radius:.4em; padding:.65em .75em; overflow-wrap:anywhere; color:inherit; }
+        #collectionManagerPage .mcm-overview-tag-count { opacity:.72; flex:0 0 auto; font-size:.9em; }
+        #collectionManagerPage .mcm-tag-value { color:inherit; }
+        #collectionManagerPage .mcm-tag-picker-grid .checkboxContainer { min-width:0; margin:0; overflow-wrap:anywhere; }
+        #collectionManagerPage .mcm-additional-libraries { border-top:1px solid rgba(128,128,128,.35); margin-top:1em; padding-top:1em; }
+        #collectionManagerPage .mcm-additional-libraries-options[hidden] { display:none !important; }
         #collectionManagerPage .mcm-pagination { display:flex; flex-wrap:wrap; align-items:center; gap:.65em; margin-top:.85em; }
         #collectionManagerPage .mcm-tag-type + .mcm-tag-type { border-top:1px solid rgba(255,255,255,.16); margin-top:.75em; padding-top:.75em; }
         #collectionManagerPage .mcm-tag-type-content[hidden], #collectionManagerPage .mcm-picker-library-content[hidden] { display:none !important; }
@@ -33,6 +37,9 @@
         #collectionManagerPage .mcm-person-image { width:2em; height:2em; vertical-align:middle; object-fit:cover; border-radius:50%; margin-right:.45em; }
         #collectionManagerPage .mcm-empty { margin:.75em 0 0; }
         #collectionManagerPage button:disabled { opacity:.45; cursor:not-allowed; }
+        @media (max-width:42em) {
+            #collectionManagerPage .mcm-overview-searches, #collectionManagerPage .mcm-overview-tag-picker, #collectionManagerPage .mcm-tag-picker-grid { grid-template-columns:1fr; }
+        }
     </style>
 
     <div data-role="content"><div class="content-primary">
@@ -79,8 +86,7 @@
             <h3>My Metadata Tags Overview</h3>
             <button is="emby-button" type="button" class="raised" id="toggleMetadataOverview">Click here to expand</button>
             <div id="metadataOverviewContent" class="mcm-overview-content" hidden>
-                <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="metadataOverviewColor">Metadata tag text color</label><input is="emby-input" id="metadataOverviewColor" type="color" value="#00A4DC" /></div>
-                <div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="saveMetadataOverviewColorButton">Save Overview Color</button></div>
+                <div class="mcm-overview-searches"><div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="metadataTypeSearch">Search metadata tag types</label><input is="emby-input" id="metadataTypeSearch" type="search" placeholder="For example: Genres or NFO" /></div><div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="metadataTagSearch">Search metadata tags</label><input is="emby-input" id="metadataTagSearch" type="search" placeholder="Filters values when you expand a type" /></div></div>
                 <div id="metadataOverviewGroups"></div>
             </div>
         </section>
@@ -127,8 +133,29 @@
             }).join('') || '<p class="fieldDescription">No Jellyfin libraries were found.</p>';
         }
 
-        function applyOverviewColor() {
-            page.style.setProperty('--mcm-metadata-tag-color', $('#metadataOverviewColor').value || '#00A4DC');
+        function catalogGet(path, onSuccess, onFailure) {
+            var completed = false;
+            var timeout = window.setTimeout(function () {
+                if (!completed) {
+                    completed = true;
+                    onFailure(new Error('The metadata catalog request took too long. Please try again.'));
+                }
+            }, 30000);
+            get(path).then(function (result) {
+                if (completed) { return; }
+                completed = true;
+                window.clearTimeout(timeout);
+                try {
+                    onSuccess(result);
+                } catch (error) {
+                    onFailure(error);
+                }
+            }, function (error) {
+                if (completed) { return; }
+                completed = true;
+                window.clearTimeout(timeout);
+                onFailure(error);
+            });
         }
 
         function updateStatus(status) {
@@ -152,8 +179,6 @@
                 renderLibraries();
                 $('#automaticallyAddNewMediaYes').checked = config.AutomaticallyAddNewMediaToApplicableCollections;
                 $('#automaticallyAddNewMediaNo').checked = !config.AutomaticallyAddNewMediaToApplicableCollections;
-                $('#metadataOverviewColor').value = config.MetadataTagOverviewColor;
-                applyOverviewColor();
                 refreshStatus();
             }, function (error) { $('#libraryChoices').innerHTML = '<p class="fieldDescription">Could not load plugin settings: ' + escapeHtml(err(error)) + '</p>'; });
         }
@@ -199,13 +224,13 @@
         function loadMetadataOverview() {
             var groups = $('#metadataOverviewGroups');
             groups.innerHTML = '<p class="fieldDescription">Loading the last available metadata scan…</p>';
-            get('metadata-catalog/last-available-scan').then(function (scan) {
+            catalogGet('metadata-catalog/last-available-scan', function (scan) {
                 var completed = prop(scan, 'LastCompletedUtc'), scanLibraries = prop(scan, 'Libraries') || [];
                 if (!completed || !scanLibraries.length) {
                     groups.innerHTML = '<p class="fieldDescription mcm-empty">No metadata tag scan is available yet. Save your library selections, then run a metadata tag scan.</p>';
                     return;
                 }
-                groups.innerHTML = '<p class="fieldDescription"><strong>Showing Last Available Scan:</strong> ' + escapeHtml(formatLastAvailableScan(completed)) + '</p><p class="fieldDescription">This overview uses the most recent completed scan. Run a new scan only when you want to refresh the catalog.</p>' + scanLibraries.map(function (library) { var id = prop(library, 'LibraryId'), name = prop(library, 'LibraryName'), count = prop(library, 'ItemCount'); return '<div class="mcm-library-overview" data-catalog-library="' + escapeHtml(id) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(name) + ' (' + escapeHtml(count) + ' titles)</h3><button is="emby-button" type="button" class="raised" data-toggle-library="' + escapeHtml(id) + '">Click here to collapse</button></div><div data-catalog-content="' + escapeHtml(id) + '"><p class="fieldDescription">Loading metadata tags…</p></div></div>'; }).join('');
+                groups.innerHTML = '<p class="fieldDescription"><strong>Showing Last Available Scan:</strong> ' + escapeHtml(formatLastAvailableScan(completed)) + '</p><p class="fieldDescription">This overview uses the most recent completed scan. Run a new scan only when you want to refresh the catalog.</p>' + scanLibraries.map(function (library) { var id = prop(library, 'LibraryId'), name = prop(library, 'LibraryName'), count = prop(library, 'ItemCount'); return '<div class="mcm-library-overview" data-catalog-library="' + escapeHtml(id) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(name) + ' (' + escapeHtml(count) + ' titles)</h3><button is="emby-button" type="button" class="raised" data-toggle-library="' + escapeHtml(id) + '">Click here to collapse</button></div><div data-catalog-content="' + escapeHtml(id) + '"><p class="fieldDescription">Loading metadata tag types…</p></div></div>'; }).join('');
                 scanLibraries.forEach(function (library) { loadOverviewTypes(prop(library, 'LibraryId')); });
             }, function (error) { groups.innerHTML = '<p class="fieldDescription mcm-empty">Could not load the last available metadata scan: ' + escapeHtml(err(error)) + '</p>'; });
         }
@@ -214,23 +239,35 @@
             var container = page.querySelector('[data-catalog-content="' + libraryId + '"]');
             if (!container) { return; }
             container.innerHTML = '<p class="fieldDescription">Loading metadata tag types…</p>';
-            get('metadata-catalog/types?libraryId=' + encodeURIComponent(libraryId)).then(function (types) {
+            catalogGet('metadata-catalog/types?libraryId=' + encodeURIComponent(libraryId), function (types) {
+                types = Array.isArray(types) ? types : [];
                 container.innerHTML = types.length ? types.map(function (type) {
                     var name = prop(type, 'Name'), count = prop(type, 'ValueCount');
                     return '<section class="mcm-overview-type" data-overview-type data-overview-library="' + escapeHtml(libraryId) + '" data-overview-metadata-type="' + escapeHtml(name) + '"><div class="mcm-overview-type-heading"><h4>' + escapeHtml(name) + ' (' + escapeHtml(count) + ')</h4><button is="emby-button" type="button" class="raised" data-toggle-overview-type>Click here to expand</button></div><div class="mcm-overview-type-content" hidden></div></section>';
                 }).join('') : '<p class="fieldDescription mcm-empty">No metadata tags are available in this last completed scan.</p>';
+                applyOverviewTypeFilter();
             }, function (error) {
                 container.innerHTML = '<p class="fieldDescription">Could not load metadata tag types: ' + escapeHtml(err(error)) + '</p>';
             });
         }
 
+        function applyOverviewTypeFilter() {
+            var term = ($('#metadataTypeSearch').value || '').trim().toLowerCase();
+            Array.prototype.forEach.call(page.querySelectorAll('[data-overview-type]'), function (section) {
+                var type = (section.getAttribute('data-overview-metadata-type') || '').toLowerCase();
+                section.hidden = !!term && type.indexOf(term) < 0;
+            });
+        }
+
         function loadOverviewValues(section, pageNumber) {
             var libraryId = section.getAttribute('data-overview-library'), type = section.getAttribute('data-overview-metadata-type'), content = section.querySelector('.mcm-overview-type-content');
-            var existingSearch = content.querySelector('[data-overview-tag-search]'), search = existingSearch ? existingSearch.value : '';
+            var existingSearch = content.querySelector('[data-overview-tag-search]'), search = existingSearch ? existingSearch.value : ($('#metadataTagSearch').value || '');
+            var scrollX = window.scrollX, scrollY = window.scrollY;
             content.innerHTML = '<p class="fieldDescription">Loading metadata tags…</p>';
-            get('metadata-catalog/values?libraryId=' + encodeURIComponent(libraryId) + '&metadataType=' + encodeURIComponent(type) + '&searchTerm=' + encodeURIComponent(search) + '&page=' + encodeURIComponent(pageNumber)).then(function (result) {
+            catalogGet('metadata-catalog/values?libraryId=' + encodeURIComponent(libraryId) + '&metadataType=' + encodeURIComponent(type) + '&searchTerm=' + encodeURIComponent(search) + '&page=' + encodeURIComponent(pageNumber), function (result) {
                 var values = prop(result, 'Values') || [], current = Number(prop(result, 'Page') || 1), total = Number(prop(result, 'TotalValues') || 0), pageSize = Number(prop(result, 'PageSize') || 50), pages = Math.max(1, Math.ceil(total / pageSize));
-                content.innerHTML = '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search ' + escapeHtml(type) + '</label><input is="emby-input" type="search" data-overview-tag-search placeholder="Search ' + escapeHtml(type) + '" /></div>' + (values.length ? '<div class="mcm-overview-tag-picker">' + values.map(function (entry) { return '<div class="mcm-overview-tag-value"><span class="mcm-tag-value">' + escapeHtml(prop(entry, 'Value')) + '</span><span class="mcm-overview-tag-count">' + escapeHtml(prop(entry, 'MatchingItems')) + ' matching media</span></div>'; }).join('') + '</div>' : '<p class="fieldDescription">No metadata tags match this search.</p>') + '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-overview-values-page="' + (current - 1) + '"' + (current <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + current + ' of ' + pages + ' · ' + total + ' metadata tags</span><button is="emby-button" type="button" class="raised" data-overview-values-page="' + (current + 1) + '"' + (current >= pages ? ' disabled' : '') + '>Next Page</button></div>';
+                content.innerHTML = '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search ' + escapeHtml(type) + '</label><input is="emby-input" type="search" data-overview-tag-search value="' + escapeHtml(search) + '" placeholder="Search ' + escapeHtml(type) + '" /></div>' + (values.length ? '<div class="mcm-overview-tag-picker">' + values.map(function (entry) { return '<div class="mcm-overview-tag-value"><span class="mcm-tag-value">' + escapeHtml(prop(entry, 'Value')) + '</span><span class="mcm-overview-tag-count">' + escapeHtml(prop(entry, 'MatchingItems')) + ' matching media</span></div>'; }).join('') + '</div>' : '<p class="fieldDescription">No metadata tags match this search.</p>') + '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-overview-values-page="' + (current - 1) + '"' + (current <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + current + ' of ' + pages + ' · ' + total + ' metadata tags</span><button is="emby-button" type="button" class="raised" data-overview-values-page="' + (current + 1) + '"' + (current >= pages ? ' disabled' : '') + '>Next Page</button></div>';
+                window.requestAnimationFrame(function () { window.scrollTo(scrollX, scrollY); });
             }, function (error) { content.innerHTML = '<p class="fieldDescription">Could not load metadata tags: ' + escapeHtml(err(error)) + '</p>'; });
         }
 
@@ -249,7 +286,8 @@
             var host = page.querySelector('[data-picker-library-content="' + libraryId + '"]');
             if (!host) { return; }
             host.innerHTML = '<p class="fieldDescription">Loading metadata tag types…</p>';
-            get('metadata-catalog/types?libraryId=' + encodeURIComponent(libraryId)).then(function (types) {
+            catalogGet('metadata-catalog/types?libraryId=' + encodeURIComponent(libraryId), function (types) {
+                types = Array.isArray(types) ? types : [];
                 host.innerHTML = types.length ? types.map(function (type) { var name = prop(type, 'Name'), count = prop(type, 'ValueCount'); return '<div class="mcm-tag-type" data-tag-type="' + escapeHtml(name) + '" data-tag-library="' + escapeHtml(libraryId) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(name) + ' (' + escapeHtml(count) + ')</h3><button is="emby-button" type="button" class="raised" data-toggle-tag-type="1">Click here to expand</button></div><div class="mcm-tag-type-content" hidden></div></div>'; }).join('') : '<p class="fieldDescription">No scanned metadata tags are available for this library yet.</p>';
             }, function (error) { host.innerHTML = '<p class="fieldDescription">Could not load metadata tag types: ' + escapeHtml(err(error)) + '</p>'; });
         }
@@ -258,22 +296,22 @@
             var libraryId = section.getAttribute('data-tag-library'), type = section.getAttribute('data-tag-type'), content = section.querySelector('.mcm-tag-type-content');
             var existingSearch = content.querySelector('[data-tag-search]'), search = existingSearch ? existingSearch.value : '';
             content.innerHTML = '<p class="fieldDescription">Loading metadata tags…</p>';
-            get('metadata-catalog/values?libraryId=' + encodeURIComponent(libraryId) + '&metadataType=' + encodeURIComponent(type) + '&searchTerm=' + encodeURIComponent(search) + '&page=' + encodeURIComponent(pageNumber)).then(function (result) {
+            catalogGet('metadata-catalog/values?libraryId=' + encodeURIComponent(libraryId) + '&metadataType=' + encodeURIComponent(type) + '&searchTerm=' + encodeURIComponent(search) + '&page=' + encodeURIComponent(pageNumber), function (result) {
                 var values = prop(result, 'Values') || [], current = Number(prop(result, 'Page') || 1), total = Number(prop(result, 'TotalValues') || 0), pageSize = Number(prop(result, 'PageSize') || 50), pages = Math.max(1, Math.ceil(total / pageSize));
-                content.innerHTML = '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search ' + escapeHtml(type) + '</label><input is="emby-input" type="search" data-tag-search placeholder="Search ' + escapeHtml(type) + '" /></div>' + (values.length ? values.map(function (entry) { var value = prop(entry, 'Value'), key = draftKey(libraryId, type, value), image = prop(entry, 'PersonImageUrl'); return '<label class="checkboxContainer">' + (image ? '<img class="mcm-person-image" src="' + escapeHtml(ApiClient.getUrl('Items/' + image + '/Images/Primary')) + '" alt="" />' : '') + '<input is="emby-checkbox" type="checkbox" data-individual-tag-value="1" data-library="' + escapeHtml(libraryId) + '" data-type="' + escapeHtml(type) + '" data-value="' + escapeHtml(value) + '"' + (individualDrafts[key] ? ' checked' : '') + ' /> <span>' + escapeHtml(value) + ' (' + escapeHtml(prop(entry, 'MatchingItems')) + ')</span></label>'; }).join('') : '<p class="fieldDescription">No metadata tags match this search.</p>') + '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-tag-values-page="' + (current - 1) + '"' + (current <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + current + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-tag-values-page="' + (current + 1) + '"' + (current >= pages ? ' disabled' : '') + '>Next Page</button></div>';
+                content.innerHTML = '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search ' + escapeHtml(type) + '</label><input is="emby-input" type="search" data-tag-search value="' + escapeHtml(search) + '" placeholder="Search ' + escapeHtml(type) + '" /></div>' + (values.length ? '<div class="mcm-tag-picker-grid">' + values.map(function (entry) { var value = prop(entry, 'Value'), key = draftKey(libraryId, type, value), image = prop(entry, 'PersonImageUrl'); return '<label class="checkboxContainer">' + (image ? '<img class="mcm-person-image" src="' + escapeHtml(ApiClient.getUrl('Items/' + image + '/Images/Primary')) + '" alt="" />' : '') + '<input is="emby-checkbox" type="checkbox" data-individual-tag-value="1" data-library="' + escapeHtml(libraryId) + '" data-type="' + escapeHtml(type) + '" data-value="' + escapeHtml(value) + '"' + (individualDrafts[key] ? ' checked' : '') + ' /> <span>' + escapeHtml(value) + ' (' + escapeHtml(prop(entry, 'MatchingItems')) + ')</span></label>'; }).join('') + '</div>' : '<p class="fieldDescription">No metadata tags match this search.</p>') + '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-tag-values-page="' + (current - 1) + '"' + (current <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + current + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-tag-values-page="' + (current + 1) + '"' + (current >= pages ? ' disabled' : '') + '>Next Page</button></div>';
             }, function (error) { content.innerHTML = '<p class="fieldDescription">Could not load metadata tags: ' + escapeHtml(err(error)) + '</p>'; });
         }
 
         function addOrRemoveDraft(input) {
             var libraryId = input.getAttribute('data-library'), type = input.getAttribute('data-type'), value = input.getAttribute('data-value'), key = draftKey(libraryId, type, value);
-            if (input.checked) { individualDrafts[key] = { key:key, sourceLibraryId:libraryId, metadataType:type, metadataValue:value, additionalLibraryIds:[], collectionTitle:value, included:true, preview:null }; }
+            if (input.checked) { individualDrafts[key] = { key:key, sourceLibraryId:libraryId, metadataType:type, metadataValue:value, additionalLibraryIds:[], includeOtherLibraries:false, collectionTitle:value, included:true, preview:null }; }
             else { delete individualDrafts[key]; delete individualConflictActions[key]; }
             renderIndividualDrafts();
         }
 
         function renderIndividualDrafts() {
             var drafts = Object.keys(individualDrafts).map(function (key) { return individualDrafts[key]; }), host = $('#individualCollectionDrafts');
-            host.innerHTML = drafts.length ? drafts.map(function (draft) { var otherLibraries = selectedSavedLibraries().filter(function (id) { return id !== String(draft.sourceLibraryId); }); return '<div class="mcm-draft-card" data-draft="' + escapeHtml(draft.key) + '"><h3>' + escapeHtml(draft.metadataValue) + '</h3><p class="fieldDescription">Selected library: ' + escapeHtml(catalogLibraryName(draft.sourceLibraryId)) + '<br />Metadata tag type: ' + escapeHtml(draft.metadataType) + '<br />Selected metadata tag value: ' + escapeHtml(draft.metadataValue) + '</p><label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" data-draft-included="1"' + (draft.included ? ' checked' : '') + ' /> <span>Create this draft</span></label><div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Collection Title</label><input is="emby-input" type="text" data-draft-title value="' + escapeHtml(draft.collectionTitle) + '" /></div><p class="fieldDescription" data-draft-explanation>Loading matching media…</p><p class="fieldDescription">Also Add Media With Selected Tag From Other Libraries</p><p class="fieldDescription">Choose additional saved libraries to include in this collection. The library where you selected this metadata tag is always included. Selecting other libraries adds only media with this same metadata tag from those libraries.</p><p class="fieldDescription">Included from selected library: ' + escapeHtml(catalogLibraryName(draft.sourceLibraryId)) + '</p><div class="mcm-actions"><button is="emby-button" type="button" class="raised" data-draft-select-all="1">Select All</button><button is="emby-button" type="button" class="raised" data-draft-select-none="1">Select None</button></div><p class="fieldDescription">Select None to include matching media from only the library where this metadata tag was selected.</p>' + otherLibraries.map(function (id) { return '<label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" data-draft-other-library="' + escapeHtml(id) + '"' + (draft.additionalLibraryIds.map(String).indexOf(String(id)) >= 0 ? ' checked' : '') + ' /> <span>' + escapeHtml(catalogLibraryName(id)) + '</span></label>'; }).join('') + '<button is="emby-button" type="button" class="raised" data-toggle-draft-preview="1">Click here to expand included media</button><div class="mcm-draft-preview" hidden></div><div class="mcm-actions"><button is="emby-button" type="button" class="raised" data-remove-draft="1">Remove Collection Draft</button></div></div>'; }).join('') : '<p class="fieldDescription">Select a metadata tag above to create its collection draft.</p>';
+            host.innerHTML = drafts.length ? drafts.map(function (draft) { var otherLibraries = selectedSavedLibraries().filter(function (id) { return id !== String(draft.sourceLibraryId); }); var includeOther = draft.includeOtherLibraries === true; return '<div class="mcm-draft-card" data-draft="' + escapeHtml(draft.key) + '"><h3>' + escapeHtml(draft.metadataValue) + '</h3><p class="fieldDescription">Selected library: ' + escapeHtml(catalogLibraryName(draft.sourceLibraryId)) + '<br />Metadata tag type: ' + escapeHtml(draft.metadataType) + '<br />Selected metadata tag value: ' + escapeHtml(draft.metadataValue) + '</p><label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" data-draft-included="1"' + (draft.included ? ' checked' : '') + ' /> <span>Create this draft</span></label><div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Collection Title</label><input is="emby-input" type="text" data-draft-title value="' + escapeHtml(draft.collectionTitle) + '" /></div><p class="fieldDescription" data-draft-explanation>Loading matching media…</p><section class="mcm-additional-libraries"><h3>Also Add Media With Selected Tag From Other Libraries</h3><p class="fieldDescription">Choose additional saved libraries to include in this collection. The library where you selected this metadata tag is always included. Selecting other libraries adds only media with this same metadata tag from those libraries.</p><label class="checkboxContainer"><input type="radio" name="draft-other-libraries-' + escapeHtml(draft.key) + '" data-draft-other-toggle="yes"' + (includeOther ? ' checked' : '') + ' /> <span>Yes</span></label><label class="checkboxContainer"><input type="radio" name="draft-other-libraries-' + escapeHtml(draft.key) + '" data-draft-other-toggle="no"' + (!includeOther ? ' checked' : '') + ' /> <span>No</span></label><div class="mcm-additional-libraries-options"' + (!includeOther ? ' hidden' : '') + '><p class="fieldDescription">Included from selected library: ' + escapeHtml(catalogLibraryName(draft.sourceLibraryId)) + '</p><div class="mcm-actions"><button is="emby-button" type="button" class="raised" data-draft-select-all="1">Select All</button><button is="emby-button" type="button" class="raised" data-draft-select-none="1">Select None</button></div><p class="fieldDescription">Select None to include matching media from only the library where this metadata tag was selected.</p>' + otherLibraries.map(function (id) { return '<label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" data-draft-other-library="' + escapeHtml(id) + '"' + (draft.additionalLibraryIds.map(String).indexOf(String(id)) >= 0 ? ' checked' : '') + ' /> <span>' + escapeHtml(catalogLibraryName(id)) + '</span></label>'; }).join('') + '</div></section><button is="emby-button" type="button" class="raised" data-toggle-draft-preview="1">Click here to expand included media</button><div class="mcm-draft-preview" hidden></div><div class="mcm-actions"><button is="emby-button" type="button" class="raised" data-remove-draft="1">Remove Collection Draft</button></div></div>'; }).join('') : '<p class="fieldDescription">Select a metadata tag above to create its collection draft.</p>';
             drafts.forEach(loadDraftPreview);
         }
 
@@ -339,16 +377,17 @@
             var host = page.querySelector('[data-mode-types="' + mode + '|' + libraryId + '"]');
             if (!host) { return; }
             host.innerHTML = '<p class="fieldDescription">Loading metadata tag types…</p>';
-            get('metadata-catalog/types?libraryId=' + encodeURIComponent(libraryId)).then(function (types) {
+            catalogGet('metadata-catalog/types?libraryId=' + encodeURIComponent(libraryId), function (types) {
+                types = Array.isArray(types) ? types : [];
                 host.innerHTML = types.length ? types.map(function (type) { var name = prop(type, 'Name'); return '<div class="mcm-tag-type" data-mode-section="' + mode + '" data-library="' + escapeHtml(libraryId) + '" data-type="' + escapeHtml(name) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(name) + ' (' + escapeHtml(prop(type, 'ValueCount')) + ')</h3><button is="emby-button" type="button" class="raised" data-mode-type="' + mode + '">Click here to expand</button></div><div class="mcm-tag-type-content" hidden></div></div>'; }).join('') : '<p class="fieldDescription">No scanned metadata tags are available for this library yet.</p>';
             }, function (error) { host.innerHTML = '<p class="fieldDescription">Could not load metadata tag types: ' + escapeHtml(err(error)) + '</p>'; });
         }
         function loadModeValues(section, pageNumber) {
             var mode = section.getAttribute('data-mode-section'), libraryId = section.getAttribute('data-library'), type = section.getAttribute('data-type'), host = section.querySelector('.mcm-tag-type-content'), prior = host.querySelector('[data-mode-search]'), search = prior ? prior.value : '';
             host.innerHTML = '<p class="fieldDescription">Loading metadata tags…</p>';
-            get('metadata-catalog/values?libraryId=' + encodeURIComponent(libraryId) + '&metadataType=' + encodeURIComponent(type) + '&searchTerm=' + encodeURIComponent(search) + '&page=' + encodeURIComponent(pageNumber)).then(function (data) {
+            catalogGet('metadata-catalog/values?libraryId=' + encodeURIComponent(libraryId) + '&metadataType=' + encodeURIComponent(type) + '&searchTerm=' + encodeURIComponent(search) + '&page=' + encodeURIComponent(pageNumber), function (data) {
                 var values = prop(data, 'Values') || [], current = Number(prop(data, 'Page') || 1), total = Number(prop(data, 'TotalValues') || 0), pageSize = Number(prop(data, 'PageSize') || 50), pages = Math.max(1, Math.ceil(total / pageSize));
-                host.innerHTML = '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search ' + escapeHtml(type) + '</label><input is="emby-input" type="search" data-mode-search placeholder="Search ' + escapeHtml(type) + '" /></div>' + (values.length ? values.map(function (value) { var name = prop(value, 'Value'), key = draftKey(libraryId, type, name), image = prop(value, 'PersonImageUrl'); return '<label class="checkboxContainer">' + (image ? '<img class="mcm-person-image" src="' + escapeHtml(ApiClient.getUrl('Items/' + image + '/Images/Primary')) + '" alt="" />' : '') + '<input is="emby-checkbox" type="checkbox" data-mode-value="' + mode + '" data-library="' + escapeHtml(libraryId) + '" data-type="' + escapeHtml(type) + '" data-value="' + escapeHtml(name) + '" data-count="' + escapeHtml(prop(value, 'MatchingItems')) + '"' + (tagCollectionStates[mode].tags[key] ? ' checked' : '') + ' /> <span>' + escapeHtml(name) + ' (' + escapeHtml(prop(value, 'MatchingItems')) + ')</span></label>'; }).join('') : '<p class="fieldDescription">No metadata tags match this search.</p>') + '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-mode-page="' + (current - 1) + '"' + (current <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + current + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-mode-page="' + (current + 1) + '"' + (current >= pages ? ' disabled' : '') + '>Next Page</button></div>';
+                host.innerHTML = '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search ' + escapeHtml(type) + '</label><input is="emby-input" type="search" data-mode-search value="' + escapeHtml(search) + '" placeholder="Search ' + escapeHtml(type) + '" /></div>' + (values.length ? '<div class="mcm-tag-picker-grid">' + values.map(function (value) { var name = prop(value, 'Value'), key = draftKey(libraryId, type, name), image = prop(value, 'PersonImageUrl'); return '<label class="checkboxContainer">' + (image ? '<img class="mcm-person-image" src="' + escapeHtml(ApiClient.getUrl('Items/' + image + '/Images/Primary')) + '" alt="" />' : '') + '<input is="emby-checkbox" type="checkbox" data-mode-value="' + mode + '" data-library="' + escapeHtml(libraryId) + '" data-type="' + escapeHtml(type) + '" data-value="' + escapeHtml(name) + '" data-count="' + escapeHtml(prop(value, 'MatchingItems')) + '"' + (tagCollectionStates[mode].tags[key] ? ' checked' : '') + ' /> <span>' + escapeHtml(name) + ' (' + escapeHtml(prop(value, 'MatchingItems')) + ')</span></label>'; }).join('') + '</div>' : '<p class="fieldDescription">No metadata tags match this search.</p>') + '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-mode-page="' + (current - 1) + '"' + (current <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + current + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-mode-page="' + (current + 1) + '"' + (current >= pages ? ' disabled' : '') + '>Next Page</button></div>';
             }, function (error) { host.innerHTML = '<p class="fieldDescription">Could not load metadata tags: ' + escapeHtml(err(error)) + '</p>'; });
         }
 
@@ -358,8 +397,12 @@
         $('#saveMainSettingsButton').addEventListener('click', saveMainSettings);
         $('#scanMetadataTagsButton').addEventListener('click', startScan);
         $('#toggleMetadataOverview').addEventListener('click', function () { var content = $('#metadataOverviewContent'), expanded = !content.hidden; content.hidden = expanded; this.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadMetadataOverview(); } });
-        $('#metadataOverviewColor').addEventListener('input', applyOverviewColor);
-        $('#saveMetadataOverviewColorButton').addEventListener('click', function () { send('POST', 'settings/metadata-overview-color', { Color: $('#metadataOverviewColor').value }).then(function (updated) { config = normalize(updated || config); $('#metadataOverviewColor').value = config.MetadataTagOverviewColor; applyOverviewColor(); Dashboard.alert('Overview color saved.'); }, function (error) { Dashboard.alert('Overview color could not be saved: ' + err(error)); }); });
+        $('#metadataTypeSearch').addEventListener('input', applyOverviewTypeFilter);
+        $('#metadataTagSearch').addEventListener('input', function () {
+            Array.prototype.forEach.call(page.querySelectorAll('[data-overview-type]'), function (section) {
+                if (section.querySelector('.mcm-overview-type-content').hidden === false) { loadOverviewValues(section, 1); }
+            });
+        });
         $('#metadataOverviewGroups').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-library]')) { var id = target.getAttribute('data-toggle-library'), content = page.querySelector('[data-catalog-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; } if (target.matches('[data-toggle-overview-type]')) { var typeSection = target.closest('[data-overview-type]'), typeContent = typeSection.querySelector('.mcm-overview-type-content'), typeExpanded = !typeContent.hidden; typeContent.hidden = typeExpanded; target.textContent = typeExpanded ? 'Click here to expand' : 'Click here to collapse'; if (!typeExpanded) { loadOverviewValues(typeSection, 1); } } if (target.matches('[data-overview-values-page]')) { loadOverviewValues(target.closest('[data-overview-type]'), Number(target.getAttribute('data-overview-values-page'))); } });
         $('#metadataOverviewGroups').addEventListener('input', function (event) { if (event.target.matches('[data-overview-tag-search]')) { var section = event.target.closest('[data-overview-type]'); window.clearTimeout(event.target.searchTimer); event.target.searchTimer = window.setTimeout(function () { loadOverviewValues(section, 1); }, 250); } });
         Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (button) { button.addEventListener('click', function () { var selectedTab=button.getAttribute('data-tab'); Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (tab) { var active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', active ? 'true' : 'false'); }); Array.prototype.forEach.call(page.querySelectorAll('.mcm-panel'), function (panel) { panel.classList.toggle('active', panel.getAttribute('data-panel') === selectedTab); }); if (selectedTab === 'individual') { renderIndividualLibraryPickers(); renderIndividualDrafts(); } if (selectedTab === 'combined' || selectedTab === 'multi') { renderMode(selectedTab); } }); });
@@ -367,8 +410,8 @@
         $('#individualTagLibraryPickers').addEventListener('change', function (event) { if (event.target.matches('[data-individual-tag-value]')) { addOrRemoveDraft(event.target); } });
         $('#individualTagLibraryPickers').addEventListener('input', function (event) { if (event.target.matches('[data-tag-search]')) { var section = event.target.closest('[data-tag-type]'); window.clearTimeout(event.target.searchTimer); event.target.searchTimer = window.setTimeout(function () { loadIndividualValues(section, 1); }, 250); } });
         $('#individualCollectionDrafts').addEventListener('input', function (event) { var card = event.target.closest('[data-draft]'); if (!card) { return; } var draft = individualDrafts[card.getAttribute('data-draft')]; if (event.target.matches('[data-draft-title]')) { draft.collectionTitle = event.target.value; delete individualConflictActions[draft.key]; } });
-        $('#individualCollectionDrafts').addEventListener('change', function (event) { var card = event.target.closest('[data-draft]'); if (!card) { return; } var draft = individualDrafts[card.getAttribute('data-draft')]; if (event.target.matches('[data-draft-included]')) { draft.included = event.target.checked; } if (event.target.matches('[data-draft-other-library]')) { var id = event.target.getAttribute('data-draft-other-library'); draft.additionalLibraryIds = event.target.checked ? draft.additionalLibraryIds.concat([id]).filter(function (value, index, values) { return values.indexOf(value) === index; }) : draft.additionalLibraryIds.filter(function (value) { return String(value) !== String(id); }); loadDraftPreview(draft); } });
-        $('#individualCollectionDrafts').addEventListener('click', function (event) { var target = event.target, card = target.closest('[data-draft]'); if (!card) { return; } var draft = individualDrafts[card.getAttribute('data-draft')]; if (target.matches('[data-remove-draft]')) { delete individualDrafts[draft.key]; delete individualConflictActions[draft.key]; renderIndividualDrafts(); } if (target.matches('[data-draft-select-all]')) { draft.additionalLibraryIds = selectedSavedLibraries().filter(function (id) { return id !== String(draft.sourceLibraryId); }); renderIndividualDrafts(); } if (target.matches('[data-draft-select-none]')) { draft.additionalLibraryIds = []; renderIndividualDrafts(); } if (target.matches('[data-toggle-draft-preview]')) { var preview = card.querySelector('.mcm-draft-preview'), expanded = !preview.hidden; preview.hidden = expanded; target.textContent = expanded ? 'Click here to expand included media' : 'Click here to collapse included media'; } });
+        $('#individualCollectionDrafts').addEventListener('change', function (event) { var card = event.target.closest('[data-draft]'); if (!card) { return; } var draft = individualDrafts[card.getAttribute('data-draft')]; if (event.target.matches('[data-draft-included]')) { draft.included = event.target.checked; } if (event.target.matches('[data-draft-other-toggle]')) { draft.includeOtherLibraries = event.target.getAttribute('data-draft-other-toggle') === 'yes'; if (!draft.includeOtherLibraries) { draft.additionalLibraryIds = []; } renderIndividualDrafts(); } if (event.target.matches('[data-draft-other-library]')) { var id = event.target.getAttribute('data-draft-other-library'); draft.additionalLibraryIds = event.target.checked ? draft.additionalLibraryIds.concat([id]).filter(function (value, index, values) { return values.indexOf(value) === index; }) : draft.additionalLibraryIds.filter(function (value) { return String(value) !== String(id); }); draft.includeOtherLibraries = draft.additionalLibraryIds.length > 0; renderIndividualDrafts(); } });
+        $('#individualCollectionDrafts').addEventListener('click', function (event) { var target = event.target, card = target.closest('[data-draft]'); if (!card) { return; } var draft = individualDrafts[card.getAttribute('data-draft')]; if (target.matches('[data-remove-draft]')) { delete individualDrafts[draft.key]; delete individualConflictActions[draft.key]; renderIndividualDrafts(); } if (target.matches('[data-draft-select-all]')) { draft.additionalLibraryIds = selectedSavedLibraries().filter(function (id) { return id !== String(draft.sourceLibraryId); }); draft.includeOtherLibraries = draft.additionalLibraryIds.length > 0; renderIndividualDrafts(); } if (target.matches('[data-draft-select-none]')) { draft.additionalLibraryIds = []; draft.includeOtherLibraries = false; renderIndividualDrafts(); } if (target.matches('[data-toggle-draft-preview]')) { var preview = card.querySelector('.mcm-draft-preview'), expanded = !preview.hidden; preview.hidden = expanded; target.textContent = expanded ? 'Click here to expand included media' : 'Click here to collapse included media'; } });
         $('#individualCreationResults').addEventListener('change', function (event) { if (event.target.matches('[data-conflict-action]')) { individualConflictActions[event.target.getAttribute('data-conflict-key')] = event.target.getAttribute('data-conflict-action'); } });
         $('#createIndividualCollectionsButton').addEventListener('click', createIndividualCollections);
         function resetModeDraft(mode, keepResult) {

@@ -4,6 +4,16 @@
 
 ### Fixed
 
+- Made metadata tag text inherit Jellyfin's active theme colors rather than a
+  hard-coded cyan color, so tags and matching counts remain readable across
+  dashboard themes.
+- Restored resilient, visible handling for metadata catalog responses in the
+  Individual, Combined, and Multi-Match pickers. A failed or delayed request
+  now displays its error instead of leaving a permanent loading message.
+- Kept the dashboard at its current position when moving between metadata-tag
+  pages, and retained the active value-search text while paging.
+- Sorted every `Jellyfin: …` metadata type after the regular and NFO metadata
+  types in each metadata-type list.
 - Pre-indexed every metadata type's tag values and matching-media counts when
   the catalog is saved. Opening a category now uses that saved index instead of
   repeatedly walking every title in the library.
@@ -17,8 +27,8 @@
   restarts, rather than requiring a fresh scan.
 - Replaced the unreadable all-tag-type metadata table in **My Metadata Tags**.
   Every selected library now has separate, independently expandable metadata
-  type sections; each section uses a readable two-column **Title** and
-  **metadata tag** table with the existing ten-title pagination.
+  type sections; each section shows only actual metadata tags, their matching
+  media counts, search, and fifty-tag pagination.
 - Corrected the repository manifest for Jellyfin 10.11.11: it now uses the
   exact `10.11.11.0` target ABI and Jellyfin's required MD5 release-package
   checksum format.
@@ -30,6 +40,10 @@
 
 ### Changed
 
+- Added separate metadata-type and metadata-tag searches above the saved-scan
+  library overview, changed collection pickers to a two-column layout where
+  there is room, and made the Individual draft's other-library scope a proper
+  Yes/No section with its Select All and Select None controls.
 - Renamed the plugin, project, assembly, dashboard route, manifest, branding,
   license, and public repository to Collection Manager.
 

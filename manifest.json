@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.6",
-        "changelog": "Pre-indexes metadata tag values in the saved scan so expanding a category is a direct lookup instead of repeatedly processing every media item in a library.",
+        "version": "0.1.0.7",
+        "changelog": "Restores resilient metadata-picker loading across all collection tabs and makes the saved-tag overview theme-safe, searchable, and stable when paging.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.6/CollectionManager_0.1.0.6.zip",
-        "checksum": "9083dde1ad404a4fd57e5b890352894c",
-        "timestamp": "2026-07-28T05:35:04Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.7/CollectionManager_0.1.0.7.zip",
+        "checksum": "ad66eb5d56f64d772f001f966fdc6ab6",
+        "timestamp": "2026-07-28T06:03:09Z"
       }
     ]
   }
