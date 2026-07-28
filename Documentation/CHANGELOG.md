@@ -17,6 +17,8 @@
 
 - Replaced Collection Overview & Editor's library-grouped scan with one flat
   all-native-collections scan and overview, as requested.
+- Collection scan failures now show only a safe scan stage and exception type,
+  while the full exception remains in the Jellyfin server log.
 - One malformed collection link no longer prevents the complete collection
   overview scan.
 

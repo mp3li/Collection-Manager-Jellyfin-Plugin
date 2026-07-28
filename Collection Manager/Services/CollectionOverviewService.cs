@@ -43,9 +43,12 @@ public sealed class CollectionOverviewService
     /// <summary>Scans all native collections once and persists the selected-library overview.</summary>
     public CollectionOverviewScanStatus Scan(PluginConfiguration configuration)
     {
+        var phase = "preparing the collection scan";
         try
         {
+            phase = "reading native Jellyfin collections";
             var allCollections = _libraryManager.GetItemList(new InternalItemsQuery { Recursive = true }).OfType<BoxSet>().ToArray();
+            phase = "reading the previous saved collection overview";
             var prior = GetSnapshot();
             var priorCollections = prior?.Libraries.SelectMany(library => library.Collections).GroupBy(collection => collection.CollectionId).ToDictionary(group => group.Key, group => group.First()) ?? [];
             var managed = configuration.PluginManagedCollectionIds.Concat(configuration.Rules.Where(rule => rule.CollectionId.HasValue).Select(rule => rule.CollectionId!.Value)).ToHashSet();
@@ -75,6 +78,7 @@ public sealed class CollectionOverviewService
                 nextCollections.Add(new CollectionOverviewCollectionSnapshot { CollectionId = removed.CollectionId, Name = removed.Name, MadeByPlugin = removed.MadeByPlugin, Exists = false, NewlyRemoved = true, Items = removed.Items.Select(item => new CollectionOverviewItemSnapshot { ItemId = item.ItemId, Name = item.Name, NewlyRemoved = true }).ToList() });
             }
 
+            phase = "saving the collection overview";
             var snapshot = new CollectionOverviewSnapshot { CompletedUtc = DateTime.UtcNow, Libraries = [new CollectionOverviewLibrarySnapshot { LibraryId = Guid.Empty, LibraryName = "All Collections", Collections = nextCollections.OrderBy(collection => collection.Name, StringComparer.OrdinalIgnoreCase).ToList() }] };
             Persist(snapshot);
             var count = snapshot.Libraries.SelectMany(library => library.Collections).Where(collection => collection.Exists).Select(collection => collection.CollectionId).Distinct().Count();
@@ -90,7 +94,7 @@ public sealed class CollectionOverviewService
             _logger.LogError(exception, "Collection Manager could not scan native collections for the collection overview.");
             lock (_sync)
             {
-                _status = new CollectionOverviewScanStatus(false, 0, 0, _snapshot?.CompletedUtc, "Collection scan could not be completed. Check the Jellyfin server log and try again.");
+                _status = new CollectionOverviewScanStatus(false, 0, 0, _snapshot?.CompletedUtc, $"Collection scan could not be completed while {phase} ({exception.GetType().Name}).");
                 return _status;
             }
         }

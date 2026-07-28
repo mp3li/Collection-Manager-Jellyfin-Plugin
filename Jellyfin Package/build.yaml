@@ -1,7 +1,7 @@
 ---
 name: "Collection Manager"
 guid: "5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9"
-version: "0.1.0.18"
+version: "0.1.0.19"
 targetAbi: "10.11.11.0"
 framework: "net9.0"
 overview: "Visual metadata-driven native collection creation for Jellyfin."
@@ -13,5 +13,5 @@ owner: "mp3li"
 artifacts:
   - "Jellyfin.Plugin.CollectionManager.dll"
 changelog: >
-  Makes Collection Overview & Editor a flat all-collections scan and overview,
-  with no library grouping.
+  Keeps the flat all-collections overview and reports a safe scan failure stage
+  and exception type if Jellyfin cannot complete a scan.
