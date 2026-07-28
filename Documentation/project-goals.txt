@@ -99,13 +99,14 @@ dashboard areas will be designed in a later planning round.
 5. Collection Overview & Editor
    - Let an administrator choose to show collections made by this plugin,
      collections not made by this plugin, or both.
-   - Scan and persist the current selected-library collection overview, with a
+   - Scan and persist one flat overview of all current native Jellyfin
+     collections, with a
      completion result and last-scan date and time. A later scan replaces the
      saved overview; reopening the dashboard uses the saved overview until an
      administrator scans again.
-   - Provide an initially collapsed overview using the same expandable
-     selected-library pattern as Media Tagging Manager's Recommendations and
-     Similar Titles overview. Show newly added collection names and media
+   - Provide an initially collapsed overview using the same expandable section
+     pattern as Media Tagging Manager's Recommendations and Similar Titles
+     overview, without library sub-sections. Show newly added collection names and media
      titles in the selected added color, and newly removed names and titles in
      the selected removed color.
    - Let the administrator edit a current collection's title and browse its

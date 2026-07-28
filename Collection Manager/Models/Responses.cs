@@ -74,6 +74,14 @@ public sealed record MetadataCatalogStatus(
     DateTime? LastCompletedUtc,
     string Message);
 
+/// <summary>Progress and availability information for the saved collection overview.</summary>
+public sealed record CollectionOverviewScanStatus(
+    bool IsScanning,
+    int ProcessedItems,
+    int TotalItems,
+    DateTime? LastCompletedUtc,
+    string Message);
+
 /// <summary>Persisted, read-only metadata-catalog data from the last completed scan.</summary>
 public sealed record MetadataCatalogSnapshot(
     DateTime LastCompletedUtc,

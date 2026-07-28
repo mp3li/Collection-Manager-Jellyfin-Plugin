@@ -43,7 +43,7 @@ libraries.
 | **Create Individual Tag Collections** | Select values such as `Horror`, `Netflix`, or `A24` and make one independently titled, reviewed native collection draft for each value. |
 | **Create Combined Tag Collections** | Select two or more values and make one collection containing the unique union of media matching any selected value. |
 | **Create Multi-Match Tag Collections** | Select two or more values and make one collection containing only media matching every selected value. |
-| **Collection Overview & Editor** | Save a selected-library collection scan, review current and latest-scan changes, and edit native collection titles and membership in bulk. |
+| **Collection Overview & Editor** | Save a flat scan of all native Jellyfin collections, review current and latest-scan changes, and edit collection titles and membership in bulk. |
 
 All collection workflows provide matching counts, grouped previews, editable
 titles, additional-library scope, visible same-title conflict choices, and
@@ -98,7 +98,7 @@ https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/
 ```
 
 In Jellyfin, open **Dashboard → Plugins → Repositories**, add that URL, then
-install the **0.1.0.17 Private Testing** prerelease from the catalog. Restart
+install the **0.1.0.18 Private Testing** prerelease from the catalog. Restart
 Jellyfin and record the real server results in the testing tracker.
 
 ## Private test tracking

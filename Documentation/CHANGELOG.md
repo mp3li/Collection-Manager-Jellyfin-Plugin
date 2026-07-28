@@ -15,9 +15,10 @@
 
 ### Fixed
 
-- Collection Overview & Editor now obtains the native collection list once and
-  treats selected libraries only as the saved overview grouping scope. One
-  malformed collection link no longer prevents the complete scan.
+- Replaced Collection Overview & Editor's library-grouped scan with one flat
+  all-native-collections scan and overview, as requested.
+- One malformed collection link no longer prevents the complete collection
+  overview scan.
 
 ### Fixed
 

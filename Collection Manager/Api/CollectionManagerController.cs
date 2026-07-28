@@ -19,6 +19,7 @@ public sealed class CollectionManagerController : ControllerBase
 {
     private readonly CollectionReconciler _reconciler;
     private readonly MetadataCatalogService _metadataCatalog;
+    private readonly CollectionOverviewService _collectionOverview;
     private readonly ILibraryManager _libraryManager;
     private readonly ManualReconciliationRequestQueue _requests;
     private readonly ITaskManager _taskManager;
@@ -27,12 +28,14 @@ public sealed class CollectionManagerController : ControllerBase
     public CollectionManagerController(
         CollectionReconciler reconciler,
         MetadataCatalogService metadataCatalog,
+        CollectionOverviewService collectionOverview,
         ILibraryManager libraryManager,
         ManualReconciliationRequestQueue requests,
         ITaskManager taskManager)
     {
         _reconciler = reconciler;
         _metadataCatalog = metadataCatalog;
+        _collectionOverview = collectionOverview;
         _libraryManager = libraryManager;
         _requests = requests;
         _taskManager = taskManager;
@@ -443,10 +446,7 @@ public sealed class CollectionManagerController : ControllerBase
                 return BadRequest("Save one or more libraries in Main Settings before scanning collections.");
             }
 
-            var snapshot = BuildCollectionOverviewSnapshot(plugin.Configuration);
-            plugin.SaveCollectionOverviewSnapshot(snapshot);
-            var count = snapshot.Libraries.SelectMany(library => library.Collections).Where(collection => collection.Exists).Select(collection => collection.CollectionId).Distinct().Count();
-            return Ok(new { IsScanning = false, ProcessedItems = count, TotalItems = count, LastCompletedUtc = snapshot.CompletedUtc, Message = $"Collection scan complete. Found {count} collection(s)." });
+            return Ok(_collectionOverview.Scan(plugin.Configuration));
         }
         catch (Exception)
         {
@@ -458,31 +458,23 @@ public sealed class CollectionManagerController : ControllerBase
     [HttpGet("collection-overview/status")]
     public IActionResult GetCollectionOverviewStatus()
     {
-        var snapshot = RequirePlugin().Configuration.CollectionOverviewSnapshot;
-        var count = snapshot?.Libraries.SelectMany(library => library.Collections).Where(collection => collection.Exists).Select(collection => collection.CollectionId).Distinct().Count() ?? 0;
-        return Ok(new { IsScanning = false, ProcessedItems = count, TotalItems = count, LastCompletedUtc = snapshot?.CompletedUtc, Message = snapshot is null ? "No collection overview scan has been completed yet." : $"Showing the last available collection scan. Found {count} collection(s)." });
+        return Ok(_collectionOverview.GetStatus());
     }
 
     /// <summary>Returns saved per-library collection counts for the expandable overview.</summary>
     [HttpGet("collection-overview/counts")]
     public IActionResult GetCollectionOverviewCounts()
     {
-        var snapshot = RequirePlugin().Configuration.CollectionOverviewSnapshot;
-        return Ok(snapshot?.Libraries.Select(library => new { library.LibraryId, TotalItems = FilterCollections(library.Collections).Count }).ToArray() ?? []);
+        var collections = _collectionOverview.GetSnapshot()?.Libraries.SelectMany(library => library.Collections).ToArray() ?? [];
+        return Ok(new[] { new { LibraryId = Guid.Empty, TotalItems = FilterCollections(collections).Count } });
     }
 
     /// <summary>Returns a bounded saved collection-overview page for one selected library.</summary>
     [HttpGet("collection-overview/page")]
     public IActionResult GetCollectionOverviewPage([FromQuery] Guid libraryId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        var library = RequirePlugin().Configuration.CollectionOverviewSnapshot?.Libraries.FirstOrDefault(candidate => candidate.LibraryId == libraryId);
-        if (library is null)
-        {
-            return Ok(new { Items = Array.Empty<CollectionOverviewCollectionSnapshot>(), TotalItems = 0, Page = 1, PageSize = Math.Clamp(pageSize, 1, 50) });
-        }
-
         var size = Math.Clamp(pageSize, 1, 50);
-        var values = FilterCollections(library.Collections).OrderBy(collection => collection.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+        var values = FilterCollections(_collectionOverview.GetSnapshot()?.Libraries.SelectMany(library => library.Collections) ?? []).OrderBy(collection => collection.Name, StringComparer.OrdinalIgnoreCase).ToArray();
         var currentPage = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(values.Length / (double)size)));
         return Ok(new { Items = values.Skip((currentPage - 1) * size).Take(size).ToArray(), TotalItems = values.Length, Page = currentPage, PageSize = size });
     }

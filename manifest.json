@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.17",
-        "changelog": "Makes Collection Overview & Editor scan all native collections once, while using selected libraries only to organize the saved overview.",
+        "version": "0.1.0.18",
+        "changelog": "Makes Collection Overview & Editor a flat all-collections scan and overview, with no library grouping.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.17/CollectionManager_0.1.0.17.zip",
-        "checksum": "3a617b5e0434f72d302f517f6af735c5",
-        "timestamp": "2026-07-28T23:20:58Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.18/CollectionManager_0.1.0.18.zip",
+        "checksum": "b9ff7ffae00368000b95cb7bc38cc52f",
+        "timestamp": "2026-07-28T23:36:55Z"
       }
     ]
   }

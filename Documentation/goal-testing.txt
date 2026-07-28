@@ -131,10 +131,10 @@ Collection Overview & Editor
 ----------------------------
 [ ] Selected Collections Settings saves either collection type individually or both types together.
 [ ] Scan for Collections reports progress, a found-collection result, and the local last-scan date and time.
-[ ] The saved collection overview remains available after leaving, reopening, and restarting Jellyfin without another scan.
+[ ] The saved flat all-collections overview remains available after leaving, reopening, and restarting Jellyfin without another scan.
 [ ] A new scan regenerates the saved overview using the current selected-library collection state.
-[ ] The Collections Overview & Editor starts collapsed and uses independently expandable, initially collapsed selected-library sections.
-[ ] Overview paging shows no more than ten collections per library and does not move the dashboard viewport.
+[ ] The Collections Overview & Editor starts collapsed and shows no library sub-sections.
+[ ] Overview paging shows no more than ten collections at a time and does not move the dashboard viewport.
 [ ] Newly added collection names and media titles use the selected added color; newly removed names and titles use the selected removed color.
 [ ] Overview color choices persist after reopening the dashboard.
 [ ] Edit Collection opens the correct titled dialog with a current collection title and item count.
