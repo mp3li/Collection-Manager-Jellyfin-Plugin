@@ -15,6 +15,12 @@
 
 ### Fixed
 
+- Collection Overview & Editor now obtains the native collection list once and
+  treats selected libraries only as the saved overview grouping scope. One
+  malformed collection link no longer prevents the complete scan.
+
+### Fixed
+
 - Kept the dashboard at its exact viewport position when using Previous Page
   or Next Page in Main Settings, Individual, Combined, and Multi-Match tag
   views. The controls are also blurred before their list is replaced, avoiding

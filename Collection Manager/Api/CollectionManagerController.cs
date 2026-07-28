@@ -435,16 +435,23 @@ public sealed class CollectionManagerController : ControllerBase
     [HttpPost("collection-overview/scan")]
     public IActionResult ScanCollectionOverview()
     {
-        var plugin = RequirePlugin();
-        if (plugin.Configuration.LibraryIds.Count == 0)
+        try
         {
-            return BadRequest("Save one or more libraries in Main Settings before scanning collections.");
-        }
+            var plugin = RequirePlugin();
+            if (plugin.Configuration.LibraryIds.Count == 0)
+            {
+                return BadRequest("Save one or more libraries in Main Settings before scanning collections.");
+            }
 
-        var snapshot = BuildCollectionOverviewSnapshot(plugin.Configuration);
-        plugin.SaveCollectionOverviewSnapshot(snapshot);
-        var count = snapshot.Libraries.SelectMany(library => library.Collections).Where(collection => collection.Exists).Select(collection => collection.CollectionId).Distinct().Count();
-        return Ok(new { IsScanning = false, ProcessedItems = count, TotalItems = count, LastCompletedUtc = snapshot.CompletedUtc, Message = $"Collection scan complete. Found {count} collection(s)." });
+            var snapshot = BuildCollectionOverviewSnapshot(plugin.Configuration);
+            plugin.SaveCollectionOverviewSnapshot(snapshot);
+            var count = snapshot.Libraries.SelectMany(library => library.Collections).Where(collection => collection.Exists).Select(collection => collection.CollectionId).Distinct().Count();
+            return Ok(new { IsScanning = false, ProcessedItems = count, TotalItems = count, LastCompletedUtc = snapshot.CompletedUtc, Message = $"Collection scan complete. Found {count} collection(s)." });
+        }
+        catch (Exception)
+        {
+            return Problem(title: "Collection scan could not be completed.", statusCode: 500);
+        }
     }
 
     /// <summary>Returns the saved collection overview scan status and last-completed time.</summary>
@@ -573,7 +580,8 @@ public sealed class CollectionManagerController : ControllerBase
     {
         var selectedLibraries = _libraryManager.GetVirtualFolders(true)
             .Select(folder => new { Id = Guid.TryParse(folder.ItemId, out var id) ? id : Guid.Empty, folder.Name })
-            .Where(folder => configuration.LibraryIds.Contains(folder.Id)).ToArray();
+            .Where(folder => folder.Id != Guid.Empty && configuration.LibraryIds.Contains(folder.Id))
+            .GroupBy(folder => folder.Id).Select(group => group.First()).ToArray();
         var itemLibraries = selectedLibraries.SelectMany(library => _libraryManager.GetItemList(new InternalItemsQuery { ParentId = library.Id, Recursive = true })
             .Where(item => item is not BoxSet).Select(item => new { item.Id, LibraryId = library.Id })).GroupBy(value => value.Id).ToDictionary(group => group.Key, group => group.First().LibraryId);
         var previous = configuration.CollectionOverviewSnapshot;
@@ -581,9 +589,19 @@ public sealed class CollectionManagerController : ControllerBase
         var managed = configuration.PluginManagedCollectionIds.Concat(configuration.Rules.Where(rule => rule.CollectionId.HasValue).Select(rule => rule.CollectionId!.Value)).ToHashSet();
         var current = selectedLibraries.ToDictionary(library => library.Id, library => new CollectionOverviewLibrarySnapshot { LibraryId = library.Id, LibraryName = library.Name });
 
-        foreach (var collection in _libraryManager.GetItemList(new InternalItemsQuery { Recursive = true }).OfType<BoxSet>())
+        var allCollections = _libraryManager.GetItemList(new InternalItemsQuery { Recursive = true }).OfType<BoxSet>().ToArray();
+        foreach (var collection in allCollections)
         {
-            var children = collection.GetLinkedChildren().Where(child => itemLibraries.ContainsKey(child.Id)).ToArray();
+            BaseItem[] children;
+            try
+            {
+                children = collection.GetLinkedChildren().Where(child => itemLibraries.ContainsKey(child.Id)).ToArray();
+            }
+            catch
+            {
+                // A broken linked item must not prevent all other native collections from being scanned.
+                continue;
+            }
             foreach (var group in children.GroupBy(child => itemLibraries[child.Id]))
             {
                 var prior = previousLibraries.TryGetValue(group.Key, out var previousLibrary)
