@@ -1,7 +1,7 @@
 ---
 name: "Collection Manager"
 guid: "5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9"
-version: "0.1.0.13"
+version: "0.1.0.14"
 targetAbi: "10.11.11.0"
 framework: "net9.0"
 overview: "Visual metadata-driven native collection creation for Jellyfin."
@@ -13,5 +13,5 @@ owner: "mp3li"
 artifacts:
   - "Jellyfin.Plugin.CollectionManager.dll"
 changelog: >
-  Keeps only the shared Media Tagging Manager repository and Patreon line above
-  the tabs, and keeps the Main Settings description inside Main Settings.
+  Places the Main Settings description in the same heading-free section-card
+  structure used by Media Tagging Manager.

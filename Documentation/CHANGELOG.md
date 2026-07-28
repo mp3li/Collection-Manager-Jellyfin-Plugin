@@ -53,8 +53,9 @@
 - Completed the structural parity correction with Media Tagging Manager:
   removed Collection Manager-only repeated tab-title cards. Only the shared
   repository and Patreon line appears above the tabs; Main Settings keeps its
-  own three-paragraph explanation inside that tab, and each panel begins with
-  its first functional section using the shared section-card heading.
+  own three-paragraph explanation in a heading-free section card inside that
+  tab, and each panel begins with its first functional section using the shared
+  section-card heading.
 - Made every section heading consistent and moved outer library
   expand/collapse controls to the left, while leaving nested metadata-type
   controls on the right.
