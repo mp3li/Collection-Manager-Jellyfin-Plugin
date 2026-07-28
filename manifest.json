@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.14",
-        "changelog": "Uses the Media Tagging Manager section-card structure for the Main Settings description, keeping all dashboard sections aligned consistently.",
+        "version": "0.1.0.15",
+        "changelog": "Removes the unwanted Main Settings introduction and uses Jellyfin's native checkbox control styling for the Main Settings Yes and No choices.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.14/CollectionManager_0.1.0.14.zip",
-        "checksum": "6aac893be4b76c38316bb2ea076b43bf",
-        "timestamp": "2026-07-28T20:52:56Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.15/CollectionManager_0.1.0.15.zip",
+        "checksum": "146f9be5dba92717ad3b60fad9958bf5",
+        "timestamp": "2026-07-28T21:03:13Z"
       }
     ]
   }

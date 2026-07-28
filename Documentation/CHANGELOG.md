@@ -52,10 +52,8 @@
 
 - Completed the structural parity correction with Media Tagging Manager:
   removed Collection Manager-only repeated tab-title cards. Only the shared
-  repository and Patreon line appears above the tabs; Main Settings keeps its
-  own three-paragraph explanation in a heading-free section card inside that
-  tab, and each panel begins with its first functional section using the shared
-  section-card heading.
+  repository and Patreon line appears above the tabs, and each panel begins
+  with its first functional section using the shared section-card heading.
 - Made every section heading consistent and moved outer library
   expand/collapse controls to the left, while leaving nested metadata-type
   controls on the right.
@@ -70,6 +68,8 @@
 
 - Added the shared Media Tagging Manager repository and Patreon line above the
   dashboard tabs.
+- Removed the unwanted introductory copy from Main Settings and changed its
+  Yes/No inputs to Jellyfin's native checkbox control presentation.
 - Completed the current four-tab dashboard release: Main Settings, Individual
   Tag Collections, Combined Tag Collections, and Multi-Match Tag Collections.
 - Added the full lazy metadata picker to Combined and Multi-Match: collapsed

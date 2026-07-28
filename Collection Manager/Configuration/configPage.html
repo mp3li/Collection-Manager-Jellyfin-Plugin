@@ -59,11 +59,6 @@
         <div class="mcm-panel active" data-panel="main">
         <div id="collectionManagerSettings">
             <section class="mcm-section">
-            <p class="fieldDescription">Collection Manager reads the metadata already assigned to your media and builds a local catalog you can later use to create and maintain Jellyfin collections.</p>
-            <p class="fieldDescription">Metadata tags are descriptive information connected to a media item, such as genres, providers, networks, studios, directors, cast members, composers, years, custom tags, and other metadata already available in your Jellyfin libraries or local NFO files. For example, a title may have tags such as Provider: MarqueeTV, Network: HBO, Opera, Broadway, or Live Performance.</p>
-            <p class="fieldDescription">This plugin uses all available metadata tags; it does not fetch, add, edit, or remove metadata from your media. It was especially designed to work alongside the <a href="https://github.com/mp3li/Media-Tagging-Manager-Jellyfin-Plugin" target="_blank" rel="noopener noreferrer">Media Tagging Manager Jellyfin Plugin</a>, which can create and assign many of the tags that Collection Manager can then use to organize your library into collections.</p>
-            </section>
-        <section class="mcm-section">
             <h2>Selected Libraries</h2>
             <p class="fieldDescription">Choose which Jellyfin libraries Collection Manager will scan for metadata.</p>
             <p class="fieldDescription">Select one or more libraries to include in Collection Manager.</p>
@@ -75,8 +70,8 @@
         <section class="mcm-section">
             <h2>Newly Added Media Settings</h2>
             <p class="fieldDescription">Do you want media in your selected and saved libraries that is added after creating collections to automatically be added to applicable collections based on its existing metadata tags?</p>
-            <label class="checkboxContainer"><input type="radio" name="automaticallyAddNewMedia" value="yes" id="automaticallyAddNewMediaYes" /> <span>Yes</span></label>
-            <label class="checkboxContainer"><input type="radio" name="automaticallyAddNewMedia" value="no" id="automaticallyAddNewMediaNo" /> <span>No</span></label>
+            <label class="checkboxContainer"><input is="emby-checkbox" type="radio" name="automaticallyAddNewMedia" value="yes" id="automaticallyAddNewMediaYes" /> <span>Yes</span></label>
+            <label class="checkboxContainer"><input is="emby-checkbox" type="radio" name="automaticallyAddNewMedia" value="no" id="automaticallyAddNewMediaNo" /> <span>No</span></label>
             <p class="fieldDescription">This setting only affects collections configured to update automatically.</p>
         <div class="mcm-actions"><button is="emby-button" type="button" class="raised button-submit block" id="saveMainSettingsButton">Save Main Settings</button></div>
         </section>
