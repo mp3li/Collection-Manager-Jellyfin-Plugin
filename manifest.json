@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.31",
-        "changelog": "Loads the complete collapsed Collections Overview & Editor list without overview pagination; editor and collection-target pickers remain paginated.",
+        "version": "0.1.0.32",
+        "changelog": "Adds Create Manual Collections with lazy all-library media pickers, one editable draft, inline removal, and native Jellyfin collection creation. Restores the shared Media Tagging Manager tab shape.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.31/CollectionManager_0.1.0.31.zip",
-        "checksum": "0f62e6a8af8c01dadcab6abf20aab7d3",
-        "timestamp": "2026-07-29T07:49:24Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.32/CollectionManager_0.1.0.32.zip",
+        "checksum": "ba43b12eb2e5329b12e570cc4f8149a5",
+        "timestamp": "2026-07-29T08:27:53Z"
       }
     ]
   }
