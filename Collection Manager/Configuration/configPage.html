@@ -14,10 +14,12 @@
         #collectionManagerPage .mcm-setting-pair { display:grid; grid-template-columns:repeat(auto-fit,minmax(15em,1fr)); gap:1em; }
         #collectionManagerPage .mcm-last-added { color:var(--mcm-last-added-color,#4CAF50); }
         #collectionManagerPage .mcm-last-removed { color:var(--mcm-last-removed-color,#F44336); text-decoration:line-through; }
-        #collectionManagerPage .mcm-collection-editor-items { max-height:24em; overflow-y:auto; padding:.15em .4em; border:1px solid rgba(255,255,255,.16); border-radius:.4em; }
-        #collectionManagerPage .mcm-collection-editor-items .checkboxContainer { display:flex; align-items:center; gap:.55em; margin:.55em 0; }
-        #collectionManagerPage .mcm-collection-editor-items .mcm-related-poster,
-        #collectionManagerPage .mcm-target-picker .mcm-related-poster { width:2.5em; height:3.75em; flex:0 0 auto; margin:0; }
+        .mcm-collection-dialog .mcm-collection-editor-items,
+        .mcm-collection-dialog .mcm-target-picker { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65em 1em; max-height:24em; overflow-y:auto; padding:.45em; border:1px solid rgba(255,255,255,.16); border-radius:.4em; }
+        .mcm-collection-dialog .mcm-picker-item { display:flex; align-items:center; gap:.5em; min-width:0; margin:0; }
+        .mcm-collection-dialog .mcm-picker-poster { width:2.25em; height:3.375em; flex:0 0 auto; object-fit:cover; border-radius:.3em; margin:0; background:rgba(255,255,255,.08); }
+        .mcm-collection-dialog .mcm-picker-item > span { min-width:0; overflow-wrap:anywhere; }
+        @media (max-width:40em) { .mcm-collection-dialog .mcm-collection-editor-items, .mcm-collection-dialog .mcm-target-picker { grid-template-columns:1fr; } }
         #collectionManagerPage .mcm-related-poster { width:5.25em; height:7.9em; object-fit:cover; border-radius:.35em; vertical-align:top; margin:0 .55em .45em 0; background:rgba(255,255,255,.08); }
         #collectionManagerPage .mcm-related-title { display:flex; align-items:flex-start; gap:.35em; margin:0 0 .65em; }
         #collectionManagerPage .mcm-related-title-text { min-width:0; }
@@ -36,8 +38,6 @@
         #collectionManagerPage .mcm-collection-member-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1em 1.25em; }
         #collectionManagerPage .mcm-collection-member-grid .mcm-related-title { margin:0; }
         @media (max-width:55em) { #collectionManagerPage .mcm-collection-overview-entry.mcm-collection-expanded { display:block; } #collectionManagerPage .mcm-collection-member-grid { grid-template-columns:1fr; margin-top:1em; } }
-        #collectionManagerPage .mcm-target-picker { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75em; max-height:34em; overflow-y:auto; }
-        #collectionManagerPage .mcm-target-picker .checkboxContainer { display:flex; align-items:flex-start; gap:.45em; min-width:0; margin:0; }
         #collectionManagerPage .mcm-overview-content[hidden] { display:none !important; }
         #collectionManagerPage .mcm-library-overview { margin-top:1em; }
         #collectionManagerPage .mcm-library-overview + .mcm-library-overview { border-top:1px solid rgba(255,255,255,.16); padding-top:1em; }
@@ -483,7 +483,7 @@
             }, function (error) { $('#collectionsOverviewGroups').innerHTML = '<p class="fieldDescription">Could not load collection overview: ' + escapeHtml(err(error)) + '</p>'; });
         }
         function collectionClass(collection) { return prop(collection, 'NewlyRemoved') === true ? 'mcm-last-removed' : (prop(collection, 'NewlyAdded') === true ? 'mcm-last-added' : ''); }
-        function jellyfinPoster(itemId) { return '<img class="mcm-related-poster" loading="lazy" alt="" src="' + escapeHtml(ApiClient.getUrl('Items/' + encodeURIComponent(itemId) + '/Images/Primary')) + '" onerror="this.remove()" />'; }
+        function jellyfinPoster(itemId, className) { return '<img class="' + (className || 'mcm-related-poster') + '" loading="lazy" alt="" src="' + escapeHtml(ApiClient.getUrl('Items/' + encodeURIComponent(itemId) + '/Images/Primary')) + '" onerror="this.remove()" />'; }
         function collectionMemberPoster(title) { return prop(title, 'HasPrimaryImage') ? jellyfinPoster(prop(title, 'ItemId')) : ''; }
         function relatedTitleList(items) { var visible = (items || []).slice(); return visible.map(function (title) { var style = prop(title, 'NewlyRemoved') ? 'mcm-last-removed' : prop(title, 'NewlyAdded') ? 'mcm-last-added' : '', year = prop(title, 'ProductionYear'), type = prop(title, 'Type'), info = (year ? ' (' + year + ')' : '') + (type ? ' · ' + type : ''); return '<div class="mcm-related-title ' + style + '">' + collectionMemberPoster(title) + '<div class="mcm-related-title-text"><strong>' + escapeHtml(prop(title, 'Name')) + '</strong><div class="fieldDescription">' + escapeHtml(info) + '</div>' + (prop(title, 'Overview') ? '<div class="fieldDescription">' + escapeHtml(prop(title, 'Overview')) + '</div>' : '') + '</div></div>'; }).join('') || '<span class="fieldDescription">No saved titles.</span>'; }
         function collectionPageControls(result) { if (!result || Number(prop(result, 'TotalItems')) <= Number(prop(result, 'PageSize'))) return ''; var pageNumber = Number(prop(result, 'Page') || 1), pages = Math.max(1, Math.ceil(Number(prop(result, 'TotalItems')) / Number(prop(result, 'PageSize')))); return '<div class="mcm-actions"><button is="emby-button" type="button" class="raised" data-collection-overview-page="' + (pageNumber - 1) + '"' + (pageNumber <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + pageNumber + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-collection-overview-page="' + (pageNumber + 1) + '"' + (pageNumber >= pages ? ' disabled' : '') + '>Next Page</button></div>'; }
@@ -497,7 +497,7 @@
         function resetCollectionEditor(id) { collectionEditor = { id:id, selected:{}, page:1, originalName:'', pendingRemovals:{}, pendingAdds:[] }; }
         function createNativeDialog(id, title, body, footer) {
             var dialog = Dashboard.dialogHelper.createDialog({ id:id, size:'small', removeOnClose:true, scrollY:false });
-            dialog.classList.add('ui-body-a'); dialog.classList.add('background-theme-a'); dialog.classList.add('formDialog');
+            dialog.classList.add('ui-body-a'); dialog.classList.add('background-theme-a'); dialog.classList.add('formDialog'); dialog.classList.add('mcm-collection-dialog');
             dialog.innerHTML = '<div class="formDialogHeader"><h3 class="formDialogHeaderTitle">' + escapeHtml(title) + '</h3></div><div class="formDialogContent smoothScrollY"><div class="dialogContentInner dialog-content-centered" style="padding-top:1em;">' + body + '</div></div><div class="formDialogFooter">' + footer + '</div>';
             return dialog;
         }
@@ -526,7 +526,7 @@
             get('collection-overview/collection?collectionId=' + encodeURIComponent(id) + '&page=' + collectionEditor.page + '&pageSize=50').then(function (result) {
                 var dialog = collectionEditorDialog; if (!dialog) return; var name = prop(result, 'Name') || ''; if (!collectionEditor.originalName) { collectionEditor.originalName = name; dialog.querySelector('#collectionEditorName').value = name; }
                 dialog.querySelector('.formDialogHeaderTitle').textContent = 'Edit ' + name + ' Collection'; dialog.querySelector('[data-editor-count]').textContent = 'Collection item(s): ' + Math.max(0, Number(prop(result, 'TotalItems') || 0) - Object.keys(collectionEditor.pendingRemovals).length);
-                var items = (prop(result, 'Items') || []).filter(function (item) { return !collectionEditor.pendingRemovals[String(prop(item, 'Id'))]; }); dialog.querySelector('[data-editor-items]').innerHTML = items.map(function (item) { var itemId = String(prop(item, 'Id')); return '<label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" data-editor-item="' + escapeHtml(itemId) + '"' + (collectionEditor.selected[itemId] ? ' checked' : '') + ' /> ' + jellyfinPoster(itemId) + '<span>' + escapeHtml(prop(item, 'Name')) + '</span></label>'; }).join('') || '<p class="fieldDescription">This collection currently has no media items.</p>';
+                var items = (prop(result, 'Items') || []).filter(function (item) { return !collectionEditor.pendingRemovals[String(prop(item, 'Id'))]; }); dialog.querySelector('[data-editor-items]').innerHTML = items.map(function (item) { var itemId = String(prop(item, 'Id')); return '<label class="checkboxContainer mcm-picker-item"><input is="emby-checkbox" type="checkbox" data-editor-item="' + escapeHtml(itemId) + '"' + (collectionEditor.selected[itemId] ? ' checked' : '') + ' />' + jellyfinPoster(itemId, 'mcm-picker-poster') + '<span>' + escapeHtml(prop(item, 'Name')) + '</span></label>'; }).join('') || '<p class="fieldDescription">This collection currently has no media items.</p>';
                 var pageNumber = Number(prop(result, 'Page') || 1), pages = Math.max(1, Math.ceil(Number(prop(result, 'TotalItems') || 0) / Number(prop(result, 'PageSize') || 50))); dialog.querySelector('[data-editor-pages]').innerHTML = '<button is="emby-button" type="button" class="raised" data-editor-page="' + (pageNumber - 1) + '"' + (pageNumber <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + pageNumber + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-editor-page="' + (pageNumber + 1) + '"' + (pageNumber >= pages ? ' disabled' : '') + '>Next Page</button><button is="emby-button" type="button" class="raised" data-editor-select-all>Select All</button><button is="emby-button" type="button" class="raised" data-editor-select-none>Select None</button>';
             }, function (error) { Dashboard.alert('Could not open this collection: ' + err(error)); closeNativeDialog(collectionEditorDialog); });
         }
@@ -542,7 +542,7 @@
         }
         function openCollectionTargetDialog() {
             var footer = '<button is="emby-button" type="button" class="raised button-submit formDialogFooterItem formDialogFooterItem-autosize" data-target-add>Add to Collection</button><button is="emby-button" type="button" class="raised formDialogFooterItem formDialogFooterItem-autosize" data-target-close>Close</button>';
-            var body = '<p class="fieldDescription">Choose a collection. Collection posters are shown when available.</p><div data-target-choices class="mcm-target-picker"></div><div data-target-pages class="mcm-pagination"></div>';
+            var body = '<div data-target-choices class="mcm-target-picker"></div><div data-target-pages class="mcm-pagination"></div>';
             collectionTargetDialog = createNativeDialog('collectionTargetDialog', 'Add Selected Media to Collection', body, footer);
             collectionTargetDialog.addEventListener('close', function () { collectionTargetDialog = null; });
             collectionTargetDialog.addEventListener('change', function (event) { if (event.target.name === 'collectionTarget') collectionTarget.id = event.target.value; });
@@ -553,7 +553,7 @@
             collectionTarget.page = Math.max(1, Number(requestedPage) || 1);
             get('collection-overview/targets?page=' + collectionTarget.page + '&pageSize=30').then(function (result) {
                 if (!collectionTargetDialog) return; var items = prop(result, 'Items') || [];
-                collectionTargetDialog.querySelector('[data-target-choices]').innerHTML = items.map(function (item) { var id = String(prop(item, 'Id')); return '<label class="checkboxContainer"><input is="emby-checkbox" type="radio" name="collectionTarget" value="' + escapeHtml(id) + '"' + (collectionTarget.id === id ? ' checked' : '') + ' />' + jellyfinPoster(prop(item, 'PosterItemId') || id) + '<span>' + escapeHtml(prop(item, 'Name')) + '</span></label>'; }).join('') || '<p class="fieldDescription">No collections are available.</p>';
+                collectionTargetDialog.querySelector('[data-target-choices]').innerHTML = items.map(function (item) { var id = String(prop(item, 'Id')); return '<label class="checkboxContainer mcm-picker-item"><input is="emby-checkbox" type="radio" name="collectionTarget" value="' + escapeHtml(id) + '"' + (collectionTarget.id === id ? ' checked' : '') + ' />' + jellyfinPoster(prop(item, 'PosterItemId') || id, 'mcm-picker-poster') + '<span>' + escapeHtml(prop(item, 'Name')) + '</span></label>'; }).join('') || '<p class="fieldDescription">No collections are available.</p>';
                 var current = Number(prop(result, 'Page') || 1), pages = Math.max(1, Math.ceil(Number(prop(result, 'TotalItems') || 0) / Number(prop(result, 'PageSize') || 30))); collectionTargetDialog.querySelector('[data-target-pages]').innerHTML = '<button is="emby-button" type="button" class="raised" data-target-page="' + (current - 1) + '"' + (current <= 1 ? ' disabled' : '') + '>Previous Page</button><span class="fieldDescription">Page ' + current + ' of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-target-page="' + (current + 1) + '"' + (current >= pages ? ' disabled' : '') + '>Next Page</button>';
             }, function (error) { if (collectionTargetDialog) collectionTargetDialog.querySelector('[data-target-choices]').innerHTML = '<p class="fieldDescription">Could not load collections: ' + escapeHtml(err(error)) + '</p>'; });
         }

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.0.29] - 2026-07-29
+
+### Fixed
+
+- Applied the compact picker CSS directly to native Jellyfin dialogs, which are
+  outside the dashboard page element and therefore were unaffected by the prior
+  page-scoped rules.
+
+### Changed
+
+- Collection Editor and Add to Collection pickers now show a two-column grid of
+  small poster thumbnails, titles, and checkboxes/radio pickers only. Their
+  item descriptions are omitted.
+
 ## [0.1.0.28] - 2026-07-29
 
 ### Changed

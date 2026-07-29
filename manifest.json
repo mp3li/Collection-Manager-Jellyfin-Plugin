@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.28",
-        "changelog": "Makes Collection Editor and Add to Collection picker posters compact thumbnails beside their selectable titles.",
+        "version": "0.1.0.29",
+        "changelog": "Fixes popup picker styling by applying a two-column small-poster title picker directly to native Jellyfin dialogs.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.28/CollectionManager_0.1.0.28.zip",
-        "checksum": "6ed6ce6077fe5b7cc9e040e23608a4fe",
-        "timestamp": "2026-07-29T07:18:52Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.29/CollectionManager_0.1.0.29.zip",
+        "checksum": "f13c152fa410c461e88b40b1a6d00bb0",
+        "timestamp": "2026-07-29T07:28:58Z"
       }
     ]
   }
