@@ -35,20 +35,22 @@ Manager works especially well with those values, but it is not
 limited to them: it reads every available metadata value from the selected
 libraries.
 
-## Current five-tab build
+## Current six-tab development build
 
 | Dashboard tab | What it does |
 | --- | --- |
 | **Main Settings** | Select libraries, save the newly-added-media preference, scan the local read-only metadata catalog, and inspect the saved most-recent scan in a paginated library overview. |
+| **Create Manual Collections** | Open any Jellyfin library, pick media from one or more libraries, review one titled draft, and create one ordinary Jellyfin collection. This tab is part of the next private-testing build. |
 | **Create Individual Tag Collections** | Select values such as `Horror`, `Netflix`, or `A24` and make one independently titled, reviewed native collection draft for each value. |
 | **Create Combined Tag Collections** | Select two or more values and make one collection containing the unique union of media matching any selected value. |
 | **Create Multi-Match Tag Collections** | Select two or more values and make one collection containing only media matching every selected value. |
 | **Collection Overview & Editor** | Save a flat scan of all native Jellyfin collections, review current and latest-scan changes, and edit collection titles and membership in bulk. |
 
-All collection workflows provide matching counts, grouped previews, editable
-titles, additional-library scope, visible same-title conflict choices, and
-creation outcomes. Collections remain standard Jellyfin collections, so their
-normal Jellyfin artwork, image, and three-dot-menu controls remain available.
+The tag-based collection workflows provide matching counts, grouped previews,
+editable titles, additional-library scope, visible same-title conflict choices,
+and creation outcomes. Collections remain standard Jellyfin collections, so
+their normal Jellyfin artwork, image, and three-dot-menu controls remain
+available.
 
 ## Metadata and privacy boundary
 
@@ -59,9 +61,10 @@ latest completed catalog only in Collection Manager's local Jellyfin plugin
 data and does all matching on the server. The catalog and dashboard previews do
 not expose media paths.
 
-The plugin does not silently duplicate or alter a same-title collection. When a
-title already exists, the dashboard shows an in-page choice to use the existing
-collection unchanged, skip the draft, or revise the draft title.
+The tag-based collection workflows do not silently duplicate or alter a
+same-title collection. When a title already exists, the dashboard shows an
+in-page choice to use the existing collection unchanged, skip the draft, or
+revise the draft title.
 
 ## Requirements
 
@@ -98,14 +101,15 @@ https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/
 ```
 
 In Jellyfin, open **Dashboard → Plugins → Repositories**, add that URL, then
-install the **0.1.0.31 Private Testing** prerelease from the catalog. Restart
+install the **0.1.0.31 Private Testing** prerelease from the catalog. That
+published build predates the unreleased Create Manual Collections tab. Restart
 Jellyfin and record the real server results in the testing tracker.
 
 ## Private test tracking
 
-The five-tab implementation has automated build and JavaScript syntax checks.
+The six-tab development build has automated build and JavaScript syntax checks.
 Private Jellyfin installation and behavior must still be recorded before calling
-the runtime behavior complete. Use the [testing tracker](Documentation/goal-testing.txt)
+any runtime behavior complete. Use the [testing tracker](Documentation/goal-testing.txt)
 for the actual server results.
 
 ## Project documents

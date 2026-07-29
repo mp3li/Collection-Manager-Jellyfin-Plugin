@@ -3,8 +3,8 @@
         #collectionManagerPage .mcm-section { border:1px solid rgba(255,255,255,.16); border-radius:.65em; padding:1.25em; margin:0 0 1.25em; }
         #collectionManagerPage .mcm-section h2 { font-size:1.35em; line-height:1.25; margin:0 0 .35em; }
         #collectionManagerPage .mcm-tabs { display:flex; flex-wrap:nowrap; gap:.5em; overflow-x:auto; overscroll-behavior-x:contain; border-bottom:1px solid rgba(255,255,255,.16); margin:1.5em 0; padding-bottom:.15em; }
-        #collectionManagerPage .mcm-tab { flex:0 0 auto; white-space:nowrap; border:1px solid rgba(255,255,255,.28); border-radius:.45em; padding:.85em 1.25em; background:transparent; color:inherit; cursor:pointer; font-size:1em; }
-        #collectionManagerPage .mcm-tab.active { background:#00a4dc; border-color:#00a4dc; color:#fff; font-weight:bold; }
+        #collectionManagerPage .mcm-tab { flex:0 0 auto; white-space:nowrap; border:0; border-radius:.45em .45em 0 0; padding:.85em 1.25em; background:rgba(255,255,255,.08); color:inherit; cursor:pointer; font-size:1em; }
+        #collectionManagerPage .mcm-tab.active { background:#00a4dc; color:#fff; font-weight:bold; }
         #collectionManagerPage .mcm-panel { display:none; }
         #collectionManagerPage .mcm-panel.active { display:block; }
         #collectionManagerPage .mcm-actions { display:flex; flex-wrap:wrap; gap:.65em; margin-top:1em; }
@@ -37,6 +37,9 @@
         #collectionManagerPage .mcm-collection-members[hidden] { display:none !important; }
         #collectionManagerPage .mcm-collection-member-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1em 1.25em; }
         #collectionManagerPage .mcm-collection-member-grid .mcm-related-title { margin:0; }
+        #collectionManagerPage .mcm-manual-picker .mcm-related-title { align-items:flex-start; }
+        #collectionManagerPage .mcm-manual-picker .checkboxContainer { flex:0 0 auto; margin:.15em 0 0; }
+        #collectionManagerPage .mcm-manual-remove { margin-left:.55em; }
         @media (max-width:55em) { #collectionManagerPage .mcm-collection-overview-entry.mcm-collection-expanded { display:block; } #collectionManagerPage .mcm-collection-member-grid { grid-template-columns:1fr; margin-top:1em; } }
         #collectionManagerPage .mcm-overview-content[hidden] { display:none !important; }
         #collectionManagerPage .mcm-library-overview { margin-top:1em; }
@@ -78,6 +81,7 @@
 
         <div class="mcm-tabs mcm-tabs-primary" role="tablist" aria-label="Collection Manager sections">
             <button type="button" class="mcm-tab active" data-tab="main" role="tab" aria-selected="true">Main Settings</button>
+            <button type="button" class="mcm-tab" data-tab="manual" role="tab" aria-selected="false">Create Manual Collections</button>
             <button type="button" class="mcm-tab" data-tab="individual" role="tab" aria-selected="false">Create Individual Tag Collections</button>
             <button type="button" class="mcm-tab" data-tab="combined" role="tab" aria-selected="false">Create Combined Tag Collections</button>
             <button type="button" class="mcm-tab" data-tab="multi" role="tab" aria-selected="false">Create Multi-Match Tag Collections</button>
@@ -131,6 +135,12 @@
             </div>
         </section>
         </div>
+        </div>
+
+        <div class="mcm-panel" data-panel="manual">
+            <section class="mcm-section"><h2>Select Media</h2><p class="fieldDescription">Select media from any combination of your Jellyfin libraries to create a manual collection. Every selected media item will be added to one collection draft below. After you finish creating your manual collection, your selections will erase so you can make another manual collection.</p><div id="manualCollectionLibraryPickers"><p class="fieldDescription">Open a library to choose media for your manual collection.</p></div></section>
+            <section class="mcm-section"><h2>Individual Collection Drafts</h2><p class="fieldDescription">Review and customize the title and content before creating your manual collection.</p><div id="manualCollectionDraft"><p class="fieldDescription">No collection drafts are currently selected.</p></div></section>
+            <section class="mcm-section"><h2>Create Manual Collections</h2><p class="fieldDescription">Create a manual collection with the chosen title and every selected media item shown above.</p><div class="mcm-actions"><button is="emby-button" type="button" class="raised button-submit" id="createManualCollectionButton">Create Manual Collection</button></div><p id="manualCollectionStatus" class="fieldDescription" aria-live="polite">No collection drafts are currently selected.</p></section>
         </div>
 
         <div class="mcm-panel" data-panel="individual">
@@ -345,6 +355,51 @@
         function catalogLibraryName(id) { var library = libraries.filter(function (candidate) { return String(prop(candidate, 'ItemId')) === String(id); })[0]; return library ? prop(library, 'Name') : 'Selected library'; }
         function selectedSavedLibraries() { return (config.LibraryIds || []).map(String); }
         function draftRequest(draft) { return { SourceLibraryId: draft.sourceLibraryId, MetadataType: draft.metadataType, MetadataValue: draft.metadataValue, AdditionalLibraryIds: draft.additionalLibraryIds, CollectionTitle: draft.collectionTitle, ExistingCollectionAction: individualConflictActions[draft.key] || '' }; }
+
+        var manualCollectionDraft = { title:'', selected:{} }, manualLibraryItems = {};
+        function manualSelectedItems() { return Object.keys(manualCollectionDraft.selected).map(function (id) { return manualCollectionDraft.selected[id]; }); }
+        function manualPickerPoster(item) { return prop(item, 'HasPrimaryImage') ? jellyfinPoster(prop(item, 'Id')) : ''; }
+        function manualPickerItem(item, includePicker) {
+            var id = String(prop(item, 'Id')), selected = manualCollectionDraft.selected[id], year = prop(item, 'ProductionYear'), type = prop(item, 'Type'), info = (year ? ' (' + year + ')' : '') + (type ? ' · ' + type : ''), title = '<div class="mcm-related-title">' + manualPickerPoster(item) + '<div class="mcm-related-title-text"><strong>' + escapeHtml(prop(item, 'Name')) + '</strong>' + (includePicker ? '' : '<button is="emby-button" type="button" class="raised mcm-manual-remove" data-manual-remove="' + escapeHtml(id) + '">Remove</button>') + '<div class="fieldDescription">' + escapeHtml(info) + '</div>' + (prop(item, 'Overview') ? '<div class="fieldDescription">' + escapeHtml(prop(item, 'Overview')) + '</div>' : '') + '</div></div>';
+            return includePicker ? '<label class="checkboxContainer mcm-related-title"><input is="emby-checkbox" type="checkbox" data-manual-item="' + escapeHtml(id) + '"' + (selected ? ' checked' : '') + ' />' + title + '</label>' : title;
+        }
+        function renderManualLibraryPickers() {
+            var host = $('#manualCollectionLibraryPickers');
+            host.innerHTML = libraries.length ? libraries.map(function (library) { var id = String(prop(library, 'ItemId')); return '<div class="mcm-library-overview" data-manual-library="' + escapeHtml(id) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(prop(library, 'Name')) + '</h3><button is="emby-button" type="button" class="raised" data-toggle-manual-library="' + escapeHtml(id) + '">Click here to expand</button></div><div class="mcm-picker-library-content mcm-manual-picker" data-manual-library-content="' + escapeHtml(id) + '" hidden></div></div>'; }).join('') : '<p class="fieldDescription">No Jellyfin libraries were found.</p>';
+        }
+        function renderManualLibraryItems(libraryId) {
+            var host = page.querySelector('[data-manual-library-content="' + libraryId + '"]'), items = manualLibraryItems[libraryId] || [];
+            if (!host) { return; }
+            host.innerHTML = items.length ? '<div class="mcm-collection-member-grid">' + items.map(function (item) { return manualPickerItem(item, true); }).join('') + '</div>' : '<p class="fieldDescription">No selectable media was found in this library.</p>';
+        }
+        function loadManualLibraryItems(libraryId) {
+            var host = page.querySelector('[data-manual-library-content="' + libraryId + '"]');
+            if (!host) { return; }
+            if (manualLibraryItems[libraryId]) { renderManualLibraryItems(libraryId); return; }
+            host.innerHTML = '<p class="fieldDescription">Loading library media…</p>';
+            get('manual-collections/library-items?libraryId=' + encodeURIComponent(libraryId)).then(function (result) {
+                manualLibraryItems[libraryId] = prop(result, 'Items') || [];
+                renderManualLibraryItems(libraryId);
+            }, function (error) { host.innerHTML = '<p class="fieldDescription">Could not load library media: ' + escapeHtml(err(error)) + '</p>'; });
+        }
+        function renderManualDraft() {
+            var host = $('#manualCollectionDraft'), items = manualSelectedItems(), count = items.length;
+            host.innerHTML = count ? '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="manualCollectionTitle">Collection Title</label><input is="emby-input" id="manualCollectionTitle" type="text" value="' + escapeHtml(manualCollectionDraft.title) + '" /></div><p class="fieldDescription">This collection will include ' + count + ' selected media item' + (count === 1 ? '' : 's') + '.</p><div class="mcm-collection-member-grid">' + items.map(function (item) { return manualPickerItem(item, false); }).join('') + '</div>' : '<p class="fieldDescription">No collection drafts are currently selected.</p>';
+        }
+        function syncManualPickerSelection(id) {
+            Array.prototype.forEach.call(page.querySelectorAll('[data-manual-item="' + CSS.escape(String(id)) + '"]'), function (input) { input.checked = !!manualCollectionDraft.selected[id]; });
+        }
+        function createManualCollection() {
+            var items = manualSelectedItems(), title = manualCollectionDraft.title.trim();
+            if (!items.length || !title) { Dashboard.alert('Select one or more media items and enter a collection title.'); return; }
+            $('#createManualCollectionButton').disabled = true;
+            $('#manualCollectionStatus').textContent = 'Creating manual collection…';
+            send('POST', 'collections', { Name:title, ItemIds:items.map(function (item) { return prop(item, 'Id'); }) }).then(function (result) {
+                manualCollectionDraft = { title:'', selected:{} }; manualLibraryItems = {}; renderManualLibraryPickers(); renderManualDraft();
+                $('#manualCollectionStatus').textContent = 'Created ' + (prop(result, 'Name') || title) + ' with ' + items.length + ' selected media item' + (items.length === 1 ? '' : 's') + '.';
+                $('#createManualCollectionButton').disabled = false;
+            }, function (error) { $('#manualCollectionStatus').textContent = 'Manual collection could not be created: ' + err(error); $('#createManualCollectionButton').disabled = false; });
+        }
 
         function renderIndividualLibraryPickers() {
             var ids = selectedSavedLibraries(), host = $('#individualTagLibraryPickers');
@@ -579,7 +634,26 @@
         });
         $('#metadataOverviewGroups').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-library]')) { var id = target.getAttribute('data-toggle-library'), content = page.querySelector('[data-catalog-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; } if (target.matches('[data-toggle-overview-type]')) { var typeSection = target.closest('[data-overview-type]'), typeContent = typeSection.querySelector('.mcm-overview-type-content'), typeExpanded = !typeContent.hidden; typeContent.hidden = typeExpanded; target.textContent = typeExpanded ? 'Click here to expand' : 'Click here to collapse'; if (!typeExpanded) { loadOverviewValues(typeSection, 1); } } if (target.matches('[data-overview-values-page]')) { event.preventDefault(); target.blur(); loadOverviewValues(target.closest('[data-overview-type]'), Number(target.getAttribute('data-overview-values-page'))); } });
         $('#metadataOverviewGroups').addEventListener('input', function (event) { if (event.target.matches('[data-overview-tag-search]')) { var section = event.target.closest('[data-overview-type]'); window.clearTimeout(event.target.searchTimer); event.target.searchTimer = window.setTimeout(function () { loadOverviewValues(section, 1); }, 250); } });
-        Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (button) { button.addEventListener('click', function () { var selectedTab=button.getAttribute('data-tab'); Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (tab) { var active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', active ? 'true' : 'false'); }); Array.prototype.forEach.call(page.querySelectorAll('.mcm-panel'), function (panel) { panel.classList.toggle('active', panel.getAttribute('data-panel') === selectedTab); }); if (selectedTab === 'individual') { renderIndividualLibraryPickers(); renderIndividualDrafts(); } if (selectedTab === 'combined' || selectedTab === 'multi') { renderMode(selectedTab); } if (selectedTab === 'overview') { loadCollectionOverviewStatus(); if (!$('#collectionsOverviewContent').hidden) loadCollectionOverview(); } }); });
+        Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (button) { button.addEventListener('click', function () { var selectedTab=button.getAttribute('data-tab'); Array.prototype.forEach.call(page.querySelectorAll('.mcm-tab'), function (tab) { var active = tab === button; tab.classList.toggle('active', active); tab.setAttribute('aria-selected', active ? 'true' : 'false'); }); Array.prototype.forEach.call(page.querySelectorAll('.mcm-panel'), function (panel) { panel.classList.toggle('active', panel.getAttribute('data-panel') === selectedTab); }); if (selectedTab === 'manual') { renderManualLibraryPickers(); renderManualDraft(); } if (selectedTab === 'individual') { renderIndividualLibraryPickers(); renderIndividualDrafts(); } if (selectedTab === 'combined' || selectedTab === 'multi') { renderMode(selectedTab); } if (selectedTab === 'overview') { loadCollectionOverviewStatus(); if (!$('#collectionsOverviewContent').hidden) loadCollectionOverview(); } }); });
+        $('#manualCollectionLibraryPickers').addEventListener('click', function (event) {
+            var target = event.target.closest('button'); if (!target || !target.matches('[data-toggle-manual-library]')) { return; }
+            var id = target.getAttribute('data-toggle-manual-library'), content = page.querySelector('[data-manual-library-content="' + id + '"]'), expanded = !content.hidden;
+            content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse';
+            if (!expanded) { loadManualLibraryItems(id); }
+        });
+        $('#manualCollectionLibraryPickers').addEventListener('change', function (event) {
+            var target = event.target;
+            if (!target.matches('[data-manual-item]')) { return; }
+            var id = target.getAttribute('data-manual-item'), item;
+            Object.keys(manualLibraryItems).some(function (libraryId) { item = (manualLibraryItems[libraryId] || []).filter(function (candidate) { return String(prop(candidate, 'Id')) === id; })[0]; return !!item; });
+            if (!item) { return; }
+            if (target.checked) { manualCollectionDraft.selected[id] = item; }
+            else { delete manualCollectionDraft.selected[id]; }
+            renderManualDraft();
+        });
+        $('#manualCollectionDraft').addEventListener('input', function (event) { if (event.target.matches('#manualCollectionTitle')) { manualCollectionDraft.title = event.target.value; } });
+        $('#manualCollectionDraft').addEventListener('click', function (event) { var target = event.target.closest('button'); if (!target || !target.matches('[data-manual-remove]')) { return; } var id = target.getAttribute('data-manual-remove'); delete manualCollectionDraft.selected[id]; syncManualPickerSelection(id); renderManualDraft(); });
+        $('#createManualCollectionButton').addEventListener('click', createManualCollection);
         $('#individualTagLibraryPickers').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-picker-library]')) { var id = target.getAttribute('data-toggle-picker-library'), content = page.querySelector('[data-picker-library-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualTypes(id); } } if (target.matches('[data-toggle-tag-type]')) { var section = target.closest('[data-tag-type]'), content = section.querySelector('.mcm-tag-type-content'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualValues(section, 1); } } if (target.matches('[data-tag-values-page]')) { event.preventDefault(); target.blur(); loadIndividualValues(target.closest('[data-tag-type]'), Number(target.getAttribute('data-tag-values-page'))); } });
         $('#individualTagLibraryPickers').addEventListener('change', function (event) { if (event.target.matches('[data-individual-tag-value]')) { addOrRemoveDraft(event.target); } });
         $('#individualTagLibraryPickers').addEventListener('input', function (event) { if (event.target.matches('[data-tag-search]')) { var section = event.target.closest('[data-tag-type]'); window.clearTimeout(event.target.searchTimer); event.target.searchTimer = window.setTimeout(function () { loadIndividualValues(section, 1); }, 250); } });

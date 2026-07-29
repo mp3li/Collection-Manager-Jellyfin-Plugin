@@ -7,6 +7,7 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Model.Tasks;
+using MediaBrowser.Model.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -218,6 +219,32 @@ public sealed class CollectionManagerController : ControllerBase
     [HttpGet("items")]
     public ActionResult<IReadOnlyList<MediaSearchResult>> SearchItems([FromQuery] string? searchTerm) =>
         Ok(_reconciler.SearchMedia(searchTerm));
+
+    /// <summary>Returns the selectable media in one Jellyfin library for the manual collection picker.</summary>
+    [HttpGet("manual-collections/library-items")]
+    public IActionResult GetManualCollectionLibraryItems([FromQuery] Guid libraryId)
+    {
+        if (!HasOnlyKnownLibraries([libraryId]))
+        {
+            return BadRequest("The selected Jellyfin library is no longer available on this server.");
+        }
+
+        var items = _libraryManager.GetItemList(new InternalItemsQuery { ParentId = libraryId, Recursive = true })
+            .Where(item => item is not BoxSet && !item.IsFolder)
+            .OrderBy(item => item.SortName ?? item.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(item => new
+            {
+                item.Id,
+                item.Name,
+                Type = item.GetType().Name,
+                item.ProductionYear,
+                item.Overview,
+                HasPrimaryImage = item.HasImage(ImageType.Primary, 0),
+            })
+            .ToArray();
+
+        return Ok(new { LibraryId = libraryId, Items = items });
+    }
 
     /// <summary>Returns persisted automatic collection rules.</summary>
     [HttpGet("rules")]

@@ -1,5 +1,23 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Added Create Manual Collections directly after Main Settings. It reuses the
+  existing Collection Overview & Editor poster-led media presentation and native
+  Jellyfin collection creator: expand a library, choose media with picker
+  checkboxes, review one titled draft, remove selected items inline, and create
+  a standard collection from any combination of Jellyfin libraries.
+
+### Changed
+
+- Restored the dashboard tab shape to the exact shared Media Tagging Manager
+  tab rules. No other tab styling was changed.
+- Updated the current goals, private-testing tracker, and README to describe
+  the six-tab development scope, the unpaginated collapsed collection overview,
+  and the currently published versus unreleased private-testing build boundary.
+
 ## [0.1.0.31] - 2026-07-29
 
 ### Changed

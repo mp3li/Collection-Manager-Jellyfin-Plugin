@@ -15,9 +15,28 @@ such as Provider and Network; this plugin treats those values as ordinary
 metadata alongside every other metadata value already present in the library.
 Provider and Network remain separate metadata types.
 
+Documentation maintenance
+-------------------------
+Every confirmed administrator-facing feature, behavior correction, and visual
+requirement belongs in this file as part of the current product plan. Its
+corresponding private verification belongs in goal-testing.txt. The changelog
+records the implemented change, and README.md is updated whenever the public
+description, tab list, installation guidance, or user-facing behavior changes.
+An item is not described as runtime-complete until the private testing tracker
+records a real Jellyfin result.
+
+Dashboard visual system
+-----------------------
+- Match Media Tagging Manager's established shared dashboard hierarchy,
+  alignment, spacing, control styling, and tab shape wherever equivalent UI
+  exists. Do not introduce custom indentation, heading hierarchy, colors, or
+  tab treatments that do not exist in that companion plugin.
+- Use Jellyfin's native themed dialog support for dialogs so the active server
+  theme supplies readable background, text, and control colors.
+
 Current release scope
 ---------------------
-The complete current release is limited to these five dashboard tabs. Further
+The complete current release is limited to these six dashboard tabs. Further
 dashboard areas will be designed in a later planning round.
 
 1. Main Settings
@@ -37,9 +56,23 @@ dashboard areas will be designed in a later planning round.
      independently collapsible. Each metadata type is its own expandable tag
      picker containing actual metadata values—never media-title rows—with
      search, alphabetical values, matching-media counts, and fifty-tag pages.
-   - Provide the overview color control used by the dashboard style.
 
-2. Individual Tag Collections
+2. Create Manual Collections
+   - Show every Jellyfin library as an initially collapsed selectable-media
+     section. Opening a library loads its current media only when needed.
+   - Reuse the Collection Overview & Editor poster, title, type, year, and
+     overview presentation for library media, adding a picker checkbox for each
+     item and no collection-edit control.
+   - Maintain one manual collection draft across any combination of Jellyfin
+     libraries. Let the administrator enter a title and review every selected
+     media item before creation.
+   - Put a small inline Remove control beside every draft title. Removing an
+     item updates both the draft and its library picker selection.
+   - Create one ordinary native Jellyfin collection from the chosen title and
+     selected media, then clear the title and selections for the next manual
+     collection.
+
+3. Individual Tag Collections
    - Show every saved library as an initially collapsed selector section.
    - Load metadata types only when a library is expanded, and metadata values
      only when a type is expanded.
@@ -62,7 +95,7 @@ dashboard areas will be designed in a later planning round.
      progress and outcomes, and require a visible administrator choice before
      a same-title collection is used unchanged or skipped.
 
-3. Combined Tag Collections
+4. Combined Tag Collections
    - Reuse the full lazy, searchable, paginated metadata picker used by
      Individual Tag Collections.
    - Maintain one draft containing two or more selected metadata tags.
@@ -79,7 +112,7 @@ dashboard areas will be designed in a later planning round.
    - Clear a successfully created draft so the administrator can start the
      next combined collection.
 
-4. Multi-Match Tag Collections
+5. Multi-Match Tag Collections
    - Reuse the same full lazy, searchable, paginated metadata picker and
      shared-library scope as Combined Tag Collections.
    - Maintain one draft containing two or more selected metadata tags.
@@ -96,7 +129,7 @@ dashboard areas will be designed in a later planning round.
    - Clear a successfully created draft so the administrator can start the
      next multi-match collection.
 
-5. Collection Overview & Editor
+6. Collection Overview & Editor
    - Let an administrator choose to show collections made by this plugin,
      collections not made by this plugin, or both.
    - Scan and persist one flat overview of all current native Jellyfin
@@ -128,11 +161,12 @@ Native Jellyfin and safety requirements
 - The catalog and previews use only the most recent completed metadata scan,
   which is saved in Collection Manager's local Jellyfin plugin data so it can
   be reopened without rescanning.
-- Matching remains server-side and bounded: overview pages contain ten media
-  items and metadata-value pages contain fifty values.
-- No same-title collection is silently duplicated or changed. The visible
-  choices are to use the existing collection unchanged or skip the draft; an
-  administrator can also change the draft title.
+- Matching remains server-side. Metadata-value pages contain fifty values; the
+  flat collection overview keeps entries collapsed until individually opened.
+- Tag-based collection drafts never silently duplicate or change a same-title
+  collection. Their visible choices are to use the existing collection
+  unchanged or skip the draft; an administrator can also change the draft
+  title.
 - The plugin must not expose media paths, credentials, API keys, NFO contents,
   local logs, or other private runtime data in public project files.
 

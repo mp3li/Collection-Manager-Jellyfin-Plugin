@@ -12,7 +12,7 @@ Automated source checks
 [x] Release build completes with zero warnings and zero errors.
 [x] Embedded dashboard JavaScript passes syntax validation.
 [x] `git diff --check` reports no whitespace errors for the release changes.
-[x] Public-file audit confirms no credentials, private paths, media, NFOs, logs,
+[ ] Before a release, audit staged public files for credentials, private paths, media, NFOs, logs,
     build output, .DS_Store files, test artifacts, or release archives are staged.
 
 Private installation and dashboard availability
@@ -22,8 +22,14 @@ Private installation and dashboard availability
 [ ] Add the manifest to a private Jellyfin 10.11.11 server.
 [ ] Install the plugin through Jellyfin's repository interface.
 [ ] Restart Jellyfin and confirm Collection Manager appears in Dashboard.
-[ ] Open the plugin dashboard as an administrator and confirm all five tabs load.
+[ ] Open the plugin dashboard as an administrator and confirm all six tabs load.
 [ ] Confirm a manifest update detects and offers a newer compatible release.
+[ ] Confirm every dashboard tab uses the same tab shape as Media Tagging
+    Manager, including the inactive tab background, active fill, and squared
+    lower tab corners.
+[ ] Compare equivalent dashboard sections at the same viewport with Media
+    Tagging Manager: section alignment, heading hierarchy, spacing, controls,
+    and themed dialogs must use the same shared visual system.
 
 Main Settings
 -------------
@@ -49,7 +55,6 @@ Main Settings
     processing the entire scanned library again.
 [ ] After a Jellyfin restart, the last completed scan and its timestamp remain
     available without starting a new scan.
-[ ] Overview color saves and persists after reopening the dashboard.
 [ ] Select All, Select None, and Save Libraries appear together after the
     library picker, in that order.
 [ ] Cleanup performs only the selected actions, reports a result, and does not
@@ -75,6 +80,24 @@ Catalog fidelity and scale
     has a primary person image.
 [ ] Exercise a library with more than ten media items and a metadata type with
     more than fifty values; the dashboard must remain responsive.
+
+Create Manual Collections
+-------------------------
+[ ] The tab appears directly after Main Settings and every Jellyfin library is
+    initially collapsed.
+[ ] Expanding a library loads only that library's current selectable media and
+    displays the same poster, title, type, year, and overview details used by
+    Collections Overview & Editor, plus a picker checkbox and no edit button.
+[ ] Select media from more than one library and confirm all selected items
+    appear together in one manual collection draft.
+[ ] Confirm the editable collection title appears above the draft media and its
+    count says exactly how many selected media items will be included.
+[ ] Remove an item from the draft and confirm it is immediately removed from
+    the draft and unchecked in the already-open library picker.
+[ ] Creating a titled draft creates one ordinary native Jellyfin collection
+    containing every selected item, then clears the manual title and selections.
+[ ] Attempt creation without a title and without selected media; neither case
+    creates a native collection.
 
 Individual Tag Collections
 --------------------------
@@ -134,7 +157,8 @@ Collection Overview & Editor
 [ ] The saved flat all-collections overview remains available after leaving, reopening, and restarting Jellyfin without another scan.
 [ ] A new scan regenerates the saved overview using all current native Jellyfin collections, without library sub-sections.
 [ ] The Collections Overview & Editor starts collapsed and shows no library sub-sections.
-[ ] Overview paging shows no more than ten collections at a time and does not move the dashboard viewport.
+[ ] The flat overview has no collection pagination or collection-count/page-size
+    summary; all entries start collapsed and can be opened independently.
 [ ] Newly added collection names and media titles use the selected added color; newly removed names and titles use the selected removed color.
 [ ] The first-ever scan is a neutral baseline: existing collection names and media titles are not shown in the added color.
 [ ] Overview color choices persist after reopening the dashboard.
