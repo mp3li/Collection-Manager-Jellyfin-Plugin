@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.30",
-        "changelog": "Removes the unnecessary collection count and page-size summary from the collapsed Collections Overview & Editor list.",
+        "version": "0.1.0.31",
+        "changelog": "Loads the complete collapsed Collections Overview & Editor list without overview pagination; editor and collection-target pickers remain paginated.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.30/CollectionManager_0.1.0.30.zip",
-        "checksum": "0b37cb36ad7aa0917624d296dd8e5b68",
-        "timestamp": "2026-07-29T07:38:41Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.31/CollectionManager_0.1.0.31.zip",
+        "checksum": "0f62e6a8af8c01dadcab6abf20aab7d3",
+        "timestamp": "2026-07-29T07:49:24Z"
       }
     ]
   }

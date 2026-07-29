@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.0.31] - 2026-07-29
+
+### Changed
+
+- Collections Overview & Editor now loads its complete saved collection list at
+  once, with every collection collapsed by default. It no longer has overview
+  pagination. The Collection Editor and Add to Collection pickers retain their
+  independent pagination.
+
 ## [0.1.0.30] - 2026-07-29
 
 ### Changed

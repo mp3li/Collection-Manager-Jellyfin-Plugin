@@ -470,6 +470,16 @@ public sealed class CollectionManagerController : ControllerBase
         return Ok(new[] { new { LibraryId = Guid.Empty, TotalItems = FilterCollections(collections).Count } });
     }
 
+    /// <summary>Returns every saved collection-overview entry for the collapsed overview list.</summary>
+    [HttpGet("collection-overview/all")]
+    public IActionResult GetAllCollectionOverview()
+    {
+        var values = FilterCollections(_collectionOverview.GetSnapshot()?.Libraries.SelectMany(library => library.Collections) ?? [])
+            .OrderBy(collection => collection.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return Ok(new { Items = values, TotalItems = values.Length });
+    }
+
     /// <summary>Returns a bounded saved collection-overview page for one selected library.</summary>
     [HttpGet("collection-overview/page")]
     public IActionResult GetCollectionOverviewPage([FromQuery] Guid libraryId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
