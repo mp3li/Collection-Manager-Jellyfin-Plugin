@@ -72,14 +72,29 @@ public sealed class CollectionOverviewService
                     MadeByPlugin = managed.Contains(collection.Id),
                     Exists = true,
                     NewlyAdded = hasPriorSnapshot && oldCollection is null,
-                    Items = children.Select(item => new CollectionOverviewItemSnapshot { ItemId = item.Id, Name = item.Name, NewlyAdded = hasPriorSnapshot && !oldIds.Contains(item.Id) })
-                        .Concat((oldCollection?.Items ?? []).Where(item => !children.Any(current => current.Id == item.ItemId)).Select(item => new CollectionOverviewItemSnapshot { ItemId = item.ItemId, Name = item.Name, NewlyRemoved = true })).ToList(),
+                    Items = children.Select(item => new CollectionOverviewItemSnapshot
+                    {
+                        ItemId = item.Id,
+                        Name = item.Name,
+                        Type = item.GetType().Name,
+                        ProductionYear = item.ProductionYear,
+                        Overview = item.Overview,
+                        NewlyAdded = hasPriorSnapshot && !oldIds.Contains(item.Id),
+                    }).Concat((oldCollection?.Items ?? []).Where(item => !children.Any(current => current.Id == item.ItemId)).Select(item => new CollectionOverviewItemSnapshot
+                    {
+                        ItemId = item.ItemId,
+                        Name = item.Name,
+                        Type = item.Type,
+                        ProductionYear = item.ProductionYear,
+                        Overview = item.Overview,
+                        NewlyRemoved = true,
+                    })).ToList(),
                 });
             }
 
             foreach (var removed in priorCollections.Values.Where(old => !nextCollections.Any(current => current.CollectionId == old.CollectionId)))
             {
-                nextCollections.Add(new CollectionOverviewCollectionSnapshot { CollectionId = removed.CollectionId, Name = removed.Name, MadeByPlugin = removed.MadeByPlugin, Exists = false, NewlyRemoved = true, Items = removed.Items.Select(item => new CollectionOverviewItemSnapshot { ItemId = item.ItemId, Name = item.Name, NewlyRemoved = true }).ToList() });
+                nextCollections.Add(new CollectionOverviewCollectionSnapshot { CollectionId = removed.CollectionId, Name = removed.Name, MadeByPlugin = removed.MadeByPlugin, Exists = false, NewlyRemoved = true, Items = removed.Items.Select(item => new CollectionOverviewItemSnapshot { ItemId = item.ItemId, Name = item.Name, Type = item.Type, ProductionYear = item.ProductionYear, Overview = item.Overview, NewlyRemoved = true }).ToList() });
             }
 
             phase = "saving the collection overview";

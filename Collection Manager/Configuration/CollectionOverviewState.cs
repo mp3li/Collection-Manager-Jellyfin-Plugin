@@ -35,6 +35,9 @@ public sealed class CollectionOverviewItemSnapshot
 {
     public Guid ItemId { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public int? ProductionYear { get; set; }
+    public string Overview { get; set; } = string.Empty;
     public bool NewlyAdded { get; set; }
     public bool NewlyRemoved { get; set; }
 }

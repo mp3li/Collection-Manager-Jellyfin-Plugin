@@ -46,3 +46,6 @@ artifacts/
 Release/
 Releases/
 *.zip
+
+# Local visual references and screenshots supplied during private testing
+Screenshot *.png

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Corrected Collections Overview & Editor to its requested two-column layout:
+  **Collection Name**, with Edit Collection directly beneath each name, and
+  **Media in Collection**, containing the poster-led media list. Removed the
+  unrequested collection-item count column.
+
 ### Fixed
 
 - Replaced the custom Collection Overview editor and picker popups with the

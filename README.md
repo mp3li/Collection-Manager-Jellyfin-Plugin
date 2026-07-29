@@ -30,8 +30,8 @@ production company, and any number of other values without this plugin treating
 them as the same thing.
 
 [Media Tagging Manager](https://github.com/mp3li/Media-Tagging-Manager-Jellyfin-Plugin)
-can assign many useful existing tags, including provider and network tags. Media
-Collection Manager works especially well with those values, but it is not
+can assign many useful existing tags, including provider and network tags. Collection
+Manager works especially well with those values, but it is not
 limited to them: it reads every available metadata value from the selected
 libraries.
 
@@ -98,7 +98,7 @@ https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/
 ```
 
 In Jellyfin, open **Dashboard → Plugins → Repositories**, add that URL, then
-install the **0.1.0.23 Private Testing** prerelease from the catalog. Restart
+install the **0.1.0.24 Private Testing** prerelease from the catalog. Restart
 Jellyfin and record the real server results in the testing tracker.
 
 ## Private test tracking
