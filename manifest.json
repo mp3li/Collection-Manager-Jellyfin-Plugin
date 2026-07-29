@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.25",
-        "changelog": "Uses the Media Tagging Manager Recommendations and Similar Titles overview renderer directly for Collection Name and Media in Collection, with Edit Collection directly beneath each collection name.",
+        "version": "0.1.0.26",
+        "changelog": "Updates Collections Overview & Editor with collapsible collection sections, a two-column member grid, compact color controls, and no visible missing-poster text.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.25/CollectionManager_0.1.0.25.zip",
-        "checksum": "92373371c4cefa3cd84b4f8f3a33c7f3",
-        "timestamp": "2026-07-29T05:59:21Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.26/CollectionManager_0.1.0.26.zip",
+        "checksum": "7224922720bce444266b908fc59651f6",
+        "timestamp": "2026-07-29T06:29:43Z"
       }
     ]
   }

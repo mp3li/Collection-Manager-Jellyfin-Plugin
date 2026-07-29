@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0.26] - 2026-07-29
+
+### Changed
+
+- Updated Collections Overview & Editor with individually collapsible collection
+  sections, a two-column collection-member grid, compact matching color inputs,
+  and no visible missing-poster text.
+
 ## [0.1.0.25] - 2026-07-29
 
 ### Changed
