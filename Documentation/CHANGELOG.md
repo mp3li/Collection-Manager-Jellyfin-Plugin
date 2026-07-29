@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.0.33] - 2026-07-29
+
+### Fixed
+
+- Moved Collection Overview & Editor directly after Main Settings in the tab
+  row to reduce tab wrapping.
+- Changed Create Manual Collections to use each library's direct Jellyfin
+  items instead of a recursive leaf-item query. Television libraries now show
+  series as series rather than separate episodes, seasons, deleted scenes, or
+  other extras.
+- Renamed the single manual-draft section to **Individual Collection Draft**.
+
 ## [0.1.0.32] - 2026-07-29
 
 ### Added

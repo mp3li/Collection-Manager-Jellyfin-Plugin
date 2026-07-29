@@ -229,8 +229,10 @@ public sealed class CollectionManagerController : ControllerBase
             return BadRequest("The selected Jellyfin library is no longer available on this server.");
         }
 
-        var items = _libraryManager.GetItemList(new InternalItemsQuery { ParentId = libraryId, Recursive = true })
-            .Where(item => item is not BoxSet && !item.IsFolder)
+        // Manual collections choose library-level items. A recursive leaf query
+        // would expose episodes, seasons, and extras instead of one series.
+        var items = _libraryManager.GetItemList(new InternalItemsQuery { ParentId = libraryId, Recursive = false })
+            .Where(item => item is not BoxSet)
             .OrderBy(item => item.SortName ?? item.Name, StringComparer.OrdinalIgnoreCase)
             .Select(item => new
             {

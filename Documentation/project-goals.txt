@@ -59,13 +59,16 @@ dashboard areas will be designed in a later planning round.
 
 2. Create Manual Collections
    - Show every Jellyfin library as an initially collapsed selectable-media
-     section. Opening a library loads its current media only when needed.
+     section. Opening a library loads its current library-level media only when
+     needed: series appear once as series, never as individual episodes,
+     seasons, deleted scenes, or other extras.
    - Reuse the Collection Overview & Editor poster, title, type, year, and
      overview presentation for library media, adding a picker checkbox for each
      item and no collection-edit control.
    - Maintain one manual collection draft across any combination of Jellyfin
-     libraries. Let the administrator enter a title and review every selected
-     media item before creation.
+    libraries. Let the administrator enter a title and review every selected
+     media item before creation. Label this section Individual Collection Draft
+     because there is only one draft at a time.
    - Put a small inline Remove control beside every draft title. Removing an
      item updates both the draft and its library picker selection.
    - Create one ordinary native Jellyfin collection from the chosen title and
@@ -130,6 +133,8 @@ dashboard areas will be designed in a later planning round.
      next multi-match collection.
 
 6. Collection Overview & Editor
+   - Place this tab directly after Main Settings in the tab row so its longer
+     name does not create unnecessary wrapping at the end of the row.
    - Let an administrator choose to show collections made by this plugin,
      collections not made by this plugin, or both.
    - Scan and persist one flat overview of all current native Jellyfin

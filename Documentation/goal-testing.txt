@@ -83,13 +83,16 @@ Catalog fidelity and scale
 
 Create Manual Collections
 -------------------------
-[ ] The tab appears directly after Main Settings and every Jellyfin library is
-    initially collapsed.
+[ ] The Collection Overview & Editor tab appears directly after Main Settings.
+[ ] Create Manual Collections appears after Collection Overview & Editor, and
+    every Jellyfin library is initially collapsed.
 [ ] Expanding a library loads only that library's current selectable media and
     displays the same poster, title, type, year, and overview details used by
     Collections Overview & Editor, plus a picker checkbox and no edit button.
+[ ] A television library shows each series once and does not offer individual
+    episodes, seasons, deleted scenes, or other extras as separate choices.
 [ ] Select media from more than one library and confirm all selected items
-    appear together in one manual collection draft.
+    appear together in the singular Individual Collection Draft section.
 [ ] Confirm the editable collection title appears above the draft media and its
     count says exactly how many selected media items will be included.
 [ ] Remove an item from the draft and confirm it is immediately removed from

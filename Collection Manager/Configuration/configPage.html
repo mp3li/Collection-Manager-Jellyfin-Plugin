@@ -81,11 +81,11 @@
 
         <div class="mcm-tabs mcm-tabs-primary" role="tablist" aria-label="Collection Manager sections">
             <button type="button" class="mcm-tab active" data-tab="main" role="tab" aria-selected="true">Main Settings</button>
+            <button type="button" class="mcm-tab" data-tab="overview" role="tab" aria-selected="false">Collection Overview &amp; Editor</button>
             <button type="button" class="mcm-tab" data-tab="manual" role="tab" aria-selected="false">Create Manual Collections</button>
             <button type="button" class="mcm-tab" data-tab="individual" role="tab" aria-selected="false">Create Individual Tag Collections</button>
             <button type="button" class="mcm-tab" data-tab="combined" role="tab" aria-selected="false">Create Combined Tag Collections</button>
             <button type="button" class="mcm-tab" data-tab="multi" role="tab" aria-selected="false">Create Multi-Match Tag Collections</button>
-            <button type="button" class="mcm-tab" data-tab="overview" role="tab" aria-selected="false">Collection Overview &amp; Editor</button>
         </div>
 
         <div class="mcm-panel active" data-panel="main">
@@ -139,7 +139,7 @@
 
         <div class="mcm-panel" data-panel="manual">
             <section class="mcm-section"><h2>Select Media</h2><p class="fieldDescription">Select media from any combination of your Jellyfin libraries to create a manual collection. Every selected media item will be added to one collection draft below. After you finish creating your manual collection, your selections will erase so you can make another manual collection.</p><div id="manualCollectionLibraryPickers"><p class="fieldDescription">Open a library to choose media for your manual collection.</p></div></section>
-            <section class="mcm-section"><h2>Individual Collection Drafts</h2><p class="fieldDescription">Review and customize the title and content before creating your manual collection.</p><div id="manualCollectionDraft"><p class="fieldDescription">No collection drafts are currently selected.</p></div></section>
+            <section class="mcm-section"><h2>Individual Collection Draft</h2><p class="fieldDescription">Review and customize the title and content before creating your manual collection.</p><div id="manualCollectionDraft"><p class="fieldDescription">No collection drafts are currently selected.</p></div></section>
             <section class="mcm-section"><h2>Create Manual Collections</h2><p class="fieldDescription">Create a manual collection with the chosen title and every selected media item shown above.</p><div class="mcm-actions"><button is="emby-button" type="button" class="raised button-submit" id="createManualCollectionButton">Create Manual Collection</button></div><p id="manualCollectionStatus" class="fieldDescription" aria-live="polite">No collection drafts are currently selected.</p></section>
         </div>
 

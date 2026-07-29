@@ -40,11 +40,11 @@ libraries.
 | Dashboard tab | What it does |
 | --- | --- |
 | **Main Settings** | Select libraries, save the newly-added-media preference, scan the local read-only metadata catalog, and inspect the saved most-recent scan in a paginated library overview. |
-| **Create Manual Collections** | Open any Jellyfin library, pick media from one or more libraries, review one titled draft, and create one ordinary Jellyfin collection. |
+| **Collection Overview & Editor** | Save a flat scan of all native Jellyfin collections, review current and latest-scan changes, and edit collection titles and membership in bulk. |
+| **Create Manual Collections** | Open any Jellyfin library, pick library-level media from one or more libraries—such as series rather than episodes—review one titled draft, and create one ordinary Jellyfin collection. |
 | **Create Individual Tag Collections** | Select values such as `Horror`, `Netflix`, or `A24` and make one independently titled, reviewed native collection draft for each value. |
 | **Create Combined Tag Collections** | Select two or more values and make one collection containing the unique union of media matching any selected value. |
 | **Create Multi-Match Tag Collections** | Select two or more values and make one collection containing only media matching every selected value. |
-| **Collection Overview & Editor** | Save a flat scan of all native Jellyfin collections, review current and latest-scan changes, and edit collection titles and membership in bulk. |
 
 The tag-based collection workflows provide matching counts, grouped previews,
 editable titles, additional-library scope, visible same-title conflict choices,
@@ -101,7 +101,7 @@ https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/
 ```
 
 In Jellyfin, open **Dashboard → Plugins → Repositories**, add that URL, then
-install the **0.1.0.32 Private Testing** prerelease from the catalog. Restart
+install the **0.1.0.33 Private Testing** prerelease from the catalog. Restart
 Jellyfin and record the real server results in the testing tracker.
 
 ## Private test tracking

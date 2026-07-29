@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.32",
-        "changelog": "Adds Create Manual Collections with lazy all-library media pickers, one editable draft, inline removal, and native Jellyfin collection creation. Restores the shared Media Tagging Manager tab shape.",
+        "version": "0.1.0.33",
+        "changelog": "Moves Collection Overview & Editor after Main Settings. Manual collections now show direct library items, so series are selectable as series instead of episodes, seasons, or extras.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.32/CollectionManager_0.1.0.32.zip",
-        "checksum": "ba43b12eb2e5329b12e570cc4f8149a5",
-        "timestamp": "2026-07-29T08:27:53Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.33/CollectionManager_0.1.0.33.zip",
+        "checksum": "bd786377ebe3b3c3aaa5b9449427a51f",
+        "timestamp": "2026-07-29T08:38:26Z"
       }
     ]
   }
