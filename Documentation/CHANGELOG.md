@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0.30] - 2026-07-29
+
+### Changed
+
+- Removed the unnecessary total-collection and page-size summary from the
+  collapsed Collections Overview & Editor list.
+
 ## [0.1.0.29] - 2026-07-29
 
 ### Fixed
