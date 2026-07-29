@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Corrected Collection Overview & Editor to use the same poster-led related-title
+  presentation as the Media Tagging Manager overview. The saved overview remains
+  one flat list of all native Jellyfin collections; it does not divide collections
+  by library.
+- Corrected the visible collection total to use the returned overview page total,
+  rather than a separate count that could incorrectly show zero.
+- A first collection scan now establishes a neutral baseline. It no longer marks
+  every pre-existing collection and linked title as newly added, and snapshots
+  produced by the affected private-testing build are normalized on load.
+- Moved the collection editor dialogs into the same themed dashboard content
+  container used by Media Tagging Manager, restoring ordinary Jellyfin theme
+  background and text colors.
+
+### Changed
+
+- Collection editor media rows and the Add to Collection picker now use Jellyfin
+  posters when available. The picker is paginated at 30 collections per page.
+- Moved Select All and Select None beside the editor pagination controls.
+- Replaced Save Collection Title with Save. Rename, selected removals, and queued
+  additions are now applied together only when Save is clicked; Close discards
+  unsaved changes.
+
 ### Added
 
 - Added Collection Overview & Editor: saved selected-library collection scans,

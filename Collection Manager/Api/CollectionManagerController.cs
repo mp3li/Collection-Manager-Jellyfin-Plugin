@@ -504,11 +504,25 @@ public sealed class CollectionManagerController : ControllerBase
         });
     }
 
-    /// <summary>Returns all current collection titles for the editor's Add to Collection dialog.</summary>
+    /// <summary>Returns a bounded poster-capable collection picker page for the editor dialog.</summary>
     [HttpGet("collection-overview/targets")]
-    public IActionResult GetCollectionTargets() => Ok(_libraryManager.GetItemList(new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.BoxSet] })
-        .OfType<BoxSet>().OrderBy(collection => collection.Name, StringComparer.OrdinalIgnoreCase)
-        .Select(collection => new { collection.Id, collection.Name }).ToArray());
+    public IActionResult GetCollectionTargets([FromQuery] int page = 1, [FromQuery] int pageSize = 30, [FromQuery] string? searchTerm = null)
+    {
+        var values = _libraryManager.GetItemList(new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.BoxSet] })
+            .OfType<BoxSet>()
+            .Where(collection => string.IsNullOrWhiteSpace(searchTerm) || collection.Name.Contains(searchTerm.Trim(), StringComparison.OrdinalIgnoreCase))
+            .OrderBy(collection => collection.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var size = Math.Clamp(pageSize, 1, 50);
+        var currentPage = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(values.Length / (double)size)));
+        return Ok(new
+        {
+            Items = values.Skip((currentPage - 1) * size).Take(size).Select(collection => new { collection.Id, collection.Name, PosterItemId = collection.Id }).ToArray(),
+            TotalItems = values.Length,
+            Page = currentPage,
+            PageSize = size,
+        });
+    }
 
     /// <summary>Renames an existing native Jellyfin collection from its editor dialog.</summary>
     [HttpPost("collections/rename")]

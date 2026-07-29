@@ -132,16 +132,19 @@ Collection Overview & Editor
 [ ] Selected Collections Settings saves either collection type individually or both types together.
 [ ] Scan for Collections reports progress, a found-collection result, and the local last-scan date and time.
 [ ] The saved flat all-collections overview remains available after leaving, reopening, and restarting Jellyfin without another scan.
-[ ] A new scan regenerates the saved overview using the current selected-library collection state.
+[ ] A new scan regenerates the saved overview using all current native Jellyfin collections, without library sub-sections.
 [ ] The Collections Overview & Editor starts collapsed and shows no library sub-sections.
 [ ] Overview paging shows no more than ten collections at a time and does not move the dashboard viewport.
 [ ] Newly added collection names and media titles use the selected added color; newly removed names and titles use the selected removed color.
+[ ] The first-ever scan is a neutral baseline: existing collection names and media titles are not shown in the added color.
 [ ] Overview color choices persist after reopening the dashboard.
+[ ] Collection media in the overview uses Jellyfin posters when a primary image is available.
 [ ] Edit Collection opens the correct titled dialog with a current collection title and item count.
-[ ] Media in collection loads in bounded lazy pages inside the scrollable picker.
-[ ] Select All, Select None, Remove from Collection, and Add to Collection operate on the selected current-page and previously selected media items as intended.
-[ ] Add to Collection opens a native collection picker and adds selected media only to the chosen collection.
-[ ] Saving a collection title changes the normal native Jellyfin collection name.
+[ ] The editor dialog's background, text, labels, and controls are readable in the active Jellyfin dashboard theme.
+[ ] Media in collection loads in bounded lazy pages inside the scrollable picker and uses posters when available.
+[ ] Select All and Select None appear beside the editor paging controls and operate on selected current-page and previously selected media items as intended.
+[ ] Add to Collection opens a poster-capable native collection picker, shows thirty collections per page, and queues only the chosen media for the chosen collection.
+[ ] Save applies the edited native collection title, selected removals, and queued additions together; Close makes no server-side collection change.
 [ ] Undo Last Collection Action reverses the last recorded create, membership, or title action without touching media files.
 [ ] Remove All Collections Made By This Plugin removes only collections recorded as plugin-made.
 [ ] Remove All Media Additions To Existing Collections Not Made by This Plugin removes only recorded plugin additions to non-plugin collections.

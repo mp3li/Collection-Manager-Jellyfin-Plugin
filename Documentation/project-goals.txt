@@ -101,9 +101,9 @@ dashboard areas will be designed in a later planning round.
      collections not made by this plugin, or both.
    - Scan and persist one flat overview of all current native Jellyfin
      collections, with a
-     completion result and last-scan date and time. A later scan replaces the
-     saved overview; reopening the dashboard uses the saved overview until an
-     administrator scans again.
+  completion result and last-scan date and time. A later scan replaces the
+  saved overview; reopening the dashboard uses the saved overview until an
+  administrator scans again. The scan is not divided by library.
    - Provide an initially collapsed overview using the same expandable section
      pattern as Media Tagging Manager's Recommendations and Similar Titles
      overview, without library sub-sections. Show newly added collection names and media
@@ -111,9 +111,10 @@ dashboard areas will be designed in a later planning round.
      the selected removed color.
    - Let the administrator edit a current collection's title and browse its
      media items in a scrollable, lazy-loaded, paginated picker. Provide Select
-     All, Select None, Remove from Collection, and Add to Collection actions.
-     Add to Collection opens a collection picker before adding the selected
-     media to the selected native Jellyfin collection.
+  All, Select None, Remove from Collection, and Add to Collection actions.
+  Use Jellyfin posters when available. Add to Collection opens a poster-capable,
+  thirty-collection-per-page picker. Save applies title and membership changes
+  together; Close discards unsaved changes.
    - Provide Collection Manager cleanup choices to undo the last recorded
      collection action, remove collections recorded as made by this plugin, and
      remove media additions recorded as made by this plugin to existing
@@ -141,5 +142,5 @@ Compatibility and packaging requirements
 - Target the Jellyfin 10.11 ABI declared by the package metadata.
 - Preserve the Collection Manager Noncommercial License 1.0.
 - A repository manifest is created only for a real release ZIP. Its version,
-  target ABI, framework, release source URL, SHA-256 checksum, timestamp,
+  target ABI, framework, release source URL, MD5 checksum, timestamp,
   description, branding image, and changelog must describe that exact artifact.

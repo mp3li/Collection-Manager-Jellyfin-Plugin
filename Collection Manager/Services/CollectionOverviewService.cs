@@ -51,6 +51,9 @@ public sealed class CollectionOverviewService
             var allCollections = _libraryManager.GetItemList(new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.BoxSet] }).OfType<BoxSet>().ToArray();
             phase = "reading the previous saved collection overview";
             var prior = GetSnapshot();
+            // The first scan establishes the baseline. It must not paint every
+            // collection and linked item as newly added.
+            var hasPriorSnapshot = prior is not null;
             var priorCollections = prior?.Libraries.SelectMany(library => library.Collections).GroupBy(collection => collection.CollectionId).ToDictionary(group => group.Key, group => group.First()) ?? [];
             var managed = configuration.PluginManagedCollectionIds.Concat(configuration.Rules.Where(rule => rule.CollectionId.HasValue).Select(rule => rule.CollectionId!.Value)).ToHashSet();
             var nextCollections = new List<CollectionOverviewCollectionSnapshot>();
@@ -68,8 +71,8 @@ public sealed class CollectionOverviewService
                     Name = collection.Name,
                     MadeByPlugin = managed.Contains(collection.Id),
                     Exists = true,
-                    NewlyAdded = oldCollection is null,
-                    Items = children.Select(item => new CollectionOverviewItemSnapshot { ItemId = item.Id, Name = item.Name, NewlyAdded = !oldIds.Contains(item.Id) })
+                    NewlyAdded = hasPriorSnapshot && oldCollection is null,
+                    Items = children.Select(item => new CollectionOverviewItemSnapshot { ItemId = item.Id, Name = item.Name, NewlyAdded = hasPriorSnapshot && !oldIds.Contains(item.Id) })
                         .Concat((oldCollection?.Items ?? []).Where(item => !children.Any(current => current.Id == item.ItemId)).Select(item => new CollectionOverviewItemSnapshot { ItemId = item.ItemId, Name = item.Name, NewlyRemoved = true })).ToList(),
                 });
             }
@@ -108,6 +111,20 @@ public sealed class CollectionOverviewService
         {
             var snapshot = JsonSerializer.Deserialize<CollectionOverviewSnapshot>(File.ReadAllText(_snapshotPath));
             if (snapshot is null || snapshot.CompletedUtc == default) return;
+            // Older private-testing builds marked every entry in their initial
+            // snapshot as new. Treat that unmistakable all-new state as the
+            // baseline so it is not shown as a false change set after upgrade.
+            var existing = snapshot.Libraries.SelectMany(library => library.Collections).Where(collection => collection.Exists).ToArray();
+            if (existing.Length > 0 && existing.All(collection => collection.NewlyAdded))
+            {
+                foreach (var collection in existing)
+                {
+                    collection.NewlyAdded = false;
+                    foreach (var item in collection.Items.Where(item => !item.NewlyRemoved)) item.NewlyAdded = false;
+                }
+
+                Persist(snapshot);
+            }
             var count = snapshot.Libraries.SelectMany(library => library.Collections).Where(collection => collection.Exists).Select(collection => collection.CollectionId).Distinct().Count();
             _snapshot = snapshot;
             _status = new CollectionOverviewScanStatus(false, count, count, snapshot.CompletedUtc, $"Showing the last available collection scan. Found {count} collection(s).");
