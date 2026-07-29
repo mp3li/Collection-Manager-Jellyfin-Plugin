@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.27",
-        "changelog": "Adds outlined dashboard tabs, switches collection expand and edit button order, and restores the collection editor and Add to Collection media pickers.",
+        "version": "0.1.0.28",
+        "changelog": "Makes Collection Editor and Add to Collection picker posters compact thumbnails beside their selectable titles.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.27/CollectionManager_0.1.0.27.zip",
-        "checksum": "27f61b7ca0a9342403182527aa0322f3",
-        "timestamp": "2026-07-29T07:08:53Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.28/CollectionManager_0.1.0.28.zip",
+        "checksum": "6ed6ce6077fe5b7cc9e040e23608a4fe",
+        "timestamp": "2026-07-29T07:18:52Z"
       }
     ]
   }

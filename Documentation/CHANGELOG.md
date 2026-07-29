@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0.28] - 2026-07-29
+
+### Changed
+
+- Made posters in the Collection Editor and Add to Collection pickers compact
+  thumbnails beside their selectable titles. Collection overview poster sizing
+  is unchanged.
+
 ## [0.1.0.27] - 2026-07-29
 
 ### Fixed
