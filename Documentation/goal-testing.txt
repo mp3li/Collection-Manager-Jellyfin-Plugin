@@ -83,9 +83,10 @@ Catalog fidelity and scale
 
 Create Manual Collections
 -------------------------
-[ ] The Collection Overview & Editor tab appears directly after Main Settings.
-[ ] Create Manual Collections appears after Collection Overview & Editor, and
-    every Jellyfin library is initially collapsed.
+[ ] Collection Overview & Editor appears in the same styled secondary tab row
+    used by Media Tagging Manager, below the primary row. Create Manual
+    Collections remains in the primary tab row, and every Jellyfin library is
+    initially collapsed.
 [ ] Expanding a library loads only that library's current selectable media and
     displays the same poster, title, type, year, and overview details used by
     Collections Overview & Editor, plus a picker checkbox and no edit button.

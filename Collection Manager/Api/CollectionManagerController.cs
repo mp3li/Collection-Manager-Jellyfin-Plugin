@@ -6,6 +6,7 @@ using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Model.Tasks;
 using MediaBrowser.Model.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -229,10 +230,12 @@ public sealed class CollectionManagerController : ControllerBase
             return BadRequest("The selected Jellyfin library is no longer available on this server.");
         }
 
-        // Manual collections choose library-level items. A recursive leaf query
-        // would expose episodes, seasons, and extras instead of one series.
-        var items = _libraryManager.GetItemList(new InternalItemsQuery { ParentId = libraryId, Recursive = false })
-            .Where(item => item is not BoxSet)
+        // Virtual-library roots do not expose direct children consistently.
+        // Use the proven recursive scope, then keep series and other selectable
+        // media while excluding episodic hierarchy and video extras.
+        var items = _libraryManager.GetItemList(new InternalItemsQuery { ParentId = libraryId, Recursive = true })
+            .Where(item => item is not BoxSet && item is not Episode && item is not Season)
+            .Where(item => item is not Video { ExtraType: not null })
             .OrderBy(item => item.SortName ?? item.Name, StringComparer.OrdinalIgnoreCase)
             .Select(item => new
             {
