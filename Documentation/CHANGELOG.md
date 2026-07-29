@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.0.27] - 2026-07-29
+
+### Fixed
+
+- Restored the Collection Editor and Add to Collection pickers after a shared
+  poster helper rename left their JavaScript rendering path undefined.
+
+### Changed
+
+- Added outlined styling to every dashboard tab for private visual testing.
+- Put each collection’s expand/collapse control before Edit Collection beneath
+  the collection name.
+
 ## [0.1.0.26] - 2026-07-29
 
 ### Changed
