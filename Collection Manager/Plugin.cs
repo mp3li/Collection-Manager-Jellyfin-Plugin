@@ -234,6 +234,7 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                     Type = item.Type,
                     ProductionYear = item.ProductionYear,
                     Overview = item.Overview,
+                    HasPrimaryImage = item.HasPrimaryImage,
                     NewlyAdded = item.NewlyAdded,
                     NewlyRemoved = item.NewlyRemoved,
                 }).ToList(),

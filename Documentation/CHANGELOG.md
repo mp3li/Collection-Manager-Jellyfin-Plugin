@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.0.25] - 2026-07-29
+
+### Changed
+
+- Replaced the Collection Overview & Editor row renderer with the actual
+  Media Tagging Manager Recommendations and Similar Titles renderer structure:
+  poster fallback, title, secondary details, overview, and latest-scan
+  addition/removal styling. The only collection-specific substitutions are
+  **Collection Name**, **Media in Collection**, and **Edit Collection** beneath
+  the collection name.
+- Removed the unrequested fixed first-column width and action-wrapper spacing.
+  The two-column table now uses the same base table sizing, padding, borders,
+  poster sizing, and row spacing as the source overview.
+
 ## [0.1.0.24] - 2026-07-29
 
 ### Changed

@@ -38,6 +38,7 @@ public sealed class CollectionOverviewItemSnapshot
     public string Type { get; set; } = string.Empty;
     public int? ProductionYear { get; set; }
     public string Overview { get; set; } = string.Empty;
+    public bool HasPrimaryImage { get; set; }
     public bool NewlyAdded { get; set; }
     public bool NewlyRemoved { get; set; }
 }

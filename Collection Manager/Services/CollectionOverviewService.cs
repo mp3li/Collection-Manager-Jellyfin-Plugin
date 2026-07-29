@@ -5,6 +5,7 @@ using Jellyfin.Plugin.CollectionManager.Models;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.CollectionManager.Services;
@@ -79,6 +80,7 @@ public sealed class CollectionOverviewService
                         Type = item.GetType().Name,
                         ProductionYear = item.ProductionYear,
                         Overview = item.Overview,
+                        HasPrimaryImage = item.HasImage(ImageType.Primary, 0),
                         NewlyAdded = hasPriorSnapshot && !oldIds.Contains(item.Id),
                     }).Concat((oldCollection?.Items ?? []).Where(item => !children.Any(current => current.Id == item.ItemId)).Select(item => new CollectionOverviewItemSnapshot
                     {
@@ -87,6 +89,7 @@ public sealed class CollectionOverviewService
                         Type = item.Type,
                         ProductionYear = item.ProductionYear,
                         Overview = item.Overview,
+                        HasPrimaryImage = item.HasPrimaryImage,
                         NewlyRemoved = true,
                     })).ToList(),
                 });
@@ -94,7 +97,7 @@ public sealed class CollectionOverviewService
 
             foreach (var removed in priorCollections.Values.Where(old => !nextCollections.Any(current => current.CollectionId == old.CollectionId)))
             {
-                nextCollections.Add(new CollectionOverviewCollectionSnapshot { CollectionId = removed.CollectionId, Name = removed.Name, MadeByPlugin = removed.MadeByPlugin, Exists = false, NewlyRemoved = true, Items = removed.Items.Select(item => new CollectionOverviewItemSnapshot { ItemId = item.ItemId, Name = item.Name, Type = item.Type, ProductionYear = item.ProductionYear, Overview = item.Overview, NewlyRemoved = true }).ToList() });
+                nextCollections.Add(new CollectionOverviewCollectionSnapshot { CollectionId = removed.CollectionId, Name = removed.Name, MadeByPlugin = removed.MadeByPlugin, Exists = false, NewlyRemoved = true, Items = removed.Items.Select(item => new CollectionOverviewItemSnapshot { ItemId = item.ItemId, Name = item.Name, Type = item.Type, ProductionYear = item.ProductionYear, Overview = item.Overview, HasPrimaryImage = item.HasPrimaryImage, NewlyRemoved = true }).ToList() });
             }
 
             phase = "saving the collection overview";
