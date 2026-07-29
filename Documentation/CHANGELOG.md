@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Replaced the custom Collection Overview editor and picker popups with the
+  native Jellyfin Web 10.11.11 `Dashboard.dialogHelper` implementation,
+  including Jellyfin's `ui-body-a`, `background-theme-a`, and `formDialog`
+  classes. The dialog now receives the active Jellyfin theme from the web
+  client rather than using custom modal background or text styling.
+
+### Changed
+
+- Used the exact Recommendations and Similar Titles overview table sizing,
+  padding, borders, related-title presentation, and pager structure from Media
+  Tagging Manager. Collection-specific names and columns remain the only data
+  differences; the separately required flat all-collections scope is retained.
+
 ### Changed
 
 - Replaced the Collection Overview & Editor table and page-control presentation

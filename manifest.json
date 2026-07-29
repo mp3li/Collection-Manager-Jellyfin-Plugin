@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.22",
-        "changelog": "Makes the flat Collection Overview & Editor use the actual Media Tagging Manager related-title overview table and pager presentation.",
+        "version": "0.1.0.23",
+        "changelog": "Uses Jellyfin 10.11.11 native dashboard dialogs for collection editing and the exact Media Tagging Manager overview presentation while retaining the required flat all-collections scope.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.22/CollectionManager_0.1.0.22.zip",
-        "checksum": "ccdc522a4125c909e2693738279f8cea",
-        "timestamp": "2026-07-29T00:14:16Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.23/CollectionManager_0.1.0.23.zip",
+        "checksum": "68a043151e95e67922408c63ccae301e",
+        "timestamp": "2026-07-29T05:28:03Z"
       }
     ]
   }
