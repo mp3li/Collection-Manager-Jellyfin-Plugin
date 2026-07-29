@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.21",
-        "changelog": "Corrects the flat Collection Overview & Editor: poster-led overview and editor pickers, true saved collection count, neutral first-scan baseline, and Save/Close staging for collection edits.",
+        "version": "0.1.0.22",
+        "changelog": "Makes the flat Collection Overview & Editor use the actual Media Tagging Manager related-title overview table and pager presentation.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.21/CollectionManager_0.1.0.21.zip",
-        "checksum": "9d6798af723e5da25418dc1035e6cfe8",
-        "timestamp": "2026-07-29T00:05:36Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.22/CollectionManager_0.1.0.22.zip",
+        "checksum": "ccdc522a4125c909e2693738279f8cea",
+        "timestamp": "2026-07-29T00:14:16Z"
       }
     ]
   }

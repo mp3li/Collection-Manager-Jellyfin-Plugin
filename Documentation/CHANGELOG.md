@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Replaced the Collection Overview & Editor table and page-control presentation
+  with the actual shared overview CSS and rendering structure from Media Tagging
+  Manager's Recommendations and Similar Titles Additions and Removals section.
+  Only the collection-specific columns, collection data, and Edit Collection
+  control differ.
+
 ### Fixed
 
 - Corrected Collection Overview & Editor to use the same poster-led related-title
