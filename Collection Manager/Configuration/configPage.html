@@ -63,6 +63,7 @@
         #collectionManagerPage .mcm-additional-libraries-options[hidden] { display:none !important; }
         #collectionManagerPage .mcm-pagination { display:flex; flex-wrap:wrap; align-items:center; gap:.65em; margin-top:.85em; }
         #collectionManagerPage .mcm-pagination-text { font-size:.85em; }
+        #collectionManagerPage .mcm-manual-picker { overflow-anchor:none; }
         #collectionManagerPage .mcm-overview-type-content, #collectionManagerPage .mcm-tag-type-content { overflow-anchor:none; }
         #collectionManagerPage .mcm-tag-type + .mcm-tag-type { border-top:1px solid rgba(255,255,255,.16); margin-top:.75em; padding-top:.75em; }
         #collectionManagerPage .mcm-tag-type-content[hidden], #collectionManagerPage .mcm-picker-library-content[hidden] { display:none !important; }
@@ -93,9 +94,9 @@
             <button type="button" class="mcm-tab" data-tab="default-art" data-secondary-tab="true" role="tab" aria-selected="false">Default Art Settings</button>
             <button type="button" class="mcm-tab" data-tab="text-art" data-secondary-tab="true" role="tab" aria-selected="false">Text Focused Art Settings</button>
             <button type="button" class="mcm-tab" data-tab="poster-art" data-secondary-tab="true" role="tab" aria-selected="false">Poster Focused Art Settings</button>
+            <button type="button" class="mcm-tab" data-tab="logo-art" data-secondary-tab="true" role="tab" aria-selected="false">Logo Focused Art Settings</button>
         </div>
         <div class="mcm-tabs mcm-tabs-secondary" role="tablist" aria-label="Collection Manager art sections">
-            <button type="button" class="mcm-tab" data-tab="logo-art" data-secondary-tab="true" role="tab" aria-selected="false">Logo Focused Art Settings</button>
             <button type="button" class="mcm-tab" data-tab="gradient-art" data-secondary-tab="true" role="tab" aria-selected="false">Multi-Collection Gradient Art</button>
         </div>
 
@@ -388,7 +389,7 @@
             var host = page.querySelector('[data-manual-library-content="' + libraryId + '"]'), items = manualLibraryItems[libraryId] || [], state = manualLibraryState(libraryId), search = state.search.toLowerCase(), filtered = items.filter(function (item) { return !search || String(prop(item, 'Name') || '').toLowerCase().indexOf(search) >= 0; }), pageSize = 10, pages = Math.max(1, Math.ceil(filtered.length / pageSize)), pageNumber = Math.min(Math.max(1, state.page), pages), visible = filtered.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
             if (!host) { return; }
             state.page = pageNumber;
-            host.innerHTML = items.length ? '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search media</label><input is="emby-input" type="search" data-manual-search value="' + escapeHtml(state.search) + '" placeholder="Search this library" /></div>' + (visible.length ? '<div class="mcm-collection-member-grid">' + visible.map(function (item) { return manualPickerItem(item, true); }).join('') + '</div>' : '<p class="fieldDescription">No selectable media matches this search.</p>') + '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-manual-page="' + (pageNumber - 1) + '"' + (pageNumber <= 1 ? ' disabled' : '') + '>&larr; Previous</button><button is="emby-button" type="button" class="raised" data-manual-select-all="1">Select All</button><button is="emby-button" type="button" class="raised" data-manual-select-none="1">Select None</button><span class="fieldDescription mcm-pagination-text">Page ' + pageNumber + ' out of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-manual-page="' + (pageNumber + 1) + '"' + (pageNumber >= pages ? ' disabled' : '') + '>Next &rarr;</button></div>' : '<p class="fieldDescription">No selectable media was found in this library.</p>';
+            host.innerHTML = items.length ? '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search media</label><input is="emby-input" type="search" data-manual-search value="' + escapeHtml(state.search) + '" placeholder="Search this library" /></div>' + (visible.length ? '<div class="mcm-collection-member-grid">' + visible.map(function (item) { return manualPickerItem(item, true); }).join('') + '</div>' : '<p class="fieldDescription">No selectable media matches this search.</p>') + '<div class="mcm-pagination"><button is="emby-button" type="button" class="raised" data-manual-page="' + (pageNumber - 1) + '"' + (pageNumber <= 1 ? ' disabled' : '') + '>Previous Page</button><button is="emby-button" type="button" class="raised" data-manual-select-all="1">Select All</button><button is="emby-button" type="button" class="raised" data-manual-select-none="1">Select None</button><span class="fieldDescription mcm-pagination-text">Page ' + pageNumber + ' out of ' + pages + '</span><button is="emby-button" type="button" class="raised" data-manual-page="' + (pageNumber + 1) + '"' + (pageNumber >= pages ? ' disabled' : '') + '>Next Page</button></div>' : '<p class="fieldDescription">No selectable media was found in this library.</p>';
             if (focusSearch) { var input = host.querySelector('[data-manual-search]'); if (input) { input.focus(); input.setSelectionRange(state.search.length, state.search.length); } }
         }
         function loadManualLibraryItems(libraryId) {
@@ -658,10 +659,10 @@
             var target = event.target.closest('button'); if (!target) { return; }
             if (target.matches('[data-toggle-manual-library]')) { var id = target.getAttribute('data-toggle-manual-library'), content = page.querySelector('[data-manual-library-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadManualLibraryItems(id); } return; }
             var section = target.closest('[data-manual-library]'); if (!section) { return; }
-            var libraryId = section.getAttribute('data-manual-library'), pagePosition = capturePagePosition();
-            if (target.matches('[data-manual-page]')) { event.preventDefault(); target.blur(); manualLibraryState(libraryId).page = Number(target.getAttribute('data-manual-page')); renderManualLibraryItems(libraryId); restorePagePosition(pagePosition); return; }
-            if (target.matches('[data-manual-select-all]')) { (manualLibraryItems[libraryId] || []).forEach(function (item) { manualCollectionDraft.selected[String(prop(item, 'Id'))] = item; }); renderManualLibraryItems(libraryId); renderManualDraft(); restorePagePosition(pagePosition); return; }
-            if (target.matches('[data-manual-select-none]')) { (manualLibraryItems[libraryId] || []).forEach(function (item) { delete manualCollectionDraft.selected[String(prop(item, 'Id'))]; }); renderManualLibraryItems(libraryId); renderManualDraft(); restorePagePosition(pagePosition); }
+            var libraryId = section.getAttribute('data-manual-library'), state = manualLibraryState(libraryId), items = manualLibraryItems[libraryId] || [], search = state.search.toLowerCase(), filtered = items.filter(function (item) { return !search || String(prop(item, 'Name') || '').toLowerCase().indexOf(search) >= 0; }), pageItems = filtered.slice((state.page - 1) * 10, state.page * 10);
+            if (target.matches('[data-manual-page]')) { event.preventDefault(); target.blur(); state.page = Number(target.getAttribute('data-manual-page')); renderManualLibraryItems(libraryId); return; }
+            if (target.matches('[data-manual-select-all]')) { pageItems.forEach(function (item) { manualCollectionDraft.selected[String(prop(item, 'Id'))] = item; }); renderManualLibraryItems(libraryId); renderManualDraft(); return; }
+            if (target.matches('[data-manual-select-none]')) { pageItems.forEach(function (item) { delete manualCollectionDraft.selected[String(prop(item, 'Id'))]; }); renderManualLibraryItems(libraryId); renderManualDraft(); }
         });
         $('#manualCollectionLibraryPickers').addEventListener('input', function (event) { if (event.target.matches('[data-manual-search]')) { var section = event.target.closest('[data-manual-library]'), libraryId = section.getAttribute('data-manual-library'), state = manualLibraryState(libraryId); state.search = event.target.value; state.page = 1; renderManualLibraryItems(libraryId, true); } });
         $('#manualCollectionLibraryPickers').addEventListener('change', function (event) {

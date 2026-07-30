@@ -104,9 +104,10 @@ Create Manual Collections
     than ten media items per page, and a small Page _ out of _ indicator.
 [ ] Manual-library Previous and Next controls change only that library's page
     and do not move the dashboard scroll position.
-[ ] Manual-library Select All selects every loaded choice in that library,
-    including choices on other pages; Select None clears every choice in that
-    library. Both controls appear between the page controls.
+[ ] Manual-library Select All and Select None select or clear only the ten
+    visible choices on the current page, including its first item. Both use the
+    same standard gray button treatment as other dashboard page controls and
+    appear between Previous Page and Next Page.
 [ ] Select media from more than one library and confirm all selected items
     appear together in the singular Individual Collection Draft section.
 [ ] Confirm the editable collection title appears above the draft media and its
@@ -198,8 +199,8 @@ Blank art tabs
     Settings, Logo Focused Art Settings, and Multi-Collection Gradient Art
     appear in that order after the existing collection tabs.
 [ ] Default, Text Focused, and Poster Focused Art Settings share the second tab
-    row with Collection Overview & Editor. Logo Focused Art Settings and
-    Multi-Collection Gradient Art appear together in a third tab row.
+    row with Collection Overview & Editor, followed by Logo Focused Art
+    Settings. Multi-Collection Gradient Art appears alone in a third tab row.
 [ ] The five art tabs contain no settings or placeholder content until their
     separate art-feature plans are approved.
 

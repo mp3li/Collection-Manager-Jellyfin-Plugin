@@ -48,8 +48,8 @@ libraries.
 | **Default Art Settings** | Blank placeholder for a later art-settings plan. |
 | **Text Focused Art Settings** | Blank placeholder for a later art-settings plan. |
 | **Poster Focused Art Settings** | Blank placeholder for a later art-settings plan. |
-| **Logo Focused Art Settings** | Blank placeholder for a later art-settings plan. |
-| **Multi-Collection Gradient Art** | Blank placeholder for a later art-settings plan. |
+| **Logo Focused Art Settings** | Blank placeholder for a later art-settings plan; shown in the second tab row. |
+| **Multi-Collection Gradient Art** | Blank placeholder for a later art-settings plan; shown alone in the third tab row. |
 
 The tag-based collection workflows provide matching counts, grouped previews,
 editable titles, additional-library scope, visible same-title conflict choices,
@@ -106,7 +106,7 @@ https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/
 ```
 
 In Jellyfin, open **Dashboard → Plugins → Repositories**, add that URL, then
-install the **0.1.0.36 Private Testing** prerelease from the catalog. Restart
+install the **0.1.0.37 Private Testing** prerelease from the catalog. Restart
 Jellyfin and record the real server results in the testing tracker.
 
 ## Private test tracking

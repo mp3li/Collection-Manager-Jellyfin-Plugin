@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.0.37] - 2026-07-29
+
+### Fixed
+
+- Manual collection Select All and Select None now operate on the current
+  ten-item page only, including its first media picker. The controls use the
+  existing standard page-button wording and do not restore the browser window
+  scroll position.
+- Moved Logo Focused Art Settings to the second tab row; Multi-Collection
+  Gradient Art remains on the third row.
+
 ## [0.1.0.36] - 2026-07-29
 
 ### Added
@@ -7,14 +18,18 @@
 - Added five intentionally blank dashboard-tab placeholders for the next art
   planning round: Default Art Settings, Text Focused Art Settings, Poster
   Focused Art Settings, Logo Focused Art Settings, and Multi-Collection
-  Gradient Art. Logo Focused Art Settings and Multi-Collection Gradient Art
-  appear together in a third tab row.
+  Gradient Art. Logo Focused Art Settings is on the second tab row and
+  Multi-Collection Gradient Art occupies the third tab row.
 
 ### Changed
 
 - Create Manual Collections now pages each expanded library picker ten items at
   a time, adds a library search field, and provides Select All and Select None
   controls between the previous and next page controls.
+- Manual-library Select All and Select None now apply only to the ten visible
+  choices on the current page. Paging uses the standard gray Previous Page and
+  Next Page controls and does not issue a window scroll restoration that can
+  move the dashboard to an unrelated position.
 - Renamed manual music picker labels from MP3 and MP3 Album to **Audio** and
   **Audio Album**.
 
