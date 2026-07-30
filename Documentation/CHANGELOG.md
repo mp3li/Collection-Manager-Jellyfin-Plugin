@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.0.43] - 2026-07-29
+
+### Fixed
+
+- Gave the Create Manual Collections Previous Page and Next Page controls
+  explicit references after their requested relocation above the media results.
+  Next Page works again, and the small Page _ out of _ text remains directly
+  to its right.
+- Made manual-media overviews reserve five lines, clipping longer descriptions
+  with an ellipsis so they cannot overlap the next item.
+
 ## [0.1.0.42] - 2026-07-29
 
 ### Changed
