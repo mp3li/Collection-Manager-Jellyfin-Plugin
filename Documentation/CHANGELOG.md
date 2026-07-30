@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0.46] - 2026-07-29
+
+### Fixed
+
+- Allowed each native Jellyfin manual-media checkbox label to grow to its
+  actual poster-and-description height. This preserves the supported checkbox
+  initialization from 0.1.0.45 without overlapping media rows or artwork.
+
 ## [0.1.0.45] - 2026-07-29
 
 ### Fixed
