@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.0.41] - 2026-07-29
+
+### Fixed
+
+- Made the Create Manual Collections Previous Page, Select All, Select None,
+  and Next Page controls use the same shared ordinary `raised` button renderer
+  as the Select Metadata Tags Previous Page and Next Page controls.
+- Replaced the manual picker’s separate scroll-container handling with the
+  dashboard page-position restore routine already used by metadata-tag paging.
+
 ## [0.1.0.40] - 2026-07-29
 
 ### Fixed
