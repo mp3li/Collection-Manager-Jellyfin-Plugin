@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.0.44] - 2026-07-29
+
+### Fixed
+
+- Rebuilt manual-media selection rows with the standard single Jellyfin
+  `checkboxContainer` and `emby-checkbox` structure. Every item, including the
+  first item in each manual-library page, now has the same normal-size
+  selectable square.
+
 ## [0.1.0.43] - 2026-07-29
 
 ### Fixed

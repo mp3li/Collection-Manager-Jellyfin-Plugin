@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.43",
-        "changelog": "Manual-library controls now reliably page with Page _ out of _ beside Next Page. Manual-media descriptions reserve five lines and clip longer text with an ellipsis.",
+        "version": "0.1.0.44",
+        "changelog": "Manual-media selection rows now use the standard single Jellyfin checkbox structure, including the first item in every manual-library page.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.43/CollectionManager_0.1.0.43.zip",
-        "checksum": "f1f9d18038fcc069fbc44a76c2c5e25b",
-        "timestamp": "2026-07-30T05:33:41Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.44/CollectionManager_0.1.0.44.zip",
+        "checksum": "ea4b8987033bd3938c40addec40f8b66",
+        "timestamp": "2026-07-30T05:39:59Z"
       }
     ]
   }
