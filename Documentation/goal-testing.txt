@@ -103,12 +103,13 @@ Create Manual Collections
 [ ] Each expanded manual library picker shows a Search media field, no more
     than ten media items per page, and a small Page _ out of _ indicator.
 [ ] Manual-library Previous and Next controls change only that library's page.
-    They remain below the displayed media and stay at the same visible screen
-    position after page content with a different height replaces the list.
+    They remain below the displayed media and do not change the administrator's
+    actual dashboard scroll position after any page content is replaced.
 [ ] Manual-library Select All and Select None select or clear only the ten
     visible choices on the current page, including its first item. Both use the
     same standard gray button treatment as other dashboard page controls and
-    appear between Previous Page and Next Page.
+    appear between Previous Page and Next Page without changing the dashboard
+    scroll position.
 [ ] Select media from more than one library and confirm all selected items
     appear together in the singular Individual Collection Draft section.
 [ ] Confirm the editable collection title appears above the draft media and its

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.0.39] - 2026-07-29
+
+### Fixed
+
+- Force all four Create Manual Collections pager controls to neutral gray in
+  normal, hover, focus, and active states rather than allowing Jellyfin's blue
+  interaction state to override them.
+- Replaced pager-position offset scrolling with a literal save-and-restore of
+  Jellyfin's active scroll container position for Previous Page, Next Page,
+  Select All, and Select None.
+
 ## [0.1.0.38] - 2026-07-29
 
 ### Fixed

@@ -64,7 +64,10 @@
         #collectionManagerPage .mcm-pagination { display:flex; flex-wrap:wrap; align-items:center; gap:.65em; margin-top:.85em; }
         #collectionManagerPage .mcm-pagination-text { font-size:.85em; }
         #collectionManagerPage .mcm-manual-picker { overflow-anchor:none; }
-        #collectionManagerPage .mcm-manual-pagination .mcm-manual-page-button { background:rgba(128,128,128,.35) !important; color:inherit !important; }
+        #collectionManagerPage .mcm-manual-pagination .mcm-manual-page-button,
+        #collectionManagerPage .mcm-manual-pagination .mcm-manual-page-button:hover,
+        #collectionManagerPage .mcm-manual-pagination .mcm-manual-page-button:focus,
+        #collectionManagerPage .mcm-manual-pagination .mcm-manual-page-button:active { background:#555 !important; background-image:none !important; color:#fff !important; }
         #collectionManagerPage .mcm-overview-type-content, #collectionManagerPage .mcm-tag-type-content { overflow-anchor:none; }
         #collectionManagerPage .mcm-tag-type + .mcm-tag-type { border-top:1px solid rgba(255,255,255,.16); margin-top:.75em; padding-top:.75em; }
         #collectionManagerPage .mcm-tag-type-content[hidden], #collectionManagerPage .mcm-picker-library-content[hidden] { display:none !important; }
@@ -412,14 +415,11 @@
             }
             return document.scrollingElement || document.documentElement;
         }
-        function preserveManualPagerPosition(libraryId, redraw) {
-            var host = page.querySelector('[data-manual-library-content="' + libraryId + '"]'), pager = host && host.querySelector('.mcm-manual-pagination'), beforeTop = pager ? pager.getBoundingClientRect().top : 0, scrollContainer = manualPickerScrollContainer(host);
+        function preserveManualScrollPosition(libraryId, redraw) {
+            var host = page.querySelector('[data-manual-library-content="' + libraryId + '"]'), scrollContainer = manualPickerScrollContainer(host), scrollTop = scrollContainer.scrollTop;
             redraw();
             window.requestAnimationFrame(function () {
-                var updatedHost = page.querySelector('[data-manual-library-content="' + libraryId + '"]'), updatedPager = updatedHost && updatedHost.querySelector('.mcm-manual-pagination');
-                if (!updatedPager) { return; }
-                var offset = updatedPager.getBoundingClientRect().top - beforeTop;
-                if (offset) { scrollContainer.scrollTop += offset; }
+                scrollContainer.scrollTop = scrollTop;
             });
         }
         function renderManualDraft() {
@@ -680,9 +680,9 @@
             if (target.matches('[data-toggle-manual-library]')) { var id = target.getAttribute('data-toggle-manual-library'), content = page.querySelector('[data-manual-library-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadManualLibraryItems(id); } return; }
             var section = target.closest('[data-manual-library]'); if (!section) { return; }
             var libraryId = section.getAttribute('data-manual-library'), state = manualLibraryState(libraryId), items = manualLibraryItems[libraryId] || [], search = state.search.toLowerCase(), filtered = items.filter(function (item) { return !search || String(prop(item, 'Name') || '').toLowerCase().indexOf(search) >= 0; }), pageItems = filtered.slice((state.page - 1) * 10, state.page * 10);
-            if (target.matches('[data-manual-page]')) { event.preventDefault(); target.blur(); preserveManualPagerPosition(libraryId, function () { state.page = Number(target.getAttribute('data-manual-page')); renderManualLibraryItems(libraryId); }); return; }
-            if (target.matches('[data-manual-select-all]')) { preserveManualPagerPosition(libraryId, function () { pageItems.forEach(function (item) { manualCollectionDraft.selected[String(prop(item, 'Id'))] = item; }); renderManualLibraryItems(libraryId); renderManualDraft(); }); return; }
-            if (target.matches('[data-manual-select-none]')) { preserveManualPagerPosition(libraryId, function () { pageItems.forEach(function (item) { delete manualCollectionDraft.selected[String(prop(item, 'Id'))]; }); renderManualLibraryItems(libraryId); renderManualDraft(); }); }
+            if (target.matches('[data-manual-page]')) { event.preventDefault(); target.blur(); preserveManualScrollPosition(libraryId, function () { state.page = Number(target.getAttribute('data-manual-page')); renderManualLibraryItems(libraryId); }); return; }
+            if (target.matches('[data-manual-select-all]')) { preserveManualScrollPosition(libraryId, function () { pageItems.forEach(function (item) { manualCollectionDraft.selected[String(prop(item, 'Id'))] = item; }); renderManualLibraryItems(libraryId); renderManualDraft(); }); return; }
+            if (target.matches('[data-manual-select-none]')) { preserveManualScrollPosition(libraryId, function () { pageItems.forEach(function (item) { delete manualCollectionDraft.selected[String(prop(item, 'Id'))]; }); renderManualLibraryItems(libraryId); renderManualDraft(); }); }
         });
         $('#manualCollectionLibraryPickers').addEventListener('input', function (event) { if (event.target.matches('[data-manual-search]')) { var section = event.target.closest('[data-manual-library]'), libraryId = section.getAttribute('data-manual-library'), state = manualLibraryState(libraryId); state.search = event.target.value; state.page = 1; renderManualLibraryItems(libraryId, true); } });
         $('#manualCollectionLibraryPickers').addEventListener('change', function (event) {
