@@ -779,8 +779,8 @@ public sealed class CollectionManagerController : ControllerBase
 
     private static string GetManualCollectionDisplayType(BaseItemKind itemType) => itemType switch
     {
-        BaseItemKind.Audio => "MP3",
-        BaseItemKind.MusicAlbum => "MP3 Album",
+        BaseItemKind.Audio => "Audio",
+        BaseItemKind.MusicAlbum => "Audio Album",
         BaseItemKind.AudioBook => "Audiobook",
         BaseItemKind.MusicVideo => "Music Video",
         _ => itemType.ToString(),

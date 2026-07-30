@@ -35,16 +35,21 @@ Manager works especially well with those values, but it is not
 limited to them: it reads every available metadata value from the selected
 libraries.
 
-## Current six-tab development build
+## Current eleven-tab development build
 
 | Dashboard tab | What it does |
 | --- | --- |
 | **Main Settings** | Select libraries, save the newly-added-media preference, scan the local read-only metadata catalog, and inspect the saved most-recent scan in a paginated library overview. |
 | **Collection Overview & Editor** | Save a flat scan of all native Jellyfin collections, review current and latest-scan changes, and edit collection titles and membership in bulk. |
-| **Create Manual Collections** | Open any Jellyfin library and pick its normal collection-level media—such as Series, Movies, Books, MP3, or MP3 Album items—review one titled draft, and create one ordinary Jellyfin collection. |
+| **Create Manual Collections** | Open any Jellyfin library, search its normal collection-level media—such as Series, Movies, Books, Audio, or Audio Album items—select from ten-item pages, review one titled draft, and create one ordinary Jellyfin collection. |
 | **Create Individual Tag Collections** | Select values such as `Horror`, `Netflix`, or `A24` and make one independently titled, reviewed native collection draft for each value. |
 | **Create Combined Tag Collections** | Select two or more values and make one collection containing the unique union of media matching any selected value. |
 | **Create Multi-Match Tag Collections** | Select two or more values and make one collection containing only media matching every selected value. |
+| **Default Art Settings** | Blank placeholder for a later art-settings plan. |
+| **Text Focused Art Settings** | Blank placeholder for a later art-settings plan. |
+| **Poster Focused Art Settings** | Blank placeholder for a later art-settings plan. |
+| **Logo Focused Art Settings** | Blank placeholder for a later art-settings plan. |
+| **Multi-Collection Gradient Art** | Blank placeholder for a later art-settings plan. |
 
 The tag-based collection workflows provide matching counts, grouped previews,
 editable titles, additional-library scope, visible same-title conflict choices,
@@ -101,12 +106,12 @@ https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/
 ```
 
 In Jellyfin, open **Dashboard → Plugins → Repositories**, add that URL, then
-install the **0.1.0.35 Private Testing** prerelease from the catalog. Restart
+install the **0.1.0.36 Private Testing** prerelease from the catalog. Restart
 Jellyfin and record the real server results in the testing tracker.
 
 ## Private test tracking
 
-The six-tab development build has automated build and JavaScript syntax checks.
+The eleven-tab development build has automated build and JavaScript syntax checks.
 Private Jellyfin installation and behavior must still be recorded before calling
 any runtime behavior complete. Use the [testing tracker](Documentation/goal-testing.txt)
 for the actual server results.

@@ -36,8 +36,9 @@ Dashboard visual system
 
 Current release scope
 ---------------------
-The complete current release is limited to these six dashboard tabs. Further
-dashboard areas will be designed in a later planning round.
+The complete current release currently exposes eleven dashboard tabs. The five
+art tabs below are intentionally blank placeholders until their separate
+feature plans are defined.
 
 1. Main Settings
    - Provide a clear explanation of existing metadata tags and the plugin's
@@ -62,14 +63,18 @@ dashboard areas will be designed in a later planning round.
      section. Opening a library uses Jellyfin's supported typed item query for
      that library's configured content type, so the picker matches normal
      Jellyfin browsing: TV libraries show Series; movie libraries show Movies;
-     book libraries show Books and Audiobooks; music libraries show MP3 and MP3
-     Album items; and video libraries show their applicable Movie or Video
+     book libraries show Books and Audiobooks; music libraries show Audio and
+     Audio Album items; and video libraries show their applicable Movie or Video
      items. Folders, seasons, episodes, deleted scenes, and other extras are
      never collection choices.
    - Reuse the Collection Overview & Editor poster, title, type, year, and
      overview presentation for library media, adding a picker checkbox for each
      item and no collection-edit control. Decode any markup stored in a media
      overview into readable plain text before rendering it.
+   - Give each expanded library picker a media search field and ten-item pages.
+     Keep Select All and Select None between the previous and next page controls
+     and show a small Page _ out of _ indicator. The selection controls apply
+     to the expanded library's complete loaded item list.
    - Maintain one manual collection draft across any combination of Jellyfin
     libraries. Let the administrator enter a title and review every selected
      media item before creation. Label this section Individual Collection Draft
@@ -163,6 +168,27 @@ dashboard areas will be designed in a later planning round.
      collection action, remove collections recorded as made by this plugin, and
      remove media additions recorded as made by this plugin to existing
      collections not made by this plugin.
+
+7. Default Art Settings
+   - Provide an intentionally blank dashboard tab until its art-settings plan
+     is defined.
+
+8. Text Focused Art Settings
+   - Provide an intentionally blank dashboard tab until its art-settings plan
+     is defined.
+
+9. Poster Focused Art Settings
+   - Provide an intentionally blank dashboard tab until its art-settings plan
+     is defined.
+
+10. Logo Focused Art Settings
+    - Provide an intentionally blank dashboard tab until its art-settings plan
+      is defined. Place it with Multi-Collection Gradient Art in the third tab
+      row.
+
+11. Multi-Collection Gradient Art
+    - Provide an intentionally blank dashboard tab until its art-settings plan
+      is defined. Place it with Logo Focused Art Settings in the third tab row.
 
 Native Jellyfin and safety requirements
 ---------------------------------------

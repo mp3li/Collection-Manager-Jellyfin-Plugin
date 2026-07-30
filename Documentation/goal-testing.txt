@@ -22,7 +22,7 @@ Private installation and dashboard availability
 [ ] Add the manifest to a private Jellyfin 10.11.11 server.
 [ ] Install the plugin through Jellyfin's repository interface.
 [ ] Restart Jellyfin and confirm Collection Manager appears in Dashboard.
-[ ] Open the plugin dashboard as an administrator and confirm all six tabs load.
+[ ] Open the plugin dashboard as an administrator and confirm all eleven tabs load.
 [ ] Confirm a manifest update detects and offers a newer compatible release.
 [ ] Confirm every dashboard tab uses the same tab shape as Media Tagging
     Manager, including the inactive tab background, active fill, and squared
@@ -94,12 +94,19 @@ Create Manual Collections
     episodes, seasons, folders, deleted scenes, or other extras as choices.
 [ ] A movie library shows Movies only; folders and unrelated item kinds are not
     available as manual collection choices.
-[ ] A music library presents Audio as MP3 and MusicAlbum as MP3 Album, without
+[ ] A music library presents Audio as Audio and MusicAlbum as Audio Album, without
     folders or unrelated media kinds.
 [ ] A book library presents only Book and Audiobook items. Rich-text markup and
     encoded entities in a book description display as readable plain text.
 [ ] A Home Videos or Live Performance library presents only its applicable
     Movie or Video items, never folders or Jellyfin video extras.
+[ ] Each expanded manual library picker shows a Search media field, no more
+    than ten media items per page, and a small Page _ out of _ indicator.
+[ ] Manual-library Previous and Next controls change only that library's page
+    and do not move the dashboard scroll position.
+[ ] Manual-library Select All selects every loaded choice in that library,
+    including choices on other pages; Select None clears every choice in that
+    library. Both controls appear between the page controls.
 [ ] Select media from more than one library and confirm all selected items
     appear together in the singular Individual Collection Draft section.
 [ ] Confirm the editable collection title appears above the draft media and its
@@ -184,6 +191,17 @@ Collection Overview & Editor
 [ ] Undo Last Collection Action reverses the last recorded create, membership, or title action without touching media files.
 [ ] Remove All Collections Made By This Plugin removes only collections recorded as plugin-made.
 [ ] Remove All Media Additions To Existing Collections Not Made by This Plugin removes only recorded plugin additions to non-plugin collections.
+
+Blank art tabs
+--------------
+[ ] Default Art Settings, Text Focused Art Settings, Poster Focused Art
+    Settings, Logo Focused Art Settings, and Multi-Collection Gradient Art
+    appear in that order after the existing collection tabs.
+[ ] Default, Text Focused, and Poster Focused Art Settings share the second tab
+    row with Collection Overview & Editor. Logo Focused Art Settings and
+    Multi-Collection Gradient Art appear together in a third tab row.
+[ ] The five art tabs contain no settings or placeholder content until their
+    separate art-feature plans are approved.
 
 Native Jellyfin, watcher, and privacy behavior
 -----------------------------------------------

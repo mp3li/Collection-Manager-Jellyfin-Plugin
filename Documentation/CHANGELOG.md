@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.0.36] - 2026-07-29
+
+### Added
+
+- Added five intentionally blank dashboard-tab placeholders for the next art
+  planning round: Default Art Settings, Text Focused Art Settings, Poster
+  Focused Art Settings, Logo Focused Art Settings, and Multi-Collection
+  Gradient Art. Logo Focused Art Settings and Multi-Collection Gradient Art
+  appear together in a third tab row.
+
+### Changed
+
+- Create Manual Collections now pages each expanded library picker ten items at
+  a time, adds a library search field, and provides Select All and Select None
+  controls between the previous and next page controls.
+- Renamed manual music picker labels from MP3 and MP3 Album to **Audio** and
+  **Audio Album**.
+
 ## [0.1.0.35] - 2026-07-29
 
 ### Fixed
