@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.0.42] - 2026-07-29
+
+### Changed
+
+- Moved the Create Manual Collections library controls directly below Search
+  media, before the media results, in this order: Previous Page, Select All,
+  Select None, Next Page.
+- Made those four controls use the same `mcm-library-heading` layout and
+  ordinary `raised` button markup as the manual-library expand/collapse button.
+- Removed scroll-position manipulation from those four control handlers.
+
 ## [0.1.0.41] - 2026-07-29
 
 ### Fixed
