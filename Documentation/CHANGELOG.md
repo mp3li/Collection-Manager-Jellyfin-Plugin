@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.0.38] - 2026-07-29
+
+### Fixed
+
+- Applied an explicit normal gray button treatment to the Create Manual
+  Collections pager controls.
+- Kept the manual picker pager below the media list and preserve its visible
+  screen position when a page redraw changes the heights of the ten displayed
+  media entries. Paging now uses Jellyfin's actual scrolling container instead
+  of the browser window.
+
 ## [0.1.0.37] - 2026-07-29
 
 ### Fixed

@@ -102,8 +102,9 @@ Create Manual Collections
     Movie or Video items, never folders or Jellyfin video extras.
 [ ] Each expanded manual library picker shows a Search media field, no more
     than ten media items per page, and a small Page _ out of _ indicator.
-[ ] Manual-library Previous and Next controls change only that library's page
-    and do not move the dashboard scroll position.
+[ ] Manual-library Previous and Next controls change only that library's page.
+    They remain below the displayed media and stay at the same visible screen
+    position after page content with a different height replaces the list.
 [ ] Manual-library Select All and Select None select or clear only the ten
     visible choices on the current page, including its first item. Both use the
     same standard gray button treatment as other dashboard page controls and

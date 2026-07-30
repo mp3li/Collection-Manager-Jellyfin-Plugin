@@ -76,7 +76,8 @@ feature plans are defined.
      and show a small Page _ out of _ indicator. Use the same standard gray
      Previous Page and Next Page controls as the rest of the dashboard. The
      selection controls apply only to the ten visible choices on the current
-     page. Paging must not change the dashboard's scroll position.
+     page. Keep the controls below the displayed media and retain their visible
+     on-screen position when page content has a different height.
    - Maintain one manual collection draft across any combination of Jellyfin
     libraries. Let the administrator enter a title and review every selected
      media item before creation. Label this section Individual Collection Draft

@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.37",
-        "changelog": "Manual collection Select All and Select None now affect only the ten visible choices on the current page, including its first picker. Paging uses the standard Previous Page and Next Page controls without changing the dashboard scroll position. Logo Focused Art Settings is now in the second tab row; Multi-Collection Gradient Art remains in the third.",
+        "version": "0.1.0.38",
+        "changelog": "Manual picker controls now use an explicit normal gray treatment. The pager remains below the media list and preserves its visible screen position when page content has a different height, using Jellyfin's actual scrolling container.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.37/CollectionManager_0.1.0.37.zip",
-        "checksum": "6f9af454dbe9be48068dcc30a887266c",
-        "timestamp": "2026-07-30T03:00:15Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.38/CollectionManager_0.1.0.38.zip",
+        "checksum": "4b46abdf2f4d7f4f23b3781b45244098",
+        "timestamp": "2026-07-30T03:16:33Z"
       }
     ]
   }
