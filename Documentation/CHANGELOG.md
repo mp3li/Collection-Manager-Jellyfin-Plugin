@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.0.45] - 2026-07-29
+
+### Fixed
+
+- Corrected manual-media picker markup to follow Jellyfin 10.11.11's required
+  `emby-checkbox` sibling order: checkbox input, label-text span, then the
+  component-generated outline. This fixes the abnormal first-item checkbox on
+  every manual-library page.
+
 ## [0.1.0.44] - 2026-07-29
 
 ### Fixed

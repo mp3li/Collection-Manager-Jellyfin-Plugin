@@ -41,6 +41,8 @@
         #collectionManagerPage .mcm-collection-member-grid .mcm-related-title { margin:0; }
         #collectionManagerPage .mcm-manual-picker .checkboxContainer { display:flex; align-items:flex-start; gap:.35em; min-width:0; margin:0 0 .65em; }
         #collectionManagerPage .mcm-manual-picker-details { display:flex; align-items:flex-start; gap:.35em; min-width:0; }
+        #collectionManagerPage .mcm-manual-picker-details .mcm-related-title-text,
+        #collectionManagerPage .mcm-manual-picker-details .fieldDescription:not(.mcm-manual-description) { display:block; }
         #collectionManagerPage .mcm-manual-remove { margin-left:.55em; }
         @media (max-width:55em) { #collectionManagerPage .mcm-collection-overview-entry.mcm-collection-expanded { display:block; } #collectionManagerPage .mcm-collection-member-grid { grid-template-columns:1fr; margin-top:1em; } }
         #collectionManagerPage .mcm-overview-content[hidden] { display:none !important; }
@@ -379,8 +381,8 @@
         function manualLibraryState(libraryId) { return manualLibraryStates[libraryId] || (manualLibraryStates[libraryId] = { page:1, search:'' }); }
         function manualPickerPoster(item) { return prop(item, 'HasPrimaryImage') ? jellyfinPoster(prop(item, 'Id')) : ''; }
         function manualPickerItem(item, includePicker) {
-            var id = String(prop(item, 'Id')), selected = manualCollectionDraft.selected[id], year = prop(item, 'ProductionYear'), type = prop(item, 'Type'), info = (year ? ' (' + year + ')' : '') + (type ? ' · ' + type : ''), overview = plainText(prop(item, 'Overview')), details = manualPickerPoster(item) + '<div class="mcm-related-title-text"><strong>' + escapeHtml(prop(item, 'Name')) + '</strong>' + (includePicker ? '' : '<button is="emby-button" type="button" class="raised mcm-manual-remove" data-manual-remove="' + escapeHtml(id) + '">Remove</button>') + '<div class="fieldDescription">' + escapeHtml(info) + '</div>' + (overview ? '<div class="fieldDescription mcm-manual-description">' + escapeHtml(overview) + '</div>' : '') + '</div>', title = '<div class="mcm-related-title">' + details + '</div>';
-            return includePicker ? '<label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" data-manual-item="' + escapeHtml(id) + '"' + (selected ? ' checked' : '') + ' /><div class="mcm-manual-picker-details">' + details + '</div></label>' : title;
+            var id = String(prop(item, 'Id')), selected = manualCollectionDraft.selected[id], year = prop(item, 'ProductionYear'), type = prop(item, 'Type'), info = (year ? ' (' + year + ')' : '') + (type ? ' · ' + type : ''), overview = plainText(prop(item, 'Overview')), details = manualPickerPoster(item) + '<span class="mcm-related-title-text"><strong>' + escapeHtml(prop(item, 'Name')) + '</strong>' + (includePicker ? '' : '<button is="emby-button" type="button" class="raised mcm-manual-remove" data-manual-remove="' + escapeHtml(id) + '">Remove</button>') + '<span class="fieldDescription">' + escapeHtml(info) + '</span>' + (overview ? '<span class="fieldDescription mcm-manual-description">' + escapeHtml(overview) + '</span>' : '') + '</span>', title = '<div class="mcm-related-title">' + details + '</div>';
+            return includePicker ? '<label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" data-manual-item="' + escapeHtml(id) + '"' + (selected ? ' checked' : '') + ' /><span class="mcm-manual-picker-details">' + details + '</span></label>' : title;
         }
         function renderManualLibraryPickers() {
             var host = $('#manualCollectionLibraryPickers');
