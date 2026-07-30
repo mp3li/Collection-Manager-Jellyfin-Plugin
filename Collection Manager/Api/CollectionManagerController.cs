@@ -6,7 +6,6 @@ using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
-using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Model.Tasks;
 using MediaBrowser.Model.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -230,18 +229,24 @@ public sealed class CollectionManagerController : ControllerBase
             return BadRequest("The selected Jellyfin library is no longer available on this server.");
         }
 
-        // Virtual-library roots do not expose direct children consistently.
-        // Use the proven recursive scope, then keep series and other selectable
-        // media while excluding episodic hierarchy and video extras.
-        var items = _libraryManager.GetItemList(new InternalItemsQuery { ParentId = libraryId, Recursive = true })
-            .Where(item => item is not BoxSet && item is not Episode && item is not Season)
+        var library = _libraryManager.GetItemById(libraryId);
+        var collectionType = library is null ? CollectionType.unknown : _libraryManager.GetConfiguredContentType(library);
+        // Match Jellyfin's normal library browsing query: scope it to the
+        // library, search recursively, and request only the item kinds that
+        // belong in that library's configured collection type.
+        var items = _libraryManager.GetItemList(new InternalItemsQuery
+        {
+            ParentId = libraryId,
+            Recursive = true,
+            IncludeItemTypes = GetManualCollectionItemTypes(collectionType),
+        })
             .Where(item => item is not Video { ExtraType: not null })
             .OrderBy(item => item.SortName ?? item.Name, StringComparer.OrdinalIgnoreCase)
             .Select(item => new
             {
                 item.Id,
                 item.Name,
-                Type = item.GetType().Name,
+                Type = GetManualCollectionDisplayType(item.GetBaseItemKind()),
                 item.ProductionYear,
                 item.Overview,
                 HasPrimaryImage = item.HasImage(ImageType.Primary, 0),
@@ -759,6 +764,27 @@ public sealed class CollectionManagerController : ControllerBase
             .ToHashSet();
         return libraryIds.Distinct().All(id => known.Contains(id));
     }
+
+    private static BaseItemKind[] GetManualCollectionItemTypes(CollectionType? collectionType) => collectionType switch
+    {
+        CollectionType.tvshows => [BaseItemKind.Series],
+        CollectionType.movies => [BaseItemKind.Movie],
+        CollectionType.music => [BaseItemKind.Audio, BaseItemKind.MusicAlbum],
+        CollectionType.musicvideos => [BaseItemKind.MusicVideo],
+        CollectionType.books => [BaseItemKind.Book, BaseItemKind.AudioBook],
+        CollectionType.homevideos => [BaseItemKind.Movie, BaseItemKind.Video],
+        CollectionType.trailers => [BaseItemKind.Trailer],
+        _ => [BaseItemKind.Movie, BaseItemKind.Series, BaseItemKind.Audio, BaseItemKind.MusicAlbum, BaseItemKind.AudioBook, BaseItemKind.Book, BaseItemKind.MusicVideo, BaseItemKind.Video],
+    };
+
+    private static string GetManualCollectionDisplayType(BaseItemKind itemType) => itemType switch
+    {
+        BaseItemKind.Audio => "MP3",
+        BaseItemKind.MusicAlbum => "MP3 Album",
+        BaseItemKind.AudioBook => "Audiobook",
+        BaseItemKind.MusicVideo => "Music Video",
+        _ => itemType.ToString(),
+    };
 
     private bool IsCompletedDraft(IndividualCollectionDraftRequest draft) =>
         draft.SourceLibraryId != Guid.Empty &&

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.0.35] - 2026-07-29
+
+### Fixed
+
+- Removed the redundant introductory sentence from the Collection Overview &
+  Editor tab; its first visible section is now Selected Collections Settings.
+- Changed Create Manual Collections to query each library through Jellyfin's
+  typed item query with the configured library content type. The picker now
+  requests collection-level items only: Series for TV, Movies for movie
+  libraries, Books and Audiobooks for book libraries, and the appropriate
+  music or video item kinds for their libraries. Folders, seasons, episodes,
+  and video extras are not selectable.
+- Renamed music picker types to **MP3** and **MP3 Album**, and decode rich-text
+  library descriptions to readable plain text before displaying them.
+
 ## [0.1.0.34] - 2026-07-29
 
 ### Fixed

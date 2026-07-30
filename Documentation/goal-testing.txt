@@ -90,8 +90,16 @@ Create Manual Collections
 [ ] Expanding a library loads only that library's current selectable media and
     displays the same poster, title, type, year, and overview details used by
     Collections Overview & Editor, plus a picker checkbox and no edit button.
-[ ] A television library shows each series once and does not offer individual
-    episodes, seasons, deleted scenes, or other extras as separate choices.
+[ ] A television library shows each Series once and never offers individual
+    episodes, seasons, folders, deleted scenes, or other extras as choices.
+[ ] A movie library shows Movies only; folders and unrelated item kinds are not
+    available as manual collection choices.
+[ ] A music library presents Audio as MP3 and MusicAlbum as MP3 Album, without
+    folders or unrelated media kinds.
+[ ] A book library presents only Book and Audiobook items. Rich-text markup and
+    encoded entities in a book description display as readable plain text.
+[ ] A Home Videos or Live Performance library presents only its applicable
+    Movie or Video items, never folders or Jellyfin video extras.
 [ ] Select media from more than one library and confirm all selected items
     appear together in the singular Individual Collection Draft section.
 [ ] Confirm the editable collection title appears above the draft media and its

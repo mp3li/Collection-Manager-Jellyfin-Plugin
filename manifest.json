@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.34",
-        "changelog": "Places Collection Overview & Editor in the same secondary tab row used by Media Tagging Manager. Manual collections use a reliable filtered library scope: series are selectable, while episodes, seasons, and video extras are excluded.",
+        "version": "0.1.0.35",
+        "changelog": "Removes the redundant Overview-tab introduction. Manual collection pickers now use Jellyfin's typed library item query, so they show collection-level media only: Series, Movies, Books and Audiobooks, MP3 and MP3 Album items, or applicable video items—never folders, seasons, episodes, or extras.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.34/CollectionManager_0.1.0.34.zip",
-        "checksum": "6074ff1d722375849c3eacd582b52495",
-        "timestamp": "2026-07-29T08:47:08Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.35/CollectionManager_0.1.0.35.zip",
+        "checksum": "a39b86ebd7023c42a314ef2bf29b636e",
+        "timestamp": "2026-07-30T01:13:51Z"
       }
     ]
   }
