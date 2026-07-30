@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.39",
-        "changelog": "Manual picker Previous Page, Select All, Select None, and Next Page buttons are forced gray in every interaction state. Each action now preserves Jellyfin's actual dashboard scroll position instead of offset-scrolling the page.",
+        "version": "0.1.0.40",
+        "changelog": "Manual pager controls now use the exact shared Select Metadata Tags pagination markup and normal raised buttons. Paging and page selection redraw only the media results, leaving the existing pager and dashboard scroll position in place.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.39/CollectionManager_0.1.0.39.zip",
-        "checksum": "6e9e4b5697bf4ec761bb85aaee9e5103",
-        "timestamp": "2026-07-30T03:33:06Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.40/CollectionManager_0.1.0.40.zip",
+        "checksum": "f2eaf1ecc8b35ff091bc2fedaae207d5",
+        "timestamp": "2026-07-30T03:56:02Z"
       }
     ]
   }

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.0.40] - 2026-07-29
+
+### Fixed
+
+- Replaced the manual picker pager controls with the exact existing Select
+  Metadata Tags pagination markup: the shared `mcm-pagination` container and
+  ordinary `raised` buttons, with no manual-only classes, inline styles, or
+  color overrides.
+- Stopped recreating the manual picker search field and pager during page or
+  selection changes. Only the ten-item media-results area now redraws, while
+  the existing pager remains in the page.
+
 ## [0.1.0.39] - 2026-07-29
 
 ### Fixed

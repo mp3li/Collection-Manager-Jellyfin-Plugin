@@ -107,7 +107,8 @@ Create Manual Collections
     actual dashboard scroll position after any page content is replaced.
 [ ] Manual-library Select All and Select None select or clear only the ten
     visible choices on the current page, including its first item. Both use the
-    same standard gray button treatment as other dashboard page controls and
+    exact same normal `mcm-pagination` and `raised` button construction as
+    Select Metadata Tags Previous Page and Next Page controls, and
     appear between Previous Page and Next Page without changing the dashboard
     scroll position.
 [ ] Select media from more than one library and confirm all selected items

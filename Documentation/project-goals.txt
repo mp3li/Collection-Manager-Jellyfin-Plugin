@@ -73,12 +73,13 @@ feature plans are defined.
      overview into readable plain text before rendering it.
    - Give each expanded library picker a media search field and ten-item pages.
      Keep Select All and Select None between the previous and next page controls
-     and show a small Page _ out of _ indicator. Use the same standard gray
-     Previous Page and Next Page controls as the rest of the dashboard. The
+     and show a small Page _ out of _ indicator. Use the exact shared
+     `mcm-pagination` and ordinary `raised` button construction already used
+     by the Select Metadata Tags Previous Page and Next Page controls. The
      selection controls apply only to the ten visible choices on the current
-     page. Keep the controls below the displayed media. Previous Page, Next
-     Page, Select All, and Select None must preserve the administrator's actual
-     Jellyfin dashboard scroll position.
+     page. Keep the controls below the displayed media. Redraw only the media
+     results area when paging or changing selections; the existing pager and
+     administrator dashboard scroll position must remain in place.
    - Maintain one manual collection draft across any combination of Jellyfin
     libraries. Let the administrator enter a title and review every selected
      media item before creation. Label this section Individual Collection Draft
