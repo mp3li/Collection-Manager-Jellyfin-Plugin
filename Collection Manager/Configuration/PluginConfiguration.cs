@@ -44,6 +44,24 @@ public sealed class PluginConfiguration : BasePluginConfiguration
 
     /// <summary>Gets or sets recent reversible collection actions initiated by this plugin.</summary>
     public List<CollectionActionRecord> CollectionActionHistory { get; set; } = [];
+
+    /// <summary>Gets or sets the saved artwork preference used by new collection drafts.</summary>
+    public CollectionArtPreference? DefaultArtPreference { get; set; }
+
+    /// <summary>Gets or sets the saved text-focused collection-art settings.</summary>
+    public TextFocusedCollectionArtSettings TextFocusedArt { get; set; } = new();
+
+    /// <summary>Gets or sets the saved poster-focused collection-art settings.</summary>
+    public PosterFocusedCollectionArtSettings PosterFocusedArt { get; set; } = new();
+
+    /// <summary>Gets or sets the saved logo-focused collection-art settings.</summary>
+    public LogoFocusedCollectionArtSettings LogoFocusedArt { get; set; } = new();
+
+    /// <summary>Gets or sets the saved multi-collection gradient-art settings.</summary>
+    public MultiCollectionGradientArtSettings MultiCollectionGradientArt { get; set; } = new();
+
+    /// <summary>Gets or sets saved logo assignments for logo-focused collection art.</summary>
+    public List<CollectionLogoSelection> CollectionLogoSelections { get; set; } = [];
     /// <summary>Gets or sets a value indicating whether metadata-change events can reconcile enabled rules.</summary>
     public bool WatchMetadataChanges { get; set; } = true;
 

@@ -4,11 +4,13 @@ using Jellyfin.Plugin.CollectionManager.Services;
 using Jellyfin.Plugin.CollectionManager.Tasks;
 using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Model.Tasks;
 using MediaBrowser.Model.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Jellyfin.Plugin.CollectionManager.Api;
@@ -25,6 +27,8 @@ public sealed class CollectionManagerController : ControllerBase
     private readonly ILibraryManager _libraryManager;
     private readonly ManualReconciliationRequestQueue _requests;
     private readonly ITaskManager _taskManager;
+    private readonly IProviderManager _providerManager;
+    private readonly CollectionArtAssetStore _artAssets;
 
     /// <summary>Initializes a new instance of the <see cref="CollectionManagerController"/> class.</summary>
     public CollectionManagerController(
@@ -33,7 +37,9 @@ public sealed class CollectionManagerController : ControllerBase
         CollectionOverviewService collectionOverview,
         ILibraryManager libraryManager,
         ManualReconciliationRequestQueue requests,
-        ITaskManager taskManager)
+        ITaskManager taskManager,
+        IProviderManager providerManager,
+        CollectionArtAssetStore artAssets)
     {
         _reconciler = reconciler;
         _metadataCatalog = metadataCatalog;
@@ -41,6 +47,8 @@ public sealed class CollectionManagerController : ControllerBase
         _libraryManager = libraryManager;
         _requests = requests;
         _taskManager = taskManager;
+        _providerManager = providerManager;
+        _artAssets = artAssets;
     }
 
     /// <summary>Returns settings and selectable Jellyfin libraries for the dashboard's main settings tab.</summary>
@@ -180,8 +188,8 @@ public sealed class CollectionManagerController : ControllerBase
             return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Skipped", "No current catalog media matches this draft."));
         }
 
-        await _reconciler.CreateCollectionAsync(draft.CollectionTitle, itemIds).ConfigureAwait(false);
-        return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Created", $"Created with {itemIds.Count} matching media item(s)."));
+        var collection = await _reconciler.CreateCollectionAsync(draft.CollectionTitle, itemIds).ConfigureAwait(false);
+        return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Created", $"Created with {itemIds.Count} matching media item(s).", collection.Id));
     }
 
     /// <summary>Previews a combined or multi-match draft from multiple selected metadata tags.</summary>
@@ -207,8 +215,8 @@ public sealed class CollectionManagerController : ControllerBase
         }
         var itemIds = _metadataCatalog.GetMatchingItemIds(draft);
         if (itemIds.Count == 0) return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Skipped", draft.RequireAllTags ? "No media currently matches every selected metadata tag." : "No current catalog media matches the selected metadata tags."));
-        await _reconciler.CreateCollectionAsync(draft.CollectionTitle, itemIds).ConfigureAwait(false);
-        return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Created", $"Created with {itemIds.Count} unique media item(s)."));
+        var collection = await _reconciler.CreateCollectionAsync(draft.CollectionTitle, itemIds).ConfigureAwait(false);
+        return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Created", $"Created with {itemIds.Count} unique media item(s).", collection.Id));
     }
 
     /// <summary>Returns metadata values currently present in the server libraries.</summary>
@@ -219,6 +227,195 @@ public sealed class CollectionManagerController : ControllerBase
     [HttpGet("items")]
     public ActionResult<IReadOnlyList<MediaSearchResult>> SearchItems([FromQuery] string? searchTerm) =>
         Ok(_reconciler.SearchMedia(searchTerm));
+
+    /// <summary>Returns all persisted collection-art settings for the five Collection Art tabs.</summary>
+    [HttpGet("art/settings")]
+    public IActionResult GetArtSettings()
+    {
+        var configuration = RequirePlugin().Configuration;
+        return Ok(new
+        {
+            configuration.DefaultArtPreference,
+            configuration.TextFocusedArt,
+            configuration.PosterFocusedArt,
+            configuration.LogoFocusedArt,
+            configuration.MultiCollectionGradientArt,
+            configuration.CollectionLogoSelections,
+        });
+    }
+
+    /// <summary>Saves the default artwork choice for new collection drafts.</summary>
+    [HttpPost("art/settings/default")]
+    public IActionResult SaveDefaultArtPreference([FromBody] DefaultArtPreferenceRequest request) =>
+        Ok(RequirePlugin().UpdateConfigurationSafely(configuration =>
+        {
+            configuration.DefaultArtPreference = request.Preference;
+            return configuration.DefaultArtPreference;
+        }));
+
+    /// <summary>Saves text-focused collection-art settings.</summary>
+    [HttpPost("art/settings/text-focused")]
+    public IActionResult SaveTextFocusedArtSettings([FromBody] TextFocusedArtSettingsRequest request) =>
+        Ok(RequirePlugin().UpdateConfigurationSafely(configuration =>
+        {
+            configuration.TextFocusedArt = CreateTextFocusedSettings(request);
+            return configuration.TextFocusedArt;
+        }));
+
+    /// <summary>Saves poster-focused collection-art settings.</summary>
+    [HttpPost("art/settings/poster-focused")]
+    public IActionResult SavePosterFocusedArtSettings([FromBody] TextFocusedArtSettingsRequest request) =>
+        Ok(RequirePlugin().UpdateConfigurationSafely(configuration =>
+        {
+            configuration.PosterFocusedArt = CreatePosterFocusedSettings(request);
+            return configuration.PosterFocusedArt;
+        }));
+
+    /// <summary>Saves logo-focused collection-art settings.</summary>
+    [HttpPost("art/settings/logo-focused")]
+    public IActionResult SaveLogoFocusedArtSettings([FromBody] LogoFocusedArtSettingsRequest request) =>
+        Ok(RequirePlugin().UpdateConfigurationSafely(configuration =>
+        {
+            configuration.LogoFocusedArt = new LogoFocusedCollectionArtSettings
+            {
+                BackgroundStyle = request.BackgroundStyle,
+                BackgroundColor = request.BackgroundColor,
+                GradientColorOne = request.GradientColorOne,
+                GradientColorTwo = request.GradientColorTwo,
+                GradientDirection = request.GradientDirection,
+                BackgroundAssetId = request.BackgroundAssetId,
+                BackgroundFileName = request.BackgroundFileName,
+                ArtType = request.ArtType,
+            };
+            return configuration.LogoFocusedArt;
+        }));
+
+    /// <summary>Saves multi-collection or library gradient-art settings.</summary>
+    [HttpPost("art/settings/multi-gradient")]
+    public IActionResult SaveMultiCollectionGradientArtSettings([FromBody] MultiCollectionGradientArtSettingsRequest request) =>
+        Ok(RequirePlugin().UpdateConfigurationSafely(configuration =>
+        {
+            configuration.MultiCollectionGradientArt = new MultiCollectionGradientArtSettings
+            {
+                GradientColorOne = request.GradientColorOne,
+                GradientColorTwo = request.GradientColorTwo,
+                GradientColorThree = request.GradientColorThree,
+                GradientDirection = request.GradientDirection,
+                ArtType = request.ArtType,
+            };
+            return configuration.MultiCollectionGradientArt;
+        }));
+
+    /// <summary>Saves the one selected logo for a collection in logo-focused art.</summary>
+    [HttpPost("art/logo-selections")]
+    public IActionResult SaveCollectionLogoSelection([FromBody] CollectionLogoSelectionRequest request)
+    {
+        if (_libraryManager.GetItemById<BoxSet>(request.CollectionId) is null)
+        {
+            return NotFound("The selected collection is no longer available on this server.");
+        }
+
+        return Ok(RequirePlugin().UpdateConfigurationSafely(configuration =>
+        {
+            configuration.CollectionLogoSelections.RemoveAll(selection => selection.CollectionId == request.CollectionId);
+            if (!string.IsNullOrWhiteSpace(request.LogoKind)
+                || !string.IsNullOrWhiteSpace(request.LogoName)
+                || !string.IsNullOrWhiteSpace(request.ImportedLogoAssetId))
+            {
+                configuration.CollectionLogoSelections.Add(new CollectionLogoSelection
+                {
+                    CollectionId = request.CollectionId,
+                    LogoKind = request.LogoKind?.Trim(),
+                    LogoName = request.LogoName?.Trim(),
+                    ImportedLogoAssetId = request.ImportedLogoAssetId?.Trim(),
+                    ImportedLogoFileName = request.ImportedLogoFileName?.Trim(),
+                });
+            }
+
+            return configuration.CollectionLogoSelections.Where(selection => selection.CollectionId == request.CollectionId).FirstOrDefault();
+        }));
+    }
+
+    /// <summary>Saves an imported TTF/OTF font or image in this plugin's Jellyfin data folder.</summary>
+    [HttpPost("art-assets/{kind}")]
+    public async Task<ActionResult<CollectionArtAsset>> UploadCollectionArtAsset(string kind, [FromForm] IFormFile file, CancellationToken cancellationToken)
+    {
+        if (!TryParseAssetKind(kind, out var assetKind))
+        {
+            return BadRequest("The collection-art asset kind must be font or image.");
+        }
+
+        try
+        {
+            return Ok(await _artAssets.SaveAsync(file, assetKind, cancellationToken).ConfigureAwait(false));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(exception.Message);
+        }
+    }
+
+    /// <summary>Serves an imported collection-art asset to the dashboard preview.</summary>
+    [HttpGet("art-assets/{kind}/{id}")]
+    public IActionResult GetCollectionArtAsset(string kind, string id)
+    {
+        if (!TryParseAssetKind(kind, out var assetKind))
+        {
+            return NotFound();
+        }
+
+        var asset = _artAssets.Open(id, assetKind);
+        return asset is null ? NotFound() : File(asset.Stream, asset.ContentType);
+    }
+
+    /// <summary>Returns every native Jellyfin collection for the collection-art pickers.</summary>
+    [HttpGet("art/collections")]
+    public ActionResult<IReadOnlyList<object>> GetArtCollections() => Ok(_libraryManager
+        .GetItemList(new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.BoxSet] })
+        .OfType<BoxSet>()
+        .OrderBy(collection => collection.SortName ?? collection.Name, StringComparer.OrdinalIgnoreCase)
+        .Select(collection => new { collection.Id, collection.Name, MediaItems = collection.GetLinkedChildren().Count })
+        .ToArray());
+
+    /// <summary>Returns the collection's actual primary-image URLs for poster-focused previews.</summary>
+    [HttpGet("art/collections/{collectionId:guid}/poster-examples")]
+    public ActionResult<IReadOnlyList<object>> GetCollectionPosterExamples(Guid collectionId)
+    {
+        var collection = _libraryManager.GetItemById<BoxSet>(collectionId);
+        if (collection is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(collection.GetLinkedChildren()
+            .Where(item => item.HasImage(ImageType.Primary, 0))
+            .Select(item => new { item.Id, item.Name })
+            .ToArray());
+    }
+
+    /// <summary>Saves one browser-rendered PNG as the selected native Jellyfin collection image type.</summary>
+    [HttpPost("art/apply")]
+    public async Task<IActionResult> ApplyCollectionArt(
+        [FromForm] Guid collectionId,
+        [FromForm] CollectionArtImageType artType,
+        [FromForm] IFormFile image,
+        CancellationToken cancellationToken)
+    {
+        var collection = _libraryManager.GetItemById(collectionId);
+        if (collection is null)
+        {
+            return NotFound("The selected collection is no longer available on this server.");
+        }
+
+        if (image is null || image.Length <= 0)
+        {
+            return BadRequest("A rendered PNG is required.");
+        }
+
+        await using var stream = image.OpenReadStream();
+        await _providerManager.SaveImage(collection, stream, "image/png", ToJellyfinImageType(artType), artType == CollectionArtImageType.Backdrop ? 0 : null, cancellationToken).ConfigureAwait(false);
+        return NoContent();
+    }
 
     /// <summary>Returns the selectable media in one Jellyfin library for the manual collection picker.</summary>
     [HttpGet("manual-collections/library-items")]
@@ -584,6 +781,25 @@ public sealed class CollectionManagerController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Deletes one existing native Jellyfin collection selected from the collection overview.</summary>
+    [HttpPost("collections/delete")]
+    public IActionResult DeleteCollection([FromBody] CollectionDeleteRequest request)
+    {
+        if (request.CollectionId == Guid.Empty)
+        {
+            return BadRequest("A collection is required.");
+        }
+
+        var collection = _libraryManager.GetItemById<BoxSet>(request.CollectionId);
+        if (collection is null)
+        {
+            return NotFound("This collection no longer exists.");
+        }
+
+        _libraryManager.DeleteItemsUnsafeFast([collection]);
+        return NoContent();
+    }
+
     /// <summary>Applies selected reversible cleanup actions to Collection Manager collections.</summary>
     [HttpPost("collections/cleanup")]
     public async Task<IActionResult> CleanUpCollections([FromBody] CollectionCleanupRequest request, CancellationToken cancellationToken)
@@ -739,6 +955,69 @@ public sealed class CollectionManagerController : ControllerBase
 
     private static bool IsColor(string? color) =>
         !string.IsNullOrWhiteSpace(color) && System.Text.RegularExpressions.Regex.IsMatch(color, "^#[0-9a-fA-F]{6}$");
+
+    private static TextFocusedCollectionArtSettings CreateTextFocusedSettings(TextFocusedArtSettingsRequest request) => new()
+    {
+        PreviewText = request.PreviewText ?? string.Empty,
+        FontAssetId = request.FontAssetId?.Trim(),
+        FontFileName = request.FontFileName?.Trim(),
+        TextColor = request.TextColor,
+        TextShadowColor = request.TextShadowColor,
+        BackgroundStyle = request.BackgroundStyle,
+        BackgroundColor = request.BackgroundColor,
+        GradientColorOne = request.GradientColorOne,
+        GradientColorTwo = request.GradientColorTwo,
+        GradientDirection = request.GradientDirection,
+        BackgroundAssetId = request.BackgroundAssetId?.Trim(),
+        BackgroundFileName = request.BackgroundFileName?.Trim(),
+        ArtType = request.ArtType,
+    };
+
+    private static PosterFocusedCollectionArtSettings CreatePosterFocusedSettings(TextFocusedArtSettingsRequest request) => new()
+    {
+        PreviewText = request.PreviewText ?? string.Empty,
+        FontAssetId = request.FontAssetId?.Trim(),
+        FontFileName = request.FontFileName?.Trim(),
+        TextColor = request.TextColor,
+        TextShadowColor = request.TextShadowColor,
+        BackgroundStyle = request.BackgroundStyle,
+        BackgroundColor = request.BackgroundColor,
+        GradientColorOne = request.GradientColorOne,
+        GradientColorTwo = request.GradientColorTwo,
+        GradientDirection = request.GradientDirection,
+        BackgroundAssetId = request.BackgroundAssetId?.Trim(),
+        BackgroundFileName = request.BackgroundFileName?.Trim(),
+        ArtType = request.ArtType,
+        PosterStyle = request.PosterStyle is "FourPosters" or "NinePosters" ? request.PosterStyle : "OnePoster",
+    };
+
+    private static bool TryParseAssetKind(string value, out CollectionArtAssetKind kind)
+    {
+        if (string.Equals(value, "font", StringComparison.OrdinalIgnoreCase))
+        {
+            kind = CollectionArtAssetKind.Font;
+            return true;
+        }
+
+        if (string.Equals(value, "image", StringComparison.OrdinalIgnoreCase))
+        {
+            kind = CollectionArtAssetKind.Image;
+            return true;
+        }
+
+        kind = default;
+        return false;
+    }
+
+    private static ImageType ToJellyfinImageType(CollectionArtImageType artType) => artType switch
+    {
+        CollectionArtImageType.Poster => ImageType.Primary,
+        CollectionArtImageType.Backdrop => ImageType.Backdrop,
+        CollectionArtImageType.Banner => ImageType.Banner,
+        CollectionArtImageType.Thumbnail => ImageType.Thumb,
+        CollectionArtImageType.Logo => ImageType.Logo,
+        _ => throw new ArgumentOutOfRangeException(nameof(artType)),
+    };
 
     private static Plugin RequirePlugin() =>
         Plugin.Instance ?? throw new InvalidOperationException("Collection Manager has not finished initializing.");

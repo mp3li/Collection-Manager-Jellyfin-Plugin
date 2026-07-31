@@ -182,6 +182,12 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         PluginManagedCollectionIds = source.PluginManagedCollectionIds.Distinct().ToList(),
         CollectionOverviewSnapshot = source.CollectionOverviewSnapshot is null ? null : CloneSnapshot(source.CollectionOverviewSnapshot),
         CollectionActionHistory = source.CollectionActionHistory.Select(CloneAction).ToList(),
+        DefaultArtPreference = source.DefaultArtPreference,
+        TextFocusedArt = CloneTextFocusedArt(source.TextFocusedArt),
+        PosterFocusedArt = ClonePosterFocusedArt(source.PosterFocusedArt),
+        LogoFocusedArt = CloneLogoFocusedArt(source.LogoFocusedArt),
+        MultiCollectionGradientArt = CloneMultiCollectionGradientArt(source.MultiCollectionGradientArt),
+        CollectionLogoSelections = source.CollectionLogoSelections.Select(CloneCollectionLogoSelection).ToList(),
         WatchMetadataChanges = source.WatchMetadataChanges,
         ScheduledReconciliationEnabled = source.ScheduledReconciliationEnabled,
         ScheduledReconciliationMinutes = source.ScheduledReconciliationMinutes,
@@ -210,6 +216,71 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         PreviousCollectionName = source.PreviousCollectionName,
         ItemIds = source.ItemIds.Distinct().ToList(),
         OccurredUtc = source.OccurredUtc,
+    };
+
+    private static TextFocusedCollectionArtSettings CloneTextFocusedArt(TextFocusedCollectionArtSettings source) => new()
+    {
+        PreviewText = source.PreviewText,
+        FontAssetId = source.FontAssetId,
+        FontFileName = source.FontFileName,
+        TextColor = source.TextColor,
+        TextShadowColor = source.TextShadowColor,
+        BackgroundStyle = source.BackgroundStyle,
+        BackgroundColor = source.BackgroundColor,
+        GradientColorOne = source.GradientColorOne,
+        GradientColorTwo = source.GradientColorTwo,
+        GradientDirection = source.GradientDirection,
+        BackgroundAssetId = source.BackgroundAssetId,
+        BackgroundFileName = source.BackgroundFileName,
+        ArtType = source.ArtType,
+    };
+
+    private static PosterFocusedCollectionArtSettings ClonePosterFocusedArt(PosterFocusedCollectionArtSettings source) => new()
+    {
+        PreviewText = source.PreviewText,
+        FontAssetId = source.FontAssetId,
+        FontFileName = source.FontFileName,
+        TextColor = source.TextColor,
+        TextShadowColor = source.TextShadowColor,
+        BackgroundStyle = source.BackgroundStyle,
+        BackgroundColor = source.BackgroundColor,
+        GradientColorOne = source.GradientColorOne,
+        GradientColorTwo = source.GradientColorTwo,
+        GradientDirection = source.GradientDirection,
+        BackgroundAssetId = source.BackgroundAssetId,
+        BackgroundFileName = source.BackgroundFileName,
+        ArtType = source.ArtType,
+        PosterStyle = source.PosterStyle,
+    };
+
+    private static LogoFocusedCollectionArtSettings CloneLogoFocusedArt(LogoFocusedCollectionArtSettings source) => new()
+    {
+        BackgroundStyle = source.BackgroundStyle,
+        BackgroundColor = source.BackgroundColor,
+        GradientColorOne = source.GradientColorOne,
+        GradientColorTwo = source.GradientColorTwo,
+        GradientDirection = source.GradientDirection,
+        BackgroundAssetId = source.BackgroundAssetId,
+        BackgroundFileName = source.BackgroundFileName,
+        ArtType = source.ArtType,
+    };
+
+    private static MultiCollectionGradientArtSettings CloneMultiCollectionGradientArt(MultiCollectionGradientArtSettings source) => new()
+    {
+        GradientColorOne = source.GradientColorOne,
+        GradientColorTwo = source.GradientColorTwo,
+        GradientColorThree = source.GradientColorThree,
+        GradientDirection = source.GradientDirection,
+        ArtType = source.ArtType,
+    };
+
+    private static CollectionLogoSelection CloneCollectionLogoSelection(CollectionLogoSelection source) => new()
+    {
+        CollectionId = source.CollectionId,
+        LogoKind = source.LogoKind,
+        LogoName = source.LogoName,
+        ImportedLogoAssetId = source.ImportedLogoAssetId,
+        ImportedLogoFileName = source.ImportedLogoFileName,
     };
 
     private static CollectionOverviewSnapshot CloneSnapshot(CollectionOverviewSnapshot source) => new()

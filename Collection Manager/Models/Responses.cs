@@ -146,4 +146,4 @@ public sealed record IndividualCollectionDraftPreview(int MatchingItems, IReadOn
 public sealed record IndividualCollectionDraftConflict(string CollectionTitle, bool ExistingCollectionFound);
 
 /// <summary>The completed outcome for one individual collection draft.</summary>
-public sealed record IndividualCollectionDraftResult(string CollectionTitle, string Outcome, string Message);
+public sealed record IndividualCollectionDraftResult(string CollectionTitle, string Outcome, string Message, Guid? CollectionId = null);

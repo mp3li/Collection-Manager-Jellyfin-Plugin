@@ -47,6 +47,12 @@ public sealed class CollectionRenameRequest
     public string Name { get; set; } = string.Empty;
 }
 
+/// <summary>One administrator-confirmed request to delete a native Jellyfin collection.</summary>
+public sealed class CollectionDeleteRequest
+{
+    public Guid CollectionId { get; set; }
+}
+
 /// <summary>The selected Collection Manager cleanup actions.</summary>
 public sealed class CollectionCleanupRequest
 {
