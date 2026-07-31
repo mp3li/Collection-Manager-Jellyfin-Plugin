@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.0.49] - 2026-07-30
+
+### Fixed
+
+- Restored the original artwork-preview size.
+- Corrected form submission for Jellyfin's successful empty image-save response
+  and supplied the authenticated asset URLs required by browser-loaded fonts.
+- Rendered cached provider, network, and production-company logos using the
+  same authenticated URL pattern as Media Tagging Manager, and added a small
+  artwork preview beside each selected logo collection.
+- Grouped metadata type pickers with the requested source headings and divider;
+  NFO and Jellyfin fields now sort together alphabetically and compact names
+  such as `releasedate` and `dateadded` display as `Release Date` and
+  `Date Added`.
+
 ## [0.1.0.48] - 2026-07-30
 
 ### Fixed
