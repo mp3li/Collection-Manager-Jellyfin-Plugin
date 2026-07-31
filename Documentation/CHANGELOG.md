@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.0.51] - 2026-07-30
+
+### Fixed
+
+- Sends font imports and rendered collection art as real authenticated multipart
+  Jellyfin uploads, rather than empty form requests.
+- Returns a JSON acknowledgement when a logo selection is cleared, so Unselect
+  Logo refreshes the draft correctly.
+- Redraws selected-logo previews when their background style changes and adds
+  more space between the logo picker and preview.
+
+### Added
+
+- Added Save Gradient Settings, which saves only the gradient tool's settings
+  without applying artwork.
+
 ## [0.1.0.50] - 2026-07-30
 
 ### Fixed

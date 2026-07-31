@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.50",
-        "changelog": "Shows actual font/art failure details; fixes the logo-draft layout and adds immediate rounded-logo previews; capitalizes one-word labels, adds tag count wording, and moves Gradient above Collections.",
+        "version": "0.1.0.51",
+        "changelog": "Fixes real multipart font/art uploads, Unselect Logo, and automatic logo background-preview redraws; adds Save Gradient Settings for this tab only.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.50/CollectionManager_0.1.0.50.zip",
-        "checksum": "bf287f33c257382f45f838a5f9c9c6e5",
-        "timestamp": "2026-07-31T03:50:52Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.51/CollectionManager_0.1.0.51.zip",
+        "checksum": "372045309f925b31f249ab4cb3f4e57e",
+        "timestamp": "2026-07-31T04:08:08Z"
       }
     ]
   }

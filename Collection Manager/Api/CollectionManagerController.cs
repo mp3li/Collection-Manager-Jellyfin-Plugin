@@ -315,7 +315,7 @@ public sealed class CollectionManagerController : ControllerBase
             return NotFound("The selected collection is no longer available on this server.");
         }
 
-        return Ok(RequirePlugin().UpdateConfigurationSafely(configuration =>
+        var selection = RequirePlugin().UpdateConfigurationSafely(configuration =>
         {
             configuration.CollectionLogoSelections.RemoveAll(selection => selection.CollectionId == request.CollectionId);
             if (!string.IsNullOrWhiteSpace(request.LogoKind)
@@ -334,7 +334,9 @@ public sealed class CollectionManagerController : ControllerBase
             }
 
             return configuration.CollectionLogoSelections.Where(selection => selection.CollectionId == request.CollectionId).FirstOrDefault();
-        }));
+        });
+
+        return selection is null ? Ok(new { Cleared = true }) : Ok(selection);
     }
 
     /// <summary>Saves an imported TTF/OTF font or image in this plugin's Jellyfin data folder.</summary>
