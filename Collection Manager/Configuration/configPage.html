@@ -89,9 +89,10 @@
         #collectionManagerPage .mcm-art-inline .inputContainer { margin:0; min-width:7em; }
         #collectionManagerPage .mcm-art-color { width:3.5em !important; min-width:3.5em; max-width:3.5em; height:3.5em; padding:.1em; }
         #collectionManagerPage .mcm-art-picker { max-height:20em; overflow-y:auto; padding:.15em .4em; border:1px solid var(--mcm-outline-color); border-radius:.4em; }
-        #collectionManagerPage .mcm-art-picker .checkboxContainer { display:block; margin:.55em 0; }
-        #collectionManagerPage .mcm-art-logo-choice { display:block; min-height:3.6em; padding:.55em; border:1px solid var(--mcm-outline-color); border-radius:.4em; margin:.55em 0; }
-        #collectionManagerPage .mcm-art-logo-choice > span { display:flex; align-items:center; gap:.65em; min-height:2.5em; }
+        #collectionManagerPage .mcm-art-picker .checkboxContainer:not(.mcm-art-logo-choice) { display:block; margin:.55em 0; }
+        #collectionManagerPage .mcm-art-logo-choice { display:inline-flex; box-sizing:border-box; width:100%; min-height:3.6em; padding:.55em .55em .55em 3.2em; border:1px solid var(--mcm-outline-color); border-radius:.4em; margin:.55em 0; }
+        #collectionManagerPage .mcm-art-logo-choice > span { display:flex; align-items:center; gap:.65em; width:100%; min-height:2.5em; }
+        #collectionManagerPage .mcm-art-logo-choice > .checkboxOutline { top:50%; left:.55em; transform:translateY(-50%); }
         #collectionManagerPage .mcm-art-logo-choice img, #collectionManagerPage .mcm-art-logo-current img { display:block; flex:0 0 auto; width:4em; height:2.5em; object-fit:contain; background:rgba(255,255,255,.08); }
         #collectionManagerPage .mcm-art-logo-current { display:flex; align-items:center; gap:.65em; margin-top:.75em; }
         #collectionManagerPage .mcm-logo-draft-layout { display:grid; grid-template-columns:minmax(0,1fr) 12em; gap:2em; align-items:start; }

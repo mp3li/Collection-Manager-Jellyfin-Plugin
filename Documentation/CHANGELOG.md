@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0.54] - 2026-07-30
+
+### Fixed
+
+- Restores the exact native Jellyfin checkbox spacing for logo rows so the
+  checkbox outline cannot overlap the selected logo.
+
 ## [0.1.0.53] - 2026-07-30
 
 ### Fixed

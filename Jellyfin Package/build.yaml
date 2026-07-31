@@ -1,7 +1,7 @@
 ---
 name: "Collection Manager"
 guid: "5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9"
-version: "0.1.0.53"
+version: "0.1.0.54"
 targetAbi: "10.11.11.0"
 framework: "net9.0"
 overview: "Visual metadata-driven native collection creation for Jellyfin."
