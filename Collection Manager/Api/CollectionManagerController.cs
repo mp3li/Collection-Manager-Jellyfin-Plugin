@@ -329,6 +329,7 @@ public sealed class CollectionManagerController : ControllerBase
                     LogoName = request.LogoName?.Trim(),
                     ImportedLogoAssetId = request.ImportedLogoAssetId?.Trim(),
                     ImportedLogoFileName = request.ImportedLogoFileName?.Trim(),
+                    RoundCorners = request.RoundCorners,
                 });
             }
 
@@ -349,9 +350,9 @@ public sealed class CollectionManagerController : ControllerBase
         {
             return Ok(await _artAssets.SaveAsync(file, assetKind, cancellationToken).ConfigureAwait(false));
         }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
+        catch (Exception exception)
         {
-            return BadRequest(exception.Message);
+            return BadRequest($"Could not save the {assetKind.ToString().ToLowerInvariant()} file: {exception.GetType().Name}: {exception.Message}");
         }
     }
 
@@ -412,9 +413,19 @@ public sealed class CollectionManagerController : ControllerBase
             return BadRequest("A rendered PNG is required.");
         }
 
-        await using var stream = image.OpenReadStream();
-        await _providerManager.SaveImage(collection, stream, "image/png", ToJellyfinImageType(artType), artType == CollectionArtImageType.Backdrop ? 0 : null, cancellationToken).ConfigureAwait(false);
-        return NoContent();
+        try
+        {
+            await using var stream = image.OpenReadStream();
+            await _providerManager.SaveImage(collection, stream, "image/png", ToJellyfinImageType(artType), artType == CollectionArtImageType.Backdrop ? 0 : null, cancellationToken).ConfigureAwait(false);
+            return NoContent();
+        }
+        catch (Exception exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status500InternalServerError,
+                title: "Could not apply the rendered collection art.",
+                detail: $"{exception.GetType().Name}: {exception.Message}");
+        }
     }
 
     /// <summary>Returns the selectable media in one Jellyfin library for the manual collection picker.</summary>

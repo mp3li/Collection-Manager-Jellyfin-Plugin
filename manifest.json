@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.49",
-        "changelog": "Restores original artwork preview sizes; fixes successful image saves, authenticated font and logo assets, logo-draft previews, and requested metadata source grouping and spaced labels.",
+        "version": "0.1.0.50",
+        "changelog": "Shows actual font/art failure details; fixes the logo-draft layout and adds immediate rounded-logo previews; capitalizes one-word labels, adds tag count wording, and moves Gradient above Collections.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.49/CollectionManager_0.1.0.49.zip",
-        "checksum": "414e679e2da99e1f6356fba07f1ae61e",
-        "timestamp": "2026-07-31T03:22:51Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.50/CollectionManager_0.1.0.50.zip",
+        "checksum": "bf287f33c257382f45f838a5f9c9c6e5",
+        "timestamp": "2026-07-31T03:50:52Z"
       }
     ]
   }

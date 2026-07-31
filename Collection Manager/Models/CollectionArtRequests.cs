@@ -59,4 +59,5 @@ public sealed class CollectionLogoSelectionRequest
     public string? LogoName { get; set; }
     public string? ImportedLogoAssetId { get; set; }
     public string? ImportedLogoFileName { get; set; }
+    public bool RoundCorners { get; set; }
 }
