@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.0.57] - 2026-07-31
+
+### Added
+
+- Adds an Overview field to manual, individual-tag, combined-tag, and
+  multi-match collection drafts, and to the existing Collection Overview &
+  Editor dialog.
+- Shows all scanned tags from saved libraries in one searchable picker on each
+  tag-collection creation tab while retaining the existing per-draft
+  other-library choices.
+
+### Changed
+
+- Treats episodes and seasons as their parent Series during metadata scans, so
+  tag-driven collection previews and created collections use the Series item
+  instead of individual episodes.
+
 ## [0.1.0.56] - 2026-07-31
 
 ### Added

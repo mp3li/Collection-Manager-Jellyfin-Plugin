@@ -4,6 +4,7 @@ using System.Text.Json;
 using Jellyfin.Plugin.CollectionManager.Models;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using Microsoft.Extensions.Logging;
 
@@ -158,6 +159,29 @@ public sealed class MetadataCatalogService
         }
     }
 
+    /// <summary>Gets every source-library tag row for the selected saved libraries, in the picker sort order.</summary>
+    public IReadOnlyList<MetadataCatalogTagChoice> GetTagChoices(IEnumerable<Guid> libraryIds)
+    {
+        var selected = libraryIds.Distinct().ToHashSet();
+        lock (_sync)
+        {
+            return _catalogs.Values
+                .Where(catalog => selected.Contains(catalog.LibraryId))
+                .SelectMany(catalog => catalog.ValuesByType.SelectMany(type => type.Value.Select(value => new MetadataCatalogTagChoice(
+                    catalog.LibraryId,
+                    catalog.LibraryName,
+                    type.Key,
+                    value.Value,
+                    value.MatchingItems,
+                    value.PersonImageUrl))))
+                .OrderBy(choice => MetadataTypeSortOrder(choice.MetadataType))
+                .ThenBy(choice => choice.MetadataType, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(choice => choice.Value, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(choice => choice.LibraryName, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+    }
+
     /// <summary>Previews every current catalog item that matches a draft across its chosen libraries.</summary>
     public IndividualCollectionDraftPreview PreviewDraft(IndividualCollectionDraftRequest draft)
     {
@@ -204,10 +228,11 @@ public sealed class MetadataCatalogService
             foreach (var folder in folders)
             {
                 var rows = new List<MetadataCatalogItem>(folder.Items.Length);
-                foreach (var item in folder.Items)
+                foreach (var group in folder.Items.GroupBy(item => ResolveCollectionItem(item).Id))
                 {
-                    rows.Add(CreateCatalogItem(item, folder.Id, folder.Name));
-                    processed++;
+                    var collectionItem = ResolveCollectionItem(group.First());
+                    rows.Add(CreateCatalogItem(collectionItem, folder.Id, folder.Name, group));
+                    processed += group.Count();
                     if (processed % 10 == 0 || processed == totalItems)
                     {
                         UpdateStatus(true, processed, totalItems, "Scanning metadata tags…");
@@ -248,57 +273,12 @@ public sealed class MetadataCatalogService
         }
     }
 
-    private MetadataCatalogItem CreateCatalogItem(BaseItem item, Guid libraryId, string libraryName)
+    private MetadataCatalogItem CreateCatalogItem(BaseItem item, Guid libraryId, string libraryName, IEnumerable<BaseItem>? metadataSources = null)
     {
         var values = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        var nfo = NfoMetadataReader.Read(item);
-
-        Add(values, "Tags", item.Tags);
-        Add(values, "Tags", nfo.Tags);
-        Add(values, "Providers", TaggedValues(item.Tags, "Provider: "));
-        Add(values, "Providers", nfo.Providers);
-        Add(values, "Networks", TaggedValues(item.Tags, "Network: "));
-        Add(values, "Networks", nfo.Networks);
-        Add(values, "Keywords", TaggedValues(item.Tags, "Keyword: "));
-        Add(values, "Existing Collection Metadata", TaggedValues(item.Tags, "Collection: "));
-        Add(values, "Genres", item.Genres);
-        Add(values, "Genres", nfo.Genres);
-        Add(values, "Genres", TaggedValues(item.Tags, "Genre: "));
-        Add(values, "Studios", item.Studios);
-        Add(values, "Studios", nfo.Studios);
-        Add(values, "Production Companies", item.Studios);
-        Add(values, "Production Companies", nfo.Studios);
-        Add(values, "Cast", People(item, "Actor"));
-        Add(values, "Cast", nfo.Actors);
-        Add(values, "Crew", Crew(item));
-        Add(values, "Directors", People(item, "Director"));
-        Add(values, "Directors", nfo.Directors);
-        Add(values, "Writers", People(item, "Writer"));
-        Add(values, "Writers", nfo.Writers);
-        Add(values, "Producers", People(item, "Producer"));
-        Add(values, "Producers", nfo.Producers);
-        Add(values, "Composers", nfo.Composers);
-        Add(values, "Countries", item.ProductionLocations);
-        Add(values, "Countries", nfo.Countries);
-        Add(values, "Production Countries", item.ProductionLocations);
-        Add(values, "Production Countries", nfo.Countries);
-        Add(values, "Languages", [item.PreferredMetadataLanguage]);
-        Add(values, "Languages", nfo.Languages);
-        Add(values, "Content Ratings", [item.OfficialRating]);
-        Add(values, "Content Ratings", nfo.ContentRatings);
-        Add(values, "Ratings and Classifications", [item.OfficialRating]);
-        Add(values, "Ratings and Classifications", nfo.ContentRatings);
-        Add(values, "Production Years", item.ProductionYear.HasValue ? [item.ProductionYear.Value.ToString(CultureInfo.InvariantCulture)] : []);
-        Add(values, "Production Years", nfo.ProductionYears);
-
-        foreach (var field in GetJellyfinScalarFields(item))
+        foreach (var metadataSource in metadataSources ?? [item])
         {
-            Add(values, "Jellyfin: " + field.Key, [field.Value]);
-        }
-
-        foreach (var field in nfo.Fields)
-        {
-            Add(values, "NFO: " + field.Key, field.Value);
+            AddCatalogMetadata(values, metadataSource);
         }
 
         var readOnlyValues = values.ToDictionary(
@@ -309,6 +289,38 @@ public sealed class MetadataCatalogService
             StringComparer.OrdinalIgnoreCase);
         return new MetadataCatalogItem(item.Id, item.Name, libraryId, libraryName, readOnlyValues);
     }
+
+    private void AddCatalogMetadata(Dictionary<string, List<string>> values, BaseItem item)
+    {
+        var nfo = NfoMetadataReader.Read(item);
+        Add(values, "Tags", item.Tags); Add(values, "Tags", nfo.Tags);
+        Add(values, "Providers", TaggedValues(item.Tags, "Provider: ")); Add(values, "Providers", nfo.Providers);
+        Add(values, "Networks", TaggedValues(item.Tags, "Network: ")); Add(values, "Networks", nfo.Networks);
+        Add(values, "Keywords", TaggedValues(item.Tags, "Keyword: "));
+        Add(values, "Existing Collection Metadata", TaggedValues(item.Tags, "Collection: "));
+        Add(values, "Genres", item.Genres); Add(values, "Genres", nfo.Genres); Add(values, "Genres", TaggedValues(item.Tags, "Genre: "));
+        Add(values, "Studios", item.Studios); Add(values, "Studios", nfo.Studios);
+        Add(values, "Production Companies", item.Studios); Add(values, "Production Companies", nfo.Studios);
+        Add(values, "Cast", People(item, "Actor")); Add(values, "Cast", nfo.Actors); Add(values, "Crew", Crew(item));
+        Add(values, "Directors", People(item, "Director")); Add(values, "Directors", nfo.Directors);
+        Add(values, "Writers", People(item, "Writer")); Add(values, "Writers", nfo.Writers);
+        Add(values, "Producers", People(item, "Producer")); Add(values, "Producers", nfo.Producers); Add(values, "Composers", nfo.Composers);
+        Add(values, "Countries", item.ProductionLocations); Add(values, "Countries", nfo.Countries);
+        Add(values, "Production Countries", item.ProductionLocations); Add(values, "Production Countries", nfo.Countries);
+        Add(values, "Languages", [item.PreferredMetadataLanguage]); Add(values, "Languages", nfo.Languages);
+        Add(values, "Content Ratings", [item.OfficialRating]); Add(values, "Content Ratings", nfo.ContentRatings);
+        Add(values, "Ratings and Classifications", [item.OfficialRating]); Add(values, "Ratings and Classifications", nfo.ContentRatings);
+        Add(values, "Production Years", item.ProductionYear.HasValue ? [item.ProductionYear.Value.ToString(CultureInfo.InvariantCulture)] : []); Add(values, "Production Years", nfo.ProductionYears);
+        foreach (var field in GetJellyfinScalarFields(item)) { Add(values, "Jellyfin: " + field.Key, [field.Value]); }
+        foreach (var field in nfo.Fields) { Add(values, "NFO: " + field.Key, field.Value); }
+    }
+
+    private static BaseItem ResolveCollectionItem(BaseItem item) => item switch
+    {
+        Episode { Series: not null } episode => episode.Series,
+        Season { Series: not null } season => season.Series,
+        _ => item,
+    };
 
     private IEnumerable<string> People(BaseItem item, string type) =>
         _libraryManager.GetPeople(item)

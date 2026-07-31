@@ -45,6 +45,7 @@ public sealed class CollectionRenameRequest
 {
     public Guid CollectionId { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? Overview { get; set; }
 }
 
 /// <summary>One administrator-confirmed request to delete a native Jellyfin collection.</summary>
@@ -79,6 +80,9 @@ public sealed class IndividualCollectionDraftRequest
     /// <summary>Gets or sets the title requested for the native Jellyfin collection.</summary>
     public string CollectionTitle { get; set; } = string.Empty;
 
+    /// <summary>Gets or sets the overview saved on the new native Jellyfin collection.</summary>
+    public string? Overview { get; set; }
+
     /// <summary>Gets or sets how a same-title native collection has been resolved.</summary>
     public string ExistingCollectionAction { get; set; } = string.Empty;
 }
@@ -97,6 +101,9 @@ public sealed class TagCollectionDraftRequest
 
     /// <summary>Gets or sets the requested native Jellyfin collection title.</summary>
     public string CollectionTitle { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the overview saved on the new native Jellyfin collection.</summary>
+    public string? Overview { get; set; }
 
     /// <summary>Gets or sets the administrator-selected existing-collection action.</summary>
     public string ExistingCollectionAction { get; set; } = string.Empty;
@@ -158,6 +165,9 @@ public sealed class CreateCollectionRequest
 {
     /// <summary>Gets or sets the collection name.</summary>
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the overview saved on the new native Jellyfin collection.</summary>
+    public string? Overview { get; set; }
 
     /// <summary>Gets or sets its initial media item ids.</summary>
     public List<Guid> ItemIds { get; set; } = [];

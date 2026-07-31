@@ -179,6 +179,11 @@ public sealed class CollectionManagerController : ControllerBase
         [FromQuery] int page = 1) =>
         Ok(_metadataCatalog.GetValues(libraryId, metadataType, searchTerm, page));
 
+    /// <summary>Returns every saved-library metadata tag row for the collection-creation pickers.</summary>
+    [HttpGet("metadata-catalog/tag-choices")]
+    public ActionResult<IReadOnlyList<MetadataCatalogTagChoice>> GetMetadataCatalogTagChoices() =>
+        Ok(_metadataCatalog.GetTagChoices(RequirePlugin().Configuration.LibraryIds));
+
     /// <summary>Previews the current catalog media a single individual collection draft would include.</summary>
     [HttpPost("individual-collection-drafts/preview")]
     public ActionResult<IndividualCollectionDraftPreview> PreviewIndividualCollectionDraft([FromBody] IndividualCollectionDraftRequest draft) =>
@@ -193,7 +198,7 @@ public sealed class CollectionManagerController : ControllerBase
 
     /// <summary>Creates one reviewed individual collection draft, or records its administrator-selected conflict outcome.</summary>
     [HttpPost("individual-collection-drafts/create")]
-    public async Task<ActionResult<IndividualCollectionDraftResult>> CreateIndividualCollectionDraft([FromBody] IndividualCollectionDraftRequest draft)
+    public async Task<ActionResult<IndividualCollectionDraftResult>> CreateIndividualCollectionDraft([FromBody] IndividualCollectionDraftRequest draft, CancellationToken cancellationToken)
     {
         if (!IsCompletedDraft(draft))
         {
@@ -223,6 +228,7 @@ public sealed class CollectionManagerController : ControllerBase
         }
 
         var collection = await _reconciler.CreateCollectionAsync(draft.CollectionTitle, itemIds).ConfigureAwait(false);
+        await UpdateCollectionOverviewAsync(collection, draft.Overview, cancellationToken).ConfigureAwait(false);
         return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Created", $"Created with {itemIds.Count} matching media item(s).", collection.Id));
     }
 
@@ -237,7 +243,7 @@ public sealed class CollectionManagerController : ControllerBase
 
     /// <summary>Creates one reviewed combined or multi-match collection draft.</summary>
     [HttpPost("tag-collection-drafts/create")]
-    public async Task<ActionResult<IndividualCollectionDraftResult>> CreateTagCollectionDraft([FromBody] TagCollectionDraftRequest draft)
+    public async Task<ActionResult<IndividualCollectionDraftResult>> CreateTagCollectionDraft([FromBody] TagCollectionDraftRequest draft, CancellationToken cancellationToken)
     {
         if (draft.SelectedTags.Count < 2 || string.IsNullOrWhiteSpace(draft.CollectionTitle)) return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle?.Trim() ?? string.Empty, "Skipped", "At least two selected metadata tags and a collection title are required."));
         var existing = FindCollectionByName(draft.CollectionTitle);
@@ -250,6 +256,7 @@ public sealed class CollectionManagerController : ControllerBase
         var itemIds = _metadataCatalog.GetMatchingItemIds(draft);
         if (itemIds.Count == 0) return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Skipped", draft.RequireAllTags ? "No media currently matches every selected metadata tag." : "No current catalog media matches the selected metadata tags."));
         var collection = await _reconciler.CreateCollectionAsync(draft.CollectionTitle, itemIds).ConfigureAwait(false);
+        await UpdateCollectionOverviewAsync(collection, draft.Overview, cancellationToken).ConfigureAwait(false);
         return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Created", $"Created with {itemIds.Count} unique media item(s).", collection.Id));
     }
 
@@ -677,9 +684,10 @@ public sealed class CollectionManagerController : ControllerBase
 
     /// <summary>Creates a standard Jellyfin collection with the selected items in one action.</summary>
     [HttpPost("collections")]
-    public async Task<ActionResult<object>> CreateCollection([FromBody] CreateCollectionRequest request)
+    public async Task<ActionResult<object>> CreateCollection([FromBody] CreateCollectionRequest request, CancellationToken cancellationToken)
     {
         var collection = await _reconciler.CreateCollectionAsync(request.Name, request.ItemIds).ConfigureAwait(false);
+        await UpdateCollectionOverviewAsync(collection, request.Overview, cancellationToken).ConfigureAwait(false);
         return Ok(new { collection.Id, collection.Name });
     }
 
@@ -788,6 +796,7 @@ public sealed class CollectionManagerController : ControllerBase
         {
             CollectionId = collection.Id,
             Name = collection.Name,
+            Overview = collection.Overview,
             TotalItems = items.Length,
             Page = currentPage,
             PageSize = size,
@@ -824,7 +833,21 @@ public sealed class CollectionManagerController : ControllerBase
             return BadRequest("A collection and collection title are required.");
         }
 
-        await _reconciler.RenameCollectionAsync(request.CollectionId, request.Name.Trim(), cancellationToken).ConfigureAwait(false);
+        var collection = _libraryManager.GetItemById<BoxSet>(request.CollectionId);
+        if (collection is null)
+        {
+            return NotFound("This collection no longer exists.");
+        }
+
+        if (!string.Equals(collection.Name, request.Name.Trim(), StringComparison.Ordinal))
+        {
+            await _reconciler.RenameCollectionAsync(request.CollectionId, request.Name.Trim(), cancellationToken).ConfigureAwait(false);
+        }
+
+        if (request.Overview is not null)
+        {
+            await UpdateCollectionOverviewAsync(collection, request.Overview, cancellationToken).ConfigureAwait(false);
+        }
         return NoContent();
     }
 
@@ -1070,6 +1093,12 @@ public sealed class CollectionManagerController : ControllerBase
         CollectionArtImageType.Logo => ImageType.Logo,
         _ => throw new ArgumentOutOfRangeException(nameof(artType)),
     };
+
+    private async Task UpdateCollectionOverviewAsync(BoxSet collection, string? overview, CancellationToken cancellationToken)
+    {
+        collection.Overview = string.IsNullOrWhiteSpace(overview) ? null : overview.Trim();
+        await _libraryManager.UpdateItemAsync(collection, collection, ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
+    }
 
     private static Plugin RequirePlugin() =>
         Plugin.Instance ?? throw new InvalidOperationException("Collection Manager has not finished initializing.");

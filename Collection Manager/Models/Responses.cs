@@ -136,6 +136,15 @@ public sealed record MetadataCatalogValuePage(
     int TotalValues,
     IReadOnlyList<MetadataCatalogValue> Values);
 
+/// <summary>One source-library metadata tag row for the collection-creation tag pickers.</summary>
+public sealed record MetadataCatalogTagChoice(
+    Guid LibraryId,
+    string LibraryName,
+    string MetadataType,
+    string Value,
+    int MatchingItems,
+    string? PersonImageUrl);
+
 /// <summary>Preview of the current media items that a collection draft would include.</summary>
 public sealed record CatalogPreviewItem(Guid Id, string Title, Guid LibraryId, string LibraryName);
 

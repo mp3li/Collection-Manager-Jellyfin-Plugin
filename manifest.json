@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.56",
-        "changelog": "Adds optional complete collection backups: create, select, rename, delete, and restore native collection membership, metadata, locks, provider IDs, preferences, and saved art. Restore can optionally delete collections absent from the selected backup.",
+        "version": "0.1.0.57",
+        "changelog": "Adds Overview fields to every collection draft and the existing editor. Tag-collection pickers now show all saved-library tags in one searchable list while retaining the other-library choices. Episodes and seasons now create and preview as their parent Series.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.56/CollectionManager_0.1.0.56.zip",
-        "checksum": "38dc7089c42654ba0748195b83015f79",
-        "timestamp": "2026-07-31T08:30:00Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.57/CollectionManager_0.1.0.57.zip",
+        "checksum": "1670432af6fe199999df516e050949ce",
+        "timestamp": "2026-07-31T21:54:31Z"
       }
     ]
   }
