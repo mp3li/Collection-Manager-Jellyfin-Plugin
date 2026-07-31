@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.0.47] - 2026-07-30
+
+### Added
+
+- Implemented the New Collection Art Settings, Text Focused Collection Art,
+  Poster Focused Collection Art, Logo Focused Collection Art, and
+  Multi-Collection/Library Gradient Art tabs.
+- Added Collection Art Preferences to every new collection draft and native
+  Jellyfin image application for the selected artwork type.
+- Added Delete Collection controls to Collections Overview & Editor.
+
+### Fixed
+
+- Preserved expanded combined-tag selectors and dashboard scroll position when
+  selecting metadata tags.
+- Moved the combined-tag additional-library controls below the complete
+  library list.
+
 ## [0.1.0.46] - 2026-07-29
 
 ### Fixed

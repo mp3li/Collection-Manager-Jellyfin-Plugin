@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.46",
-        "changelog": "Manual-media rows now retain Jellyfin's supported checkbox structure while allowing each label to expand to its poster and description height, preventing overlap.",
+        "version": "0.1.0.47",
+        "changelog": "Implements all five Collection Art tabs, collection-draft art preferences, collection artwork application, collection deletion, and combined-tag selection stability.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.46/CollectionManager_0.1.0.46.zip",
-        "checksum": "09d25b48ce0c36f8da9532ea8f26b064",
-        "timestamp": "2026-07-30T06:01:00Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.47/CollectionManager_0.1.0.47.zip",
+        "checksum": "1b1556bc8188667f2622e769582a2ba3",
+        "timestamp": "2026-07-31T01:49:42Z"
       }
     ]
   }
