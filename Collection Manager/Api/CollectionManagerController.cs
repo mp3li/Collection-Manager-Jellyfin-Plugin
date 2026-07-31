@@ -179,11 +179,6 @@ public sealed class CollectionManagerController : ControllerBase
         [FromQuery] int page = 1) =>
         Ok(_metadataCatalog.GetValues(libraryId, metadataType, searchTerm, page));
 
-    /// <summary>Returns every saved-library metadata tag row for the collection-creation pickers.</summary>
-    [HttpGet("metadata-catalog/tag-choices")]
-    public ActionResult<IReadOnlyList<MetadataCatalogTagChoice>> GetMetadataCatalogTagChoices() =>
-        Ok(_metadataCatalog.GetTagChoices(RequirePlugin().Configuration.LibraryIds));
-
     /// <summary>Previews the current catalog media a single individual collection draft would include.</summary>
     [HttpPost("individual-collection-drafts/preview")]
     public ActionResult<IndividualCollectionDraftPreview> PreviewIndividualCollectionDraft([FromBody] IndividualCollectionDraftRequest draft) =>

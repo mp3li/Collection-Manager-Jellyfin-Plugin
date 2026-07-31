@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.59",
-        "changelog": "Makes every Collection Overview input match the Collection Title input and places it immediately below Collection Title.",
+        "version": "0.1.0.60",
+        "changelog": "Replaces the oversized all-tags request with existing small metadata-value pages. Tag types appear first and all tags load progressively without expansion.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.59/CollectionManager_0.1.0.59.zip",
-        "checksum": "dce9a32ecf2744f77a1dbb79392c45e2",
-        "timestamp": "2026-07-31T22:20:15Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.60/CollectionManager_0.1.0.60.zip",
+        "checksum": "0834fc8cba5309659265798ae903c976",
+        "timestamp": "2026-07-31T22:48:14Z"
       }
     ]
   }

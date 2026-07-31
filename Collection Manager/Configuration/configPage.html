@@ -767,7 +767,7 @@
             }, function (error) { $('#manualCollectionStatus').textContent = 'Manual collection could not be created: ' + err(error); $('#createManualCollectionButton').disabled = false; });
         }
 
-        var tagPickerSearches = { individual:'', combined:'', multi:'' };
+        var tagPickerSearches = { individual:'', combined:'', multi:'' }, tagPickerLoadIds = { individual:0, combined:0, multi:0 };
         function tagPickerHost(scope) { return scope === 'individual' ? $('#individualTagLibraryPickers') : page.querySelector('[data-mode-tag-picker="' + scope + '"]'); }
         function tagPickerChoiceMarkup(scope, choice) {
             var libraryId = String(prop(choice, 'LibraryId')), type = prop(choice, 'MetadataType'), value = prop(choice, 'Value'), key = draftKey(libraryId, type, value), selected = scope === 'individual' ? !!individualDrafts[key] : !!tagCollectionStates[scope].tags[key], image = prop(choice, 'PersonImageUrl'), search = [metadataTypeLabel(type), type, value, prop(choice, 'LibraryName')].join(' ').toLowerCase(), input = scope === 'individual'
@@ -775,23 +775,51 @@
                 : '<input is="emby-checkbox" type="checkbox" data-mode-value="' + escapeHtml(scope) + '" data-library="' + escapeHtml(libraryId) + '" data-type="' + escapeHtml(type) + '" data-value="' + escapeHtml(value) + '" data-count="' + escapeHtml(prop(choice, 'MatchingItems')) + '"' + (selected ? ' checked' : '') + ' /> ';
             return '<label class="checkboxContainer" data-flat-tag-row data-flat-tag-search="' + escapeHtml(search) + '">' + (image ? '<img class="mcm-person-image" src="' + escapeHtml(ApiClient.getUrl('Items/' + image + '/Images/Primary')) + '" alt="" />' : '') + input + '<span>' + escapeHtml(value) + ' (' + escapeHtml(prop(choice, 'MatchingItems')) + ')</span><span class="fieldDescription">' + escapeHtml(prop(choice, 'LibraryName')) + '</span></label>';
         }
-        function tagPickerMarkup(scope, choices) {
-            var types = {}, ordered = [];
-            choices.forEach(function (choice) { var type = prop(choice, 'MetadataType'); if (!types[type]) { types[type] = { Name:type, Choices:[] }; ordered.push(types[type]); } types[type].Choices.push(choice); });
-            ordered.forEach(function (type) { type.ValueCount = type.Choices.length; });
-            return '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search tags</label><input is="emby-input" type="search" data-flat-tag-search-input="' + escapeHtml(scope) + '" value="' + escapeHtml(tagPickerSearches[scope] || '') + '" placeholder="Search tag types and tags" /></div>' + metadataTypeSections(ordered, function (type) { return '<div class="mcm-tag-type" data-flat-tag-type><div class="mcm-library-heading"><h3>' + escapeHtml(metadataTypeLabel(prop(type, 'Name'))) + ' (' + escapeHtml(prop(type, 'ValueCount')) + ' tags)</h3></div><div class="mcm-tag-picker-grid">' + prop(type, 'Choices').map(function (choice) { return tagPickerChoiceMarkup(scope, choice); }).join('') + '</div></div>'; });
+        function tagPickerMarkup(scope, types) {
+            return '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search tags</label><input is="emby-input" type="search" data-flat-tag-search-input="' + escapeHtml(scope) + '" value="' + escapeHtml(tagPickerSearches[scope] || '') + '" placeholder="Search tag types and tags" /></div><p class="fieldDescription" data-flat-tag-load-status>Loading metadata tags…</p>' + metadataTypeSections(types, function (type) { return '<div class="mcm-tag-type" data-flat-tag-type data-flat-tag-type-name="' + escapeHtml(prop(type, 'Name')) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(metadataTypeLabel(prop(type, 'Name'))) + ' (' + escapeHtml(prop(type, 'ValueCount')) + ' tags)</h3></div><div class="mcm-tag-picker-grid"></div></div>'; });
         }
+        function tagPickerTypeHost(host, type) { return Array.prototype.filter.call(host.querySelectorAll('[data-flat-tag-type]'), function (candidate) { return candidate.getAttribute('data-flat-tag-type-name') === type; })[0]; }
+        function tagPickerIsCurrent(scope, loadId, host) { return tagPickerLoadIds[scope] === loadId && tagPickerHost(scope) === host; }
         function applyTagPickerFilter(scope) {
             var host = tagPickerHost(scope), search = String(tagPickerSearches[scope] || '').trim().toLowerCase();
             if (!host) { return; }
             Array.prototype.forEach.call(host.querySelectorAll('[data-flat-tag-type]'), function (type) { var visible = false; Array.prototype.forEach.call(type.querySelectorAll('[data-flat-tag-row]'), function (row) { var matches = !search || String(row.getAttribute('data-flat-tag-search') || '').indexOf(search) >= 0; row.hidden = !matches; visible = visible || matches; }); type.hidden = !visible; });
         }
         function renderTagPicker(scope) {
-            var host = tagPickerHost(scope);
+            var host = tagPickerHost(scope), loadId, sources = [];
             if (!host) { return; }
             if (!selectedSavedLibraries().length) { host.innerHTML = '<p class="fieldDescription">Save one or more libraries and run a metadata tag scan before selecting tags.</p>'; return; }
             host.innerHTML = '<p class="fieldDescription">Loading metadata tags…</p>';
-            get('metadata-catalog/tag-choices').then(function (choices) { host.innerHTML = (choices && choices.length) ? tagPickerMarkup(scope, choices) : '<p class="fieldDescription">No metadata tags are available in the most recent scan.</p>'; applyTagPickerFilter(scope); }, function (error) { host.innerHTML = '<p class="fieldDescription">Could not load metadata tags: ' + escapeHtml(err(error)) + '</p>'; });
+            loadId = (tagPickerLoadIds[scope] || 0) + 1; tagPickerLoadIds[scope] = loadId;
+            Promise.all(selectedSavedLibraries().map(function (libraryId) { return get('metadata-catalog/types?libraryId=' + encodeURIComponent(libraryId)).then(function (types) { return (types || []).map(function (type) { return { libraryId:String(libraryId), libraryName:catalogLibraryName(libraryId), metadataType:prop(type, 'Name'), valueCount:Number(prop(type, 'ValueCount') || 0) }; }); }); })).then(function (lists) {
+                if (!tagPickerIsCurrent(scope, loadId, host)) { return; }
+                lists.forEach(function (list) { sources = sources.concat(list); });
+                var grouped = {}, types = [], total = 0;
+                sources.forEach(function (source) { var key = String(source.metadataType).toLowerCase(); if (!grouped[key]) { grouped[key] = { Name:source.metadataType, ValueCount:0 }; types.push(grouped[key]); } grouped[key].ValueCount += source.valueCount; total += source.valueCount; });
+                if (!types.length) { host.innerHTML = '<p class="fieldDescription">No metadata tags are available in the most recent scan.</p>'; return; }
+                host.innerHTML = tagPickerMarkup(scope, types);
+                var next = 0, active = 0, completed = 0, loaded = 0, failures = [];
+                function updateStatus(done) { var status = host.querySelector('[data-flat-tag-load-status]'); if (status) { status.textContent = done ? (failures.length ? 'Loaded ' + loaded + ' of ' + total + ' metadata tags. ' + failures.length + ' tag type' + (failures.length === 1 ? '' : 's') + ' could not be loaded.' : 'Showing all ' + loaded + ' metadata tags.') : 'Loading metadata tags… ' + loaded + ' of ' + total + '.'; } }
+                function loadSource(source, page) {
+                    return get('metadata-catalog/values?libraryId=' + encodeURIComponent(source.libraryId) + '&metadataType=' + encodeURIComponent(source.metadataType) + '&searchTerm=&page=' + encodeURIComponent(page)).then(function (data) {
+                        if (!tagPickerIsCurrent(scope, loadId, host)) { return; }
+                        var values = prop(data, 'Values') || [], typeHost = tagPickerTypeHost(host, source.metadataType), grid = typeHost && typeHost.querySelector('.mcm-tag-picker-grid');
+                        if (grid && values.length) { grid.insertAdjacentHTML('beforeend', values.map(function (value) { return tagPickerChoiceMarkup(scope, { LibraryId:source.libraryId, LibraryName:source.libraryName, MetadataType:source.metadataType, Value:prop(value, 'Value'), MatchingItems:prop(value, 'MatchingItems'), PersonImageUrl:prop(value, 'PersonImageUrl') }); }).join('')); }
+                        loaded += values.length; updateStatus(false);
+                        if (tagPickerSearches[scope]) { applyTagPickerFilter(scope); }
+                        var current = Number(prop(data, 'Page') || page), pages = Math.max(1, Math.ceil(Number(prop(data, 'TotalValues') || 0) / Number(prop(data, 'PageSize') || 50)));
+                        return current < pages ? loadSource(source, current + 1) : undefined;
+                    });
+                }
+                function startNext() {
+                    if (!tagPickerIsCurrent(scope, loadId, host)) { return; }
+                    if (next >= sources.length) { if (!active) { updateStatus(true); applyTagPickerFilter(scope); } return; }
+                    var source = sources[next++]; active++;
+                    loadSource(source, 1).catch(function (error) { failures.push(source.metadataType + ' (' + source.libraryName + '): ' + err(error)); }).then(function () { active--; completed++; startNext(); });
+                }
+                updateStatus(false);
+                for (var worker = 0; worker < Math.min(4, sources.length); worker += 1) { startNext(); }
+            }, function (error) { if (tagPickerIsCurrent(scope, loadId, host)) { host.innerHTML = '<p class="fieldDescription">Could not load metadata tag types: ' + escapeHtml(err(error)) + '</p>'; } });
         }
         function renderIndividualLibraryPickers() { renderTagPicker('individual'); }
 

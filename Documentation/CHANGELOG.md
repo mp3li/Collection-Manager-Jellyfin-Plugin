@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0.60] - 2026-07-31
+
+### Fixed
+
+- Replaces the single oversized all-tags request in collection-creation tabs
+  with the existing small metadata-value pages. Tag type sections appear first
+  and all tag values fill in progressively without requiring expansion.
+
 ## [0.1.0.59] - 2026-07-31
 
 ### Changed

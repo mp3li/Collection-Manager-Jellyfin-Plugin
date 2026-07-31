@@ -159,29 +159,6 @@ public sealed class MetadataCatalogService
         }
     }
 
-    /// <summary>Gets every source-library tag row for the selected saved libraries, in the picker sort order.</summary>
-    public IReadOnlyList<MetadataCatalogTagChoice> GetTagChoices(IEnumerable<Guid> libraryIds)
-    {
-        var selected = libraryIds.Distinct().ToHashSet();
-        lock (_sync)
-        {
-            return _catalogs.Values
-                .Where(catalog => selected.Contains(catalog.LibraryId))
-                .SelectMany(catalog => catalog.ValuesByType.SelectMany(type => type.Value.Select(value => new MetadataCatalogTagChoice(
-                    catalog.LibraryId,
-                    catalog.LibraryName,
-                    type.Key,
-                    value.Value,
-                    value.MatchingItems,
-                    value.PersonImageUrl))))
-                .OrderBy(choice => MetadataTypeSortOrder(choice.MetadataType))
-                .ThenBy(choice => choice.MetadataType, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(choice => choice.Value, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(choice => choice.LibraryName, StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-        }
-    }
-
     /// <summary>Previews every current catalog item that matches a draft across its chosen libraries.</summary>
     public IndividualCollectionDraftPreview PreviewDraft(IndividualCollectionDraftRequest draft)
     {
