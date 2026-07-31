@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.58",
-        "changelog": "Refreshes the Logo Focused tab's collection list every time it opens, while retaining selections for collections that still exist.",
+        "version": "0.1.0.59",
+        "changelog": "Makes every Collection Overview input match the Collection Title input and places it immediately below Collection Title.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.58/CollectionManager_0.1.0.58.zip",
-        "checksum": "34398e3bf0f5fcaa949143fdbae4c6e1",
-        "timestamp": "2026-07-31T21:58:43Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.59/CollectionManager_0.1.0.59.zip",
+        "checksum": "dce9a32ecf2744f77a1dbb79392c45e2",
+        "timestamp": "2026-07-31T22:20:15Z"
       }
     ]
   }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0.59] - 2026-07-31
+
+### Changed
+
+- Makes every Collection Overview input match the Collection Title input and
+  places it immediately below Collection Title.
+
 ## [0.1.0.58] - 2026-07-31
 
 ### Fixed
