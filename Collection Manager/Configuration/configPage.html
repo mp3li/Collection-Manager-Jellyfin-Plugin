@@ -136,6 +136,14 @@
         <div class="mcm-panel active" data-panel="main">
         <div id="collectionManagerSettings">
             <section class="mcm-section">
+            <h2>Collection Backup Settings</h2>
+            <p class="fieldDescription">Optionally create, manage, and restore from backups containing all of your collection information.</p>
+            <div class="inputContainer"><label class="inputLabel inputLabelUnfocused" for="collectionBackups">Available Backups</label><select is="emby-select" id="collectionBackups"><option value="">No Backups Available</option></select></div>
+            <label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" id="deleteCollectionsMissingFromBackup" /> <span>Delete collections not in this backup when restoring</span></label>
+            <div class="mcm-actions"><button is="emby-button" type="button" class="raised button-submit" id="createCollectionsBackupButton">Create Collections Backup</button><button is="emby-button" type="button" class="raised" id="deleteCollectionsBackupButton">Delete Collections Backup</button><button is="emby-button" type="button" class="raised" id="renameCollectionsBackupButton">Rename Collections Backup</button><button is="emby-button" type="button" class="raised" id="restoreCollectionsBackupButton">Restore from Collections Backup</button></div>
+            <p id="collectionBackupStatus" class="fieldDescription" aria-live="polite"></p>
+            </section>
+            <section class="mcm-section">
             <h2>Selected Libraries</h2>
             <p class="fieldDescription">Choose which Jellyfin libraries Collection Manager will scan for metadata.</p>
             <p class="fieldDescription">Select one or more libraries to include in Collection Manager.</p>
@@ -268,6 +276,66 @@
             }).join('') || '<p class="fieldDescription">No Jellyfin libraries were found.</p>';
         }
 
+        function selectedCollectionBackupId() { return $('#collectionBackups').value || ''; }
+        function refreshCollectionBackupButtons() {
+            var hasSelection = !!selectedCollectionBackupId();
+            $('#deleteCollectionsBackupButton').disabled = !hasSelection;
+            $('#renameCollectionsBackupButton').disabled = !hasSelection;
+            $('#restoreCollectionsBackupButton').disabled = !hasSelection;
+        }
+        function collectionBackupOptionLabel(backup) {
+            var created = prop(backup, 'CreatedUtc'), date = created ? new Date(created).toLocaleString() : '', collections = Number(prop(backup, 'CollectionCount') || 0), images = Number(prop(backup, 'ImageCount') || 0);
+            return (prop(backup, 'Name') || 'Collections Backup') + ' — ' + date + ' (' + collections + ' collections, ' + images + ' images)';
+        }
+        function loadCollectionBackups(selectedId) {
+            get('collection-backups').then(function (backups) {
+                backups = backups || [];
+                var select = $('#collectionBackups'), prior = selectedId || select.value;
+                select.innerHTML = backups.length ? backups.map(function (backup) { var id = String(prop(backup, 'Id')); return '<option value="' + escapeHtml(id) + '">' + escapeHtml(collectionBackupOptionLabel(backup)) + '</option>'; }).join('') : '<option value="">No Backups Available</option>';
+                if (prior && Array.prototype.some.call(select.options, function (option) { return option.value === String(prior); })) { select.value = String(prior); }
+                refreshCollectionBackupButtons();
+            }, function (error) {
+                $('#collectionBackupStatus').textContent = 'Could not load collection backups: ' + err(error);
+                refreshCollectionBackupButtons();
+            });
+        }
+        function createCollectionsBackup() {
+            $('#createCollectionsBackupButton').disabled = true;
+            $('#collectionBackupStatus').textContent = 'Creating collections backup…';
+            send('POST', 'collection-backups', {}).then(function (backup) {
+                var name = prop(backup, 'Name') || 'Collections backup';
+                $('#collectionBackupStatus').textContent = name + ' was created.';
+                loadCollectionBackups(prop(backup, 'Id'));
+            }, function (error) { $('#collectionBackupStatus').textContent = 'Could not create collections backup: ' + err(error); }).then(function () { $('#createCollectionsBackupButton').disabled = false; });
+        }
+        function renameCollectionsBackup() {
+            var id = selectedCollectionBackupId();
+            if (!id) { return; }
+            var option = $('#collectionBackups').selectedOptions[0], currentName = option ? String(option.textContent || '').split(' — ')[0] : '', name = window.prompt('Rename this collections backup:', currentName);
+            if (name === null) { return; }
+            if (!name.trim()) { Dashboard.alert('Enter a backup name.'); return; }
+            send('POST', 'collection-backups/' + encodeURIComponent(id) + '/rename', { Name:name.trim() }).then(function () { $('#collectionBackupStatus').textContent = 'Collections backup renamed.'; loadCollectionBackups(id); }, function (error) { $('#collectionBackupStatus').textContent = 'Could not rename collections backup: ' + err(error); });
+        }
+        function deleteCollectionsBackup() {
+            var id = selectedCollectionBackupId();
+            if (!id || !window.confirm('Are you sure you want to delete this collections backup?')) { return; }
+            send('DELETE', 'collection-backups/' + encodeURIComponent(id)).then(function () { $('#collectionBackupStatus').textContent = 'Collections backup deleted.'; loadCollectionBackups(); }, function (error) { $('#collectionBackupStatus').textContent = 'Could not delete collections backup: ' + err(error); });
+        }
+        function restoreCollectionsBackup() {
+            var id = selectedCollectionBackupId(), deleteExtras = $('#deleteCollectionsMissingFromBackup').checked;
+            if (!id) { return; }
+            var message = deleteExtras
+                ? 'This will restore the selected backup and delete collections that are not in it. Continue?'
+                : 'This will restore the selected backup. Continue?';
+            if (!window.confirm(message)) { return; }
+            $('#restoreCollectionsBackupButton').disabled = true;
+            $('#collectionBackupStatus').textContent = 'Restoring collections backup…';
+            send('POST', 'collection-backups/' + encodeURIComponent(id) + '/restore', { DeleteCollectionsMissingFromBackup:deleteExtras }).then(function (result) {
+                $('#collectionBackupStatus').textContent = 'Restored ' + Number(prop(result, 'RestoredCollections') || 0) + ' collection(s), recreated ' + Number(prop(result, 'RecreatedCollections') || 0) + ', restored ' + Number(prop(result, 'RestoredImages') || 0) + ' image(s), and skipped ' + Number(prop(result, 'SkippedMissingMedia') || 0) + ' missing media item(s).' + (deleteExtras ? ' Deleted ' + Number(prop(result, 'DeletedCollections') || 0) + ' collection(s) not in the backup.' : '');
+                refreshCollectionsAfterEdit();
+            }, function (error) { $('#collectionBackupStatus').textContent = 'Could not restore collections backup: ' + err(error); }).then(function () { refreshCollectionBackupButtons(); });
+        }
+
         function catalogGet(path, onSuccess, onFailure) {
             var completed = false;
             var timeout = window.setTimeout(function () {
@@ -333,6 +401,7 @@
                 $('#collectionsOverviewAddedColor').value = config.CollectionOverviewAddedColor;
                 $('#collectionsOverviewRemovedColor').value = config.CollectionOverviewRemovedColor;
                 applyCollectionOverviewColors();
+                loadCollectionBackups();
                 loadCollectionOverviewStatus();
                 loadArtSettings();
                 refreshStatus();
@@ -926,6 +995,12 @@
 
         $('#selectAllLibrariesButton').addEventListener('click', function () { Array.prototype.forEach.call(page.querySelectorAll('[data-library-choice]'), function (input) { input.checked = true; }); });
         $('#selectNoLibrariesButton').addEventListener('click', function () { Array.prototype.forEach.call(page.querySelectorAll('[data-library-choice]'), function (input) { input.checked = false; }); });
+        $('#collectionBackups').addEventListener('change', refreshCollectionBackupButtons);
+        $('#createCollectionsBackupButton').addEventListener('click', createCollectionsBackup);
+        $('#deleteCollectionsBackupButton').addEventListener('click', deleteCollectionsBackup);
+        $('#renameCollectionsBackupButton').addEventListener('click', renameCollectionsBackup);
+        $('#restoreCollectionsBackupButton').addEventListener('click', restoreCollectionsBackup);
+        refreshCollectionBackupButtons();
         $('#saveLibrariesButton').addEventListener('click', saveLibraries);
         $('#saveMainSettingsButton').addEventListener('click', saveMainSettings);
         $('#scanMetadataTagsButton').addEventListener('click', startScan);

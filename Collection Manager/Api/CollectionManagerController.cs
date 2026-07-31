@@ -29,6 +29,7 @@ public sealed class CollectionManagerController : ControllerBase
     private readonly ITaskManager _taskManager;
     private readonly IProviderManager _providerManager;
     private readonly CollectionArtAssetStore _artAssets;
+    private readonly CollectionBackupManager _collectionBackups;
 
     /// <summary>Initializes a new instance of the <see cref="CollectionManagerController"/> class.</summary>
     public CollectionManagerController(
@@ -39,7 +40,8 @@ public sealed class CollectionManagerController : ControllerBase
         ManualReconciliationRequestQueue requests,
         ITaskManager taskManager,
         IProviderManager providerManager,
-        CollectionArtAssetStore artAssets)
+        CollectionArtAssetStore artAssets,
+        CollectionBackupManager collectionBackups)
     {
         _reconciler = reconciler;
         _metadataCatalog = metadataCatalog;
@@ -49,6 +51,7 @@ public sealed class CollectionManagerController : ControllerBase
         _taskManager = taskManager;
         _providerManager = providerManager;
         _artAssets = artAssets;
+        _collectionBackups = collectionBackups;
     }
 
     /// <summary>Returns settings and selectable Jellyfin libraries for the dashboard's main settings tab.</summary>
@@ -92,6 +95,37 @@ public sealed class CollectionManagerController : ControllerBase
 
         return Ok(RequirePlugin().UpdateSelectedLibraries(request.LibraryIds));
     }
+
+    /// <summary>Returns every optional complete collection backup available to this plugin.</summary>
+    [HttpGet("collection-backups")]
+    public async Task<ActionResult<IReadOnlyList<CollectionBackupSummary>>> GetCollectionBackups(CancellationToken cancellationToken) =>
+        Ok(await _collectionBackups.GetAllAsync(cancellationToken).ConfigureAwait(false));
+
+    /// <summary>Creates an optional complete native Jellyfin collection backup.</summary>
+    [HttpPost("collection-backups")]
+    public async Task<ActionResult<CollectionBackupSummary>> CreateCollectionBackup([FromBody] CollectionBackupCreateRequest request, CancellationToken cancellationToken) =>
+        Ok(await _collectionBackups.CreateAsync(request.Name, cancellationToken).ConfigureAwait(false));
+
+    /// <summary>Renames one stored backup without changing any native Jellyfin collection.</summary>
+    [HttpPost("collection-backups/{backupId:guid}/rename")]
+    public async Task<IActionResult> RenameCollectionBackup(Guid backupId, [FromBody] CollectionBackupRenameRequest request, CancellationToken cancellationToken)
+    {
+        await _collectionBackups.RenameAsync(backupId, request.Name, cancellationToken).ConfigureAwait(false);
+        return Ok(new { });
+    }
+
+    /// <summary>Deletes one stored backup without changing any native Jellyfin collection.</summary>
+    [HttpDelete("collection-backups/{backupId:guid}")]
+    public async Task<IActionResult> DeleteCollectionBackup(Guid backupId, CancellationToken cancellationToken)
+    {
+        await _collectionBackups.DeleteAsync(backupId, cancellationToken).ConfigureAwait(false);
+        return Ok(new { });
+    }
+
+    /// <summary>Restores a complete collection backup and optionally removes collections absent from it.</summary>
+    [HttpPost("collection-backups/{backupId:guid}/restore")]
+    public async Task<ActionResult<CollectionBackupRestoreResult>> RestoreCollectionBackup(Guid backupId, [FromBody] CollectionBackupRestoreRequest request, CancellationToken cancellationToken) =>
+        Ok(await _collectionBackups.RestoreAsync(backupId, request.DeleteCollectionsMissingFromBackup, cancellationToken).ConfigureAwait(false));
 
     /// <summary>Saves the metadata overview's selected text color.</summary>
     [HttpPost("settings/metadata-overview-color")]

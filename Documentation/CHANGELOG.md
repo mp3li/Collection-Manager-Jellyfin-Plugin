@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.0.56] - 2026-07-31
+
+### Added
+
+- Adds optional complete Collection Backup Settings, including backup creation,
+  selection, renaming, deletion, and restore.
+- Captures every native collection's members, restorable metadata and lock
+  settings, provider IDs, display and metadata preferences, and all readable
+  locally stored collection image files.
+- Adds an explicit restore toggle for deleting current collections that are not
+  present in the selected backup. It remains off unless the administrator turns
+  it on for that restore.
+
 ## [0.1.0.55] - 2026-07-31
 
 ### Fixed
