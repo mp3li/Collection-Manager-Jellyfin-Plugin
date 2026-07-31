@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.52",
-        "changelog": "Fixes real multipart font/art uploads, Unselect Logo, and automatic logo background-preview redraws; adds Save Gradient Settings for this tab only.",
+        "version": "0.1.0.53",
+        "changelog": "Corrects the release package metadata so Jellyfin installs the exact ZIP described by this manifest. Shows saved Primary art in Collection Overview, fixes native logo checkboxes and picker position, removes the primary tab divider, and makes borders visible in light mode.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.51/CollectionManager_0.1.0.51.zip",
-        "checksum": "76957577c87a21b66b56d3f385b299ec",
-        "timestamp": "2026-07-31T05:53:51Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.53/CollectionManager_0.1.0.53.zip",
+        "checksum": "01a9a6216f2886b56c73659b72ca2785",
+        "timestamp": "2026-07-31T06:09:46Z"
       }
     ]
   }

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.0.53] - 2026-07-30
+
+### Fixed
+
+- Corrects the release asset URL, checksum, and plugin DLL version so Jellyfin
+  installs the exact package described by the repository manifest.
+- Shows saved Primary collection art in Collections Overview & Editor and uses
+  Jellyfin's native checkbox structure for logo selections.
+- Makes dashboard borders and dividers visible in light mode using the
+  description-text color, and removes the primary tab-strip divider.
+
 ## [0.1.0.51] - 2026-07-30
 
 ### Fixed
