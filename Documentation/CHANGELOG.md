@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.0.62] - 2026-07-31
+
+### Fixed
+
+- Restores normal native checkbox selection for tags shown by the collection
+  picker search.
+- Shows each uploaded logo as a selectable imported-logo row for every chosen
+  collection, so it is used in the preview and when applying logo art.
+
 ## [0.1.0.61] - 2026-07-31
 
 ### Fixed
