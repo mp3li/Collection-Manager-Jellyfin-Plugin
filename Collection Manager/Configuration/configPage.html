@@ -767,7 +767,7 @@
             }, function (error) { $('#manualCollectionStatus').textContent = 'Manual collection could not be created: ' + err(error); $('#createManualCollectionButton').disabled = false; });
         }
 
-        var tagPickerSearches = { individual:'', combined:'', multi:'' }, tagPickerLoadIds = { individual:0, combined:0, multi:0 };
+        var tagPickerSearches = { individual:'', combined:'', multi:'' }, tagPickerLoadIds = { individual:0, combined:0, multi:0 }, tagPickerSources = { individual:{}, combined:{}, multi:{} }, tagPickerTypeLoadIds = {};
         function tagPickerHost(scope) { return scope === 'individual' ? $('#individualTagLibraryPickers') : page.querySelector('[data-mode-tag-picker="' + scope + '"]'); }
         function tagPickerChoiceMarkup(scope, choice) {
             var libraryId = String(prop(choice, 'LibraryId')), type = prop(choice, 'MetadataType'), value = prop(choice, 'Value'), key = draftKey(libraryId, type, value), selected = scope === 'individual' ? !!individualDrafts[key] : !!tagCollectionStates[scope].tags[key], image = prop(choice, 'PersonImageUrl'), search = [metadataTypeLabel(type), type, value, prop(choice, 'LibraryName')].join(' ').toLowerCase(), input = scope === 'individual'
@@ -776,10 +776,42 @@
             return '<label class="checkboxContainer" data-flat-tag-row data-flat-tag-search="' + escapeHtml(search) + '">' + (image ? '<img class="mcm-person-image" src="' + escapeHtml(ApiClient.getUrl('Items/' + image + '/Images/Primary')) + '" alt="" />' : '') + input + '<span>' + escapeHtml(value) + ' (' + escapeHtml(prop(choice, 'MatchingItems')) + ')</span><span class="fieldDescription">' + escapeHtml(prop(choice, 'LibraryName')) + '</span></label>';
         }
         function tagPickerMarkup(scope, types) {
-            return '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search tags</label><input is="emby-input" type="search" data-flat-tag-search-input="' + escapeHtml(scope) + '" value="' + escapeHtml(tagPickerSearches[scope] || '') + '" placeholder="Search tag types and tags" /></div><p class="fieldDescription" data-flat-tag-load-status>Loading metadata tags…</p>' + metadataTypeSections(types, function (type) { return '<div class="mcm-tag-type" data-flat-tag-type data-flat-tag-type-name="' + escapeHtml(prop(type, 'Name')) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(metadataTypeLabel(prop(type, 'Name'))) + ' (' + escapeHtml(prop(type, 'ValueCount')) + ' tags)</h3></div><div class="mcm-tag-picker-grid"></div></div>'; });
+            return '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search tags</label><input is="emby-input" type="search" data-flat-tag-search-input="' + escapeHtml(scope) + '" value="' + escapeHtml(tagPickerSearches[scope] || '') + '" placeholder="Search tag types and tags" /></div><p class="fieldDescription" data-flat-tag-load-status>Choose a metadata tag type to expand its tags.</p>' + metadataTypeSections(types, function (type) { return '<div class="mcm-tag-type" data-flat-tag-type data-flat-tag-type-name="' + escapeHtml(prop(type, 'Name')) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(metadataTypeLabel(prop(type, 'Name'))) + ' (' + escapeHtml(prop(type, 'ValueCount')) + ' tags)</h3><button is="emby-button" type="button" class="raised" data-flat-tag-toggle="' + escapeHtml(scope) + '">Click here to expand</button></div><div class="mcm-tag-type-content" data-flat-tag-content hidden></div></div>'; });
         }
         function tagPickerTypeHost(host, type) { return Array.prototype.filter.call(host.querySelectorAll('[data-flat-tag-type]'), function (candidate) { return candidate.getAttribute('data-flat-tag-type-name') === type; })[0]; }
         function tagPickerIsCurrent(scope, loadId, host) { return tagPickerLoadIds[scope] === loadId && tagPickerHost(scope) === host; }
+        function tagPickerTypeLoadKey(scope, type) { return scope + '|' + type; }
+        function setTagPickerStatus(host, text) { var status = host && host.querySelector('[data-flat-tag-load-status]'); if (status) { status.textContent = text; } }
+        function loadTagPickerType(scope, type, search, complete) {
+            var host = tagPickerHost(scope), section = host && tagPickerTypeHost(host, type), content = section && section.querySelector('[data-flat-tag-content]'), key = tagPickerTypeLoadKey(scope, type), loadId = (tagPickerTypeLoadIds[key] || 0) + 1, sources = tagPickerSources[scope][type] || [], loaded = 0, failures = [];
+            if (!host || !section || !content) { if (complete) { complete(); } return; }
+            tagPickerTypeLoadIds[key] = loadId; section.hidden = false; content.hidden = false; content.innerHTML = '<p class="fieldDescription">Loading metadata tags…</p>';
+            function current() { return tagPickerTypeLoadIds[key] === loadId && tagPickerHost(scope) === host; }
+            function finish() { if (!current()) { return; } var typeMatches = metadataTypeLabel(type).toLowerCase().indexOf(String(search || '').toLowerCase()) >= 0 || String(type).toLowerCase().indexOf(String(search || '').toLowerCase()) >= 0; if (!loaded) { content.innerHTML = search && !typeMatches ? '' : '<p class="fieldDescription">No metadata tags match this search.</p>'; section.hidden = !!search && !typeMatches; } if (complete) { complete(); } }
+            function loadSource(source, page) {
+                return get('metadata-catalog/values?libraryId=' + encodeURIComponent(source.libraryId) + '&metadataType=' + encodeURIComponent(type) + '&searchTerm=' + encodeURIComponent(search || '') + '&page=' + encodeURIComponent(page)).then(function (data) {
+                    if (!current()) { return; }
+                    var values = prop(data, 'Values') || [];
+                    if (values.length) { if (!loaded) { content.innerHTML = '<div class="mcm-tag-picker-grid"></div>'; } content.querySelector('.mcm-tag-picker-grid').insertAdjacentHTML('beforeend', values.map(function (value) { return tagPickerChoiceMarkup(scope, { LibraryId:source.libraryId, LibraryName:source.libraryName, MetadataType:type, Value:prop(value, 'Value'), MatchingItems:prop(value, 'MatchingItems'), PersonImageUrl:prop(value, 'PersonImageUrl') }); }).join('')); loaded += values.length; }
+                    var currentPage = Number(prop(data, 'Page') || page), pages = Math.max(1, Math.ceil(Number(prop(data, 'TotalValues') || 0) / Number(prop(data, 'PageSize') || 50)));
+                    return currentPage < pages ? loadSource(source, currentPage + 1) : undefined;
+                });
+            }
+            var next = 0, active = 0;
+            function startNext() { if (!current()) { return; } if (next >= sources.length) { if (!active) { finish(); } return; } var source = sources[next++]; active++; loadSource(source, 1).catch(function (error) { failures.push(err(error)); }).then(function () { active--; startNext(); }); }
+            if (!sources.length) { finish(); return; }
+            for (var worker = 0; worker < Math.min(4, sources.length); worker += 1) { startNext(); }
+        }
+        function toggleTagPickerType(scope, button) { var section = button.closest('[data-flat-tag-type]'), content = section && section.querySelector('[data-flat-tag-content]'), type = section && section.getAttribute('data-flat-tag-type-name'); if (!section || !content || !type) { return; } if (!content.hidden) { content.hidden = true; button.textContent = 'Click here to expand'; return; } button.textContent = 'Click here to collapse'; loadTagPickerType(scope, type, tagPickerSearches[scope] || ''); }
+        function searchTagPicker(scope) {
+            var host = tagPickerHost(scope), search = String(tagPickerSearches[scope] || '').trim(), sections, next = 0, active = 0, completed = 0;
+            if (!host) { return; }
+            sections = Array.prototype.slice.call(host.querySelectorAll('[data-flat-tag-type]'));
+            if (!search) { sections.forEach(function (section) { section.hidden = false; var content = section.querySelector('[data-flat-tag-content]'), button = section.querySelector('[data-flat-tag-toggle]'); content.hidden = true; content.innerHTML = ''; button.textContent = 'Click here to expand'; }); setTagPickerStatus(host, 'Choose a metadata tag type to expand its tags.'); return; }
+            setTagPickerStatus(host, 'Searching metadata tag types and tags…');
+            function startNext() { if (next >= sections.length) { if (!active) { setTagPickerStatus(host, 'Showing metadata tag search results.'); } return; } var section = sections[next++], type = section.getAttribute('data-flat-tag-type-name'), button = section.querySelector('[data-flat-tag-toggle]'); active++; button.textContent = 'Click here to collapse'; loadTagPickerType(scope, type, search, function () { completed++; active--; startNext(); }); }
+            for (var worker = 0; worker < Math.min(4, sections.length); worker += 1) { startNext(); }
+        }
         function applyTagPickerFilter(scope) {
             var host = tagPickerHost(scope), search = String(tagPickerSearches[scope] || '').trim().toLowerCase();
             if (!host) { return; }
@@ -797,28 +829,10 @@
                 var grouped = {}, types = [], total = 0;
                 sources.forEach(function (source) { var key = String(source.metadataType).toLowerCase(); if (!grouped[key]) { grouped[key] = { Name:source.metadataType, ValueCount:0 }; types.push(grouped[key]); } grouped[key].ValueCount += source.valueCount; total += source.valueCount; });
                 if (!types.length) { host.innerHTML = '<p class="fieldDescription">No metadata tags are available in the most recent scan.</p>'; return; }
+                tagPickerSources[scope] = {};
+                sources.forEach(function (source) { (tagPickerSources[scope][source.metadataType] = tagPickerSources[scope][source.metadataType] || []).push(source); });
                 host.innerHTML = tagPickerMarkup(scope, types);
-                var next = 0, active = 0, completed = 0, loaded = 0, failures = [];
-                function updateStatus(done) { var status = host.querySelector('[data-flat-tag-load-status]'); if (status) { status.textContent = done ? (failures.length ? 'Loaded ' + loaded + ' of ' + total + ' metadata tags. ' + failures.length + ' tag type' + (failures.length === 1 ? '' : 's') + ' could not be loaded.' : 'Showing all ' + loaded + ' metadata tags.') : 'Loading metadata tags… ' + loaded + ' of ' + total + '.'; } }
-                function loadSource(source, page) {
-                    return get('metadata-catalog/values?libraryId=' + encodeURIComponent(source.libraryId) + '&metadataType=' + encodeURIComponent(source.metadataType) + '&searchTerm=&page=' + encodeURIComponent(page)).then(function (data) {
-                        if (!tagPickerIsCurrent(scope, loadId, host)) { return; }
-                        var values = prop(data, 'Values') || [], typeHost = tagPickerTypeHost(host, source.metadataType), grid = typeHost && typeHost.querySelector('.mcm-tag-picker-grid');
-                        if (grid && values.length) { grid.insertAdjacentHTML('beforeend', values.map(function (value) { return tagPickerChoiceMarkup(scope, { LibraryId:source.libraryId, LibraryName:source.libraryName, MetadataType:source.metadataType, Value:prop(value, 'Value'), MatchingItems:prop(value, 'MatchingItems'), PersonImageUrl:prop(value, 'PersonImageUrl') }); }).join('')); }
-                        loaded += values.length; updateStatus(false);
-                        if (tagPickerSearches[scope]) { applyTagPickerFilter(scope); }
-                        var current = Number(prop(data, 'Page') || page), pages = Math.max(1, Math.ceil(Number(prop(data, 'TotalValues') || 0) / Number(prop(data, 'PageSize') || 50)));
-                        return current < pages ? loadSource(source, current + 1) : undefined;
-                    });
-                }
-                function startNext() {
-                    if (!tagPickerIsCurrent(scope, loadId, host)) { return; }
-                    if (next >= sources.length) { if (!active) { updateStatus(true); applyTagPickerFilter(scope); } return; }
-                    var source = sources[next++]; active++;
-                    loadSource(source, 1).catch(function (error) { failures.push(source.metadataType + ' (' + source.libraryName + '): ' + err(error)); }).then(function () { active--; completed++; startNext(); });
-                }
-                updateStatus(false);
-                for (var worker = 0; worker < Math.min(4, sources.length); worker += 1) { startNext(); }
+                if (tagPickerSearches[scope]) { searchTagPicker(scope); }
             }, function (error) { if (tagPickerIsCurrent(scope, loadId, host)) { host.innerHTML = '<p class="fieldDescription">Could not load metadata tag types: ' + escapeHtml(err(error)) + '</p>'; } });
         }
         function renderIndividualLibraryPickers() { renderTagPicker('individual'); }
@@ -1106,9 +1120,9 @@
         $('#manualCollectionDraft').addEventListener('change', function (event) { var target = event.target; if (!target.matches('[data-draft-art-preference]')) { return; } if (!target.checked) { target.checked = true; return; } Array.prototype.forEach.call($('#manualCollectionDraft').querySelectorAll('[data-draft-art-preference]'), function (input) { if (input !== target) { input.checked = false; } }); manualCollectionDraft.artPreference = target.getAttribute('data-draft-art-preference'); });
         $('#manualCollectionDraft').addEventListener('click', function (event) { var target = event.target.closest('button'); if (!target || !target.matches('[data-manual-remove]')) { return; } var id = target.getAttribute('data-manual-remove'); delete manualCollectionDraft.selected[id]; syncManualPickerSelection(id); renderManualDraft(); });
         $('#createManualCollectionButton').addEventListener('click', createManualCollection);
-        $('#individualTagLibraryPickers').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-toggle-picker-library]')) { var id = target.getAttribute('data-toggle-picker-library'), content = page.querySelector('[data-picker-library-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualTypes(id); } } if (target.matches('[data-toggle-tag-type]')) { var section = target.closest('[data-tag-type]'), content = section.querySelector('.mcm-tag-type-content'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualValues(section, 1); } } if (target.matches('[data-tag-values-page]')) { event.preventDefault(); target.blur(); loadIndividualValues(target.closest('[data-tag-type]'), Number(target.getAttribute('data-tag-values-page'))); } });
+        $('#individualTagLibraryPickers').addEventListener('click', function (event) { var target = event.target; if (target.matches('[data-flat-tag-toggle]')) { toggleTagPickerType('individual', target); return; } if (target.matches('[data-toggle-picker-library]')) { var id = target.getAttribute('data-toggle-picker-library'), content = page.querySelector('[data-picker-library-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualTypes(id); } } if (target.matches('[data-toggle-tag-type]')) { var section = target.closest('[data-tag-type]'), content = section.querySelector('.mcm-tag-type-content'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadIndividualValues(section, 1); } } if (target.matches('[data-tag-values-page]')) { event.preventDefault(); target.blur(); loadIndividualValues(target.closest('[data-tag-type]'), Number(target.getAttribute('data-tag-values-page'))); } });
         $('#individualTagLibraryPickers').addEventListener('change', function (event) { if (event.target.matches('[data-individual-tag-value]')) { addOrRemoveDraft(event.target); } });
-        $('#individualTagLibraryPickers').addEventListener('input', function (event) { if (event.target.matches('[data-flat-tag-search-input]')) { tagPickerSearches.individual = event.target.value; applyTagPickerFilter('individual'); } if (event.target.matches('[data-tag-search]')) { var section = event.target.closest('[data-tag-type]'); window.clearTimeout(event.target.searchTimer); event.target.searchTimer = window.setTimeout(function () { loadIndividualValues(section, 1); }, 250); } });
+        $('#individualTagLibraryPickers').addEventListener('input', function (event) { if (event.target.matches('[data-flat-tag-search-input]')) { tagPickerSearches.individual = event.target.value; window.clearTimeout(event.target.searchTimer); event.target.searchTimer = window.setTimeout(function () { searchTagPicker('individual'); }, 250); } if (event.target.matches('[data-tag-search]')) { var section = event.target.closest('[data-tag-type]'); window.clearTimeout(event.target.searchTimer); event.target.searchTimer = window.setTimeout(function () { loadIndividualValues(section, 1); }, 250); } });
         $('#individualCollectionDrafts').addEventListener('input', function (event) { var card = event.target.closest('[data-draft]'); if (!card) { return; } var draft = individualDrafts[card.getAttribute('data-draft')]; if (event.target.matches('[data-draft-title]')) { draft.collectionTitle = event.target.value; delete individualConflictActions[draft.key]; } if (event.target.matches('[data-draft-overview]')) { draft.overview = event.target.value; } });
         $('#individualCollectionDrafts').addEventListener('change', function (event) { var target = event.target, card = target.closest('[data-draft]'); if (!card || !target.matches('[data-draft-art-preference]')) { return; } if (!target.checked) { target.checked = true; return; } Array.prototype.forEach.call(card.querySelectorAll('[data-draft-art-preference]'), function (input) { if (input !== target) { input.checked = false; } }); individualDrafts[card.getAttribute('data-draft')].artPreference = target.getAttribute('data-draft-art-preference'); });
         $('#individualCollectionDrafts').addEventListener('change', function (event) { var card = event.target.closest('[data-draft]'); if (!card) { return; } var draft = individualDrafts[card.getAttribute('data-draft')]; if (event.target.matches('[data-draft-included]')) { draft.included = event.target.checked; } if (event.target.matches('[data-draft-other-toggle]')) { draft.includeOtherLibraries = event.target.getAttribute('data-draft-other-toggle') === 'yes'; if (!draft.includeOtherLibraries) { draft.additionalLibraryIds = []; } renderIndividualDrafts(); } if (event.target.matches('[data-draft-other-library]')) { var id = event.target.getAttribute('data-draft-other-library'); draft.additionalLibraryIds = event.target.checked ? draft.additionalLibraryIds.concat([id]).filter(function (value, index, values) { return values.indexOf(value) === index; }) : draft.additionalLibraryIds.filter(function (value) { return String(value) !== String(id); }); draft.includeOtherLibraries = draft.additionalLibraryIds.length > 0; renderIndividualDrafts(); } });
@@ -1156,6 +1170,8 @@
         Array.prototype.forEach.call(page.querySelectorAll('.mcm-combined-host'), function (host) {
             host.addEventListener('click', function (event) {
                 var target = event.target, mode = host.getAttribute('data-mode'), state = tagCollectionStates[mode], button;
+                button = target.closest('[data-flat-tag-toggle]');
+                if (button) { toggleTagPickerType(mode, button); return; }
                 button = target.closest('[data-mode-library]');
                 if (button) { var librarySection = button.closest('[data-mode-library-section]'), libraryContent = librarySection.querySelector('.mcm-picker-library-content'), libraryExpanded = !libraryContent.hidden; libraryContent.hidden = libraryExpanded; button.textContent = libraryExpanded ? 'Click here to expand' : 'Click here to collapse'; if (!libraryExpanded) { loadModeTypes(mode, librarySection.getAttribute('data-library')); } return; }
                 button = target.closest('[data-mode-type]');
@@ -1196,7 +1212,7 @@
                 var mode = host.getAttribute('data-mode'), state = tagCollectionStates[mode], target = event.target;
                 if (target.matches('[data-mode-title]')) { state.title = target.value; state.conflict = false; state.action = ''; var create = host.querySelector('[data-mode-create="' + mode + '"]'); if (create) { create.disabled = state.creating || modeTags(mode).length < 2 || !state.title.trim() || (state.preview && Number(prop(state.preview, 'MatchingItems') || 0) === 0); } }
                 if (target.matches('[data-mode-overview]')) { state.overview = target.value; }
-                if (target.matches('[data-flat-tag-search-input]')) { tagPickerSearches[mode] = target.value; applyTagPickerFilter(mode); }
+                if (target.matches('[data-flat-tag-search-input]')) { tagPickerSearches[mode] = target.value; window.clearTimeout(target.searchTimer); target.searchTimer = window.setTimeout(function () { searchTagPicker(mode); }, 250); }
                 if (target.matches('[data-mode-search]')) { var section = target.closest('[data-mode-section]'); window.clearTimeout(target.searchTimer); target.searchTimer = window.setTimeout(function () { loadModeValues(section, 1); }, 250); }
             });
         });

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0.61] - 2026-07-31
+
+### Fixed
+
+- Keeps library groups automatically shown in collection-creation pickers, but
+  restores the existing collapsed metadata tag types. The shared search box
+  searches both tag type names and tag values.
+
 ## [0.1.0.60] - 2026-07-31
 
 ### Fixed
