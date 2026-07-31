@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0.55] - 2026-07-31
+
+### Fixed
+
+- Uses the same inline logo placement as the Media Tagging Manager picker, so
+  logos stay in their own native checkbox row and cannot overlap at the right.
+
 ## [0.1.0.54] - 2026-07-30
 
 ### Fixed

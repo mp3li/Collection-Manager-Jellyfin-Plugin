@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.54",
-        "changelog": "Restores the exact native Jellyfin checkbox spacing for logo rows so the checkbox outline cannot overlap the selected logo.",
+        "version": "0.1.0.55",
+        "changelog": "Uses the same inline logo placement as the Media Tagging Manager picker, so logos stay in their own native checkbox row and cannot overlap at the right.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.54/CollectionManager_0.1.0.54.zip",
-        "checksum": "3601c5c6c86f4c821669f09575221082",
-        "timestamp": "2026-07-31T06:24:19Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.55/CollectionManager_0.1.0.55.zip",
+        "checksum": "d8d2fdeb37e86a4b9f3e01478f4faf17",
+        "timestamp": "2026-07-31T07:39:43Z"
       }
     ]
   }
