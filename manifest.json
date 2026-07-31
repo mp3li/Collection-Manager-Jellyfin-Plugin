@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.57",
-        "changelog": "Adds Overview fields to every collection draft and the existing editor. Tag-collection pickers now show all saved-library tags in one searchable list while retaining the other-library choices. Episodes and seasons now create and preview as their parent Series.",
+        "version": "0.1.0.58",
+        "changelog": "Refreshes the Logo Focused tab's collection list every time it opens, while retaining selections for collections that still exist.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.57/CollectionManager_0.1.0.57.zip",
-        "checksum": "1670432af6fe199999df516e050949ce",
-        "timestamp": "2026-07-31T21:54:31Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.58/CollectionManager_0.1.0.58.zip",
+        "checksum": "34398e3bf0f5fcaa949143fdbae4c6e1",
+        "timestamp": "2026-07-31T21:58:43Z"
       }
     ]
   }

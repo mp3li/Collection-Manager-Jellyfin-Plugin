@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0.58] - 2026-07-31
+
+### Fixed
+
+- Refreshes the Logo Focused tab's collection picker every time the tab opens,
+  while retaining checks for collections that still exist.
+
 ## [0.1.0.57] - 2026-07-31
 
 ### Added
