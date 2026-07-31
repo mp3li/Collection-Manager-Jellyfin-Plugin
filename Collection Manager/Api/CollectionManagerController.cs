@@ -278,7 +278,7 @@ public sealed class CollectionManagerController : ControllerBase
         {
             configuration.LogoFocusedArt = new LogoFocusedCollectionArtSettings
             {
-                BackgroundStyle = request.BackgroundStyle,
+                BackgroundStyle = NormalizeBackgroundStyle(request.BackgroundStyle),
                 BackgroundColor = request.BackgroundColor,
                 GradientColorOne = request.GradientColorOne,
                 GradientColorTwo = request.GradientColorTwo,
@@ -349,7 +349,7 @@ public sealed class CollectionManagerController : ControllerBase
         {
             return Ok(await _artAssets.SaveAsync(file, assetKind, cancellationToken).ConfigureAwait(false));
         }
-        catch (InvalidOperationException exception)
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             return BadRequest(exception.Message);
         }
@@ -961,9 +961,10 @@ public sealed class CollectionManagerController : ControllerBase
         PreviewText = request.PreviewText ?? string.Empty,
         FontAssetId = request.FontAssetId?.Trim(),
         FontFileName = request.FontFileName?.Trim(),
+        TextSize = Math.Clamp(request.TextSize, 10, 250),
         TextColor = request.TextColor,
         TextShadowColor = request.TextShadowColor,
-        BackgroundStyle = request.BackgroundStyle,
+        BackgroundStyle = NormalizeBackgroundStyle(request.BackgroundStyle),
         BackgroundColor = request.BackgroundColor,
         GradientColorOne = request.GradientColorOne,
         GradientColorTwo = request.GradientColorTwo,
@@ -978,9 +979,10 @@ public sealed class CollectionManagerController : ControllerBase
         PreviewText = request.PreviewText ?? string.Empty,
         FontAssetId = request.FontAssetId?.Trim(),
         FontFileName = request.FontFileName?.Trim(),
+        TextSize = Math.Clamp(request.TextSize, 10, 250),
         TextColor = request.TextColor,
         TextShadowColor = request.TextShadowColor,
-        BackgroundStyle = request.BackgroundStyle,
+        BackgroundStyle = NormalizeBackgroundStyle(request.BackgroundStyle),
         BackgroundColor = request.BackgroundColor,
         GradientColorOne = request.GradientColorOne,
         GradientColorTwo = request.GradientColorTwo,
@@ -1008,6 +1010,9 @@ public sealed class CollectionManagerController : ControllerBase
         kind = default;
         return false;
     }
+
+    private static CollectionArtBackgroundStyle NormalizeBackgroundStyle(CollectionArtBackgroundStyle style) =>
+        style == CollectionArtBackgroundStyle.Image ? CollectionArtBackgroundStyle.Solid : style;
 
     private static ImageType ToJellyfinImageType(CollectionArtImageType artType) => artType switch
     {

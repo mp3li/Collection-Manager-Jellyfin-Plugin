@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.0.48] - 2026-07-30
+
+### Fixed
+
+- Stopped combined and multi-match tag selection from rebuilding the tab,
+  collapsing selectors, flashing content, or moving the dashboard scroll.
+- Added default-font fallback, saved text-size controls, clearer upload errors,
+  numeric native Jellyfin image-type submission, and normalized metadata-type
+  display labels.
+- Removed Image as an artwork background-style choice and reduced artwork
+  preview sizes by half.
+
 ## [0.1.0.47] - 2026-07-30
 
 ### Added

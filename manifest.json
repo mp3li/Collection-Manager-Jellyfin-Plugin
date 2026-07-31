@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.47",
-        "changelog": "Implements all five Collection Art tabs, collection-draft art preferences, collection artwork application, collection deletion, and combined-tag selection stability.",
+        "version": "0.1.0.48",
+        "changelog": "Fixes combined and multi-match tag selection movement and flashing; adds text-size and default-font support, smaller artwork previews, native image-type submission, normalized metadata labels, and removes Image backgrounds.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.47/CollectionManager_0.1.0.47.zip",
-        "checksum": "1b1556bc8188667f2622e769582a2ba3",
-        "timestamp": "2026-07-31T01:49:42Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.48/CollectionManager_0.1.0.48.zip",
+        "checksum": "bd90e74b102f81124b396e4a4bf5a77b",
+        "timestamp": "2026-07-31T02:22:59Z"
       }
     ]
   }

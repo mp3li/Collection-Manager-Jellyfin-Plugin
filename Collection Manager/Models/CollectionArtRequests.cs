@@ -14,6 +14,7 @@ public sealed class TextFocusedArtSettingsRequest
     public string PreviewText { get; set; } = "Collection Name";
     public string? FontAssetId { get; set; }
     public string? FontFileName { get; set; }
+    public int TextSize { get; set; } = 100;
     public string TextColor { get; set; } = "#FFFFFF";
     public string TextShadowColor { get; set; } = "#000000";
     public CollectionArtBackgroundStyle BackgroundStyle { get; set; }
