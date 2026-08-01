@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.0.75] - 2026-08-01
+
+### Fixed
+
+- Restores native selectable media rows in **Collections Overview & Editor**
+  and places collection add/remove controls beside the editor selection
+  controls.
+- Shows the completed recreation result in the editor: matched, added,
+  removed, and current media-item counts reported by Jellyfin.
+
+### Added
+
+- Adds an inline picker of all collections when adding selected media from the
+  editor.
+
 ## [0.1.0.74] - 2026-08-01
 
 ### Changed

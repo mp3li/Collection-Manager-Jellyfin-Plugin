@@ -668,8 +668,8 @@ public sealed class CollectionManagerController : ControllerBase
         await UpdateCollectionOverviewAsync(collection, recipe.Overview, cancellationToken).ConfigureAwait(false);
         plugin.SaveCollectionCreationRecipe(recipe);
         plugin.MarkCollectionManaged(collectionId);
-        await _reconciler.ReconcileSavedCreationRecipeAsync(collectionId, cancellationToken).ConfigureAwait(false);
-        return Ok(new { Recipe = recipe });
+        var reconciliation = await _reconciler.ReconcileSavedCreationRecipeAsync(collectionId, cancellationToken).ConfigureAwait(false);
+        return Ok(new { Recipe = recipe, Reconciliation = reconciliation });
     }
 
     /// <summary>Returns persisted automatic collection rules.</summary>
@@ -996,6 +996,18 @@ public sealed class CollectionManagerController : ControllerBase
             Page = currentPage,
             PageSize = size,
         });
+    }
+
+    /// <summary>Returns every current native Jellyfin collection for the editor's add-to-collection dropdown.</summary>
+    [HttpGet("collection-overview/targets/all")]
+    public IActionResult GetAllCollectionTargets()
+    {
+        var items = _libraryManager.GetItemList(new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.BoxSet] })
+            .OfType<BoxSet>()
+            .OrderBy(collection => collection.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(collection => new { collection.Id, collection.Name })
+            .ToArray();
+        return Ok(new { Items = items });
     }
 
     /// <summary>Renames an existing native Jellyfin collection from its editor dialog.</summary>

@@ -1,7 +1,7 @@
 ---
 name: "Collection Manager"
 guid: "5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9"
-version: "0.1.0.74"
+version: "0.1.0.75"
 targetAbi: "10.11.11.0"
 framework: "net9.0"
 overview: "Visual metadata-driven native collection creation for Jellyfin."
@@ -13,4 +13,4 @@ owner: "mp3li"
 artifacts:
   - "Jellyfin.Plugin.CollectionManager.dll"
 changelog: >
-  Replaces library-wide metadata-change reconciliations with targeted, batched updates and adds an opt-in full scheduled reconciliation setting.
+  Fixes collection-editor selection and add/remove controls, and shows authoritative recreation results while recreating a collection.

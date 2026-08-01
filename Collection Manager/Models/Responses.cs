@@ -63,6 +63,15 @@ public sealed record ReconciliationResult(
     int RemovedItems,
     string CollectionName);
 
+/// <summary>Exact membership results from synchronizing one saved creation recipe.</summary>
+public sealed record SavedRecipeReconciliationResult(
+    Guid CollectionId,
+    string CollectionName,
+    int MatchingItems,
+    int AddedItems,
+    int RemovedItems,
+    int CurrentItems);
+
 /// <summary>A media item available to the dashboard's scoped manual search.</summary>
 public sealed record MediaSearchResult(Guid Id, string Name, string Type, int? ProductionYear);
 

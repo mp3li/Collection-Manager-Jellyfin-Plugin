@@ -99,7 +99,7 @@ public sealed class CollectionReconciler
     }
 
     /// <summary>Replaces one recipe-backed collection's members with the current live metadata matches.</summary>
-    public async Task ReconcileSavedCreationRecipeAsync(Guid collectionId, CancellationToken cancellationToken)
+    public async Task<SavedRecipeReconciliationResult> ReconcileSavedCreationRecipeAsync(Guid collectionId, CancellationToken cancellationToken)
     {
         await ReconciliationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -115,7 +115,7 @@ public sealed class CollectionReconciler
             if (collection is null)
             {
                 plugin.ForgetManagedCollection(collectionId);
-                return;
+                return new SavedRecipeReconciliationResult(collectionId, recipe.CollectionTitle, 0, 0, 0, 0);
             }
 
             var desiredIds = _metadataCatalog.GetLiveMatchingItemIds(recipe).ToHashSet();
@@ -139,6 +139,13 @@ public sealed class CollectionReconciler
                 desiredIds.Count,
                 additions.Length,
                 removals.Length);
+            return new SavedRecipeReconciliationResult(
+                collection.Id,
+                collection.Name,
+                desiredIds.Count,
+                additions.Length,
+                removals.Length,
+                collection.GetLinkedChildren().Count());
         }
         finally
         {
