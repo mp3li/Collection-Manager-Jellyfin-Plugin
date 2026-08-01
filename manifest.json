@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.71",
-        "changelog": "Adds collapsed Overview sections and a separate Recreate Collection action with progress and results in the collection editor.",
+        "version": "0.1.0.72",
+        "changelog": "Keeps Collection Art Preferences visible outside collapsed Overview sections.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.71/CollectionManager_0.1.0.71.zip",
-        "checksum": "db86f4384d342c2ce67139fa70842fcb",
-        "timestamp": "2026-08-01T06:42:17Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.72/CollectionManager_0.1.0.72.zip",
+        "checksum": "3e6aa44af67b36445f6ba1ec23b41554",
+        "timestamp": "2026-08-01T06:59:19Z"
       }
     ]
   }

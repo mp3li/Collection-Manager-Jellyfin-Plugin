@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0.72] - 2026-08-01
+
+### Fixed
+
+- Keeps **Collection Art Preferences**, including **Retain Current Collection
+  Art**, visible outside the collapsed Overview section.
+
 ## [0.1.0.71] - 2026-08-01
 
 ### Changed
