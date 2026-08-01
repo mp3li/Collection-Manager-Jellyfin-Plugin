@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.72",
-        "changelog": "Keeps Collection Art Preferences visible outside collapsed Overview sections.",
+        "version": "0.1.0.73",
+        "changelog": "Uses Jellyfin's displayed library title for text-based library art.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.72/CollectionManager_0.1.0.72.zip",
-        "checksum": "3e6aa44af67b36445f6ba1ec23b41554",
-        "timestamp": "2026-08-01T06:59:19Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.73/CollectionManager_0.1.0.73.zip",
+        "checksum": "25282bcb23592b757e6bb63133bd1a7b",
+        "timestamp": "2026-08-01T19:12:19Z"
       }
     ]
   }

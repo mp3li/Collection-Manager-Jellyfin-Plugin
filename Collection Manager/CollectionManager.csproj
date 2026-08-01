@@ -5,9 +5,9 @@
     <Nullable>enable</Nullable>
     <AssemblyName>Jellyfin.Plugin.CollectionManager</AssemblyName>
     <RootNamespace>Jellyfin.Plugin.CollectionManager</RootNamespace>
-    <Version>0.1.0.72</Version>
-    <AssemblyVersion>0.1.0.72</AssemblyVersion>
-    <FileVersion>0.1.0.72</FileVersion>
+    <Version>0.1.0.73</Version>
+    <AssemblyVersion>0.1.0.73</AssemblyVersion>
+    <FileVersion>0.1.0.73</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

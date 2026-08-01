@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0.73] - 2026-08-01
+
+### Fixed
+
+- Uses Jellyfin's displayed library title, rather than the virtual-folder name,
+  when rendering text-focused or poster-focused library art.
+
 ## [0.1.0.72] - 2026-08-01
 
 ### Fixed

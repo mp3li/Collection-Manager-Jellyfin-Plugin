@@ -63,7 +63,7 @@ public sealed class CollectionManagerController : ControllerBase
         return Ok(new
         {
             Configuration = plugin.Configuration,
-            Libraries = _libraryManager.GetVirtualFolders(true).Select(folder => new { folder.ItemId, folder.Name }),
+            Libraries = _libraryManager.GetVirtualFolders(true).Select(folder => new { folder.ItemId, folder.Name, DisplayName = GetLibraryDisplayName(folder.ItemId, folder.Name) }),
         });
     }
 
@@ -81,7 +81,7 @@ public sealed class CollectionManagerController : ControllerBase
         return Ok(new
         {
             Configuration = configuration,
-            Libraries = _libraryManager.GetVirtualFolders(true).Select(folder => new { folder.ItemId, folder.Name }),
+            Libraries = _libraryManager.GetVirtualFolders(true).Select(folder => new { folder.ItemId, folder.Name, DisplayName = GetLibraryDisplayName(folder.ItemId, folder.Name) }),
         });
     }
 
@@ -1283,6 +1283,17 @@ public sealed class CollectionManagerController : ControllerBase
             .Where(id => id != Guid.Empty)
             .ToHashSet();
         return libraryIds.Distinct().All(id => known.Contains(id));
+    }
+
+    private string GetLibraryDisplayName(string itemId, string fallbackName)
+    {
+        if (!Guid.TryParse(itemId, out var libraryId))
+        {
+            return fallbackName;
+        }
+
+        var library = _libraryManager.GetItemById(libraryId);
+        return string.IsNullOrWhiteSpace(library?.Name) ? fallbackName : library.Name;
     }
 
     private static BaseItemKind[] GetManualCollectionItemTypes(CollectionType? collectionType) => collectionType switch
