@@ -17,6 +17,9 @@ public enum CollectionArtPreference
 
     /// <summary>Use the saved poster-focused settings.</summary>
     PosterFocused,
+
+    /// <summary>Keep the artwork currently assigned to an existing collection.</summary>
+    RetainCurrentCollectionArt,
 }
 
 /// <summary>Jellyfin collection image types exposed by the art dashboard.</summary>

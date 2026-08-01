@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.69",
-        "changelog": "Makes every creation-tab library, metadata picker, draft, and preview load inside the collection editor dialog.",
+        "version": "0.1.0.70",
+        "changelog": "Adds Retain Current Collection Art as the first art choice in collection editor creation tabs.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.69/CollectionManager_0.1.0.69.zip",
-        "checksum": "3fd1fcb7413637b1ad4ca2a56b758f7f",
-        "timestamp": "2026-08-01T05:31:40Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.70/CollectionManager_0.1.0.70.zip",
+        "checksum": "d51760c8dab174785248395b3c5a40b0",
+        "timestamp": "2026-08-01T05:39:42Z"
       }
     ]
   }

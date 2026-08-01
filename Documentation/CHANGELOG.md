@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0.70] - 2026-08-01
+
+### Added
+
+- Adds **Retain Current Collection Art** as the first Collection Art
+  Preferences choice only inside collection editor creation tabs.
+
 ## [0.1.0.69] - 2026-08-01
 
 ### Fixed
