@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.0.63] - 2026-07-31
+
+### Fixed
+
+- Keeps searched metadata-tag checkbox rows stable until their complete result
+  list is ready, so they can be selected normally.
+- Lets Multi-Collection/Library Gradient Art checkboxes update immediately and
+  consolidates rapid gradient-preview refreshes instead of rebuilding the
+  preview on every click.
+
 ## [0.1.0.62] - 2026-07-31
 
 ### Fixed

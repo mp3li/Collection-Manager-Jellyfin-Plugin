@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.62",
-        "changelog": "Restores native checkbox selection for searched tags and adds each uploaded logo as a selectable imported-logo row for preview and application.",
+        "version": "0.1.0.63",
+        "changelog": "Keeps searched tag checkbox rows stable until complete and prevents gradient-art selections from rebuilding their preview on every click.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.62/CollectionManager_0.1.0.62.zip",
-        "checksum": "aaff409585129c5e90d9de7f1973e660",
-        "timestamp": "2026-07-31T23:49:28Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.63/CollectionManager_0.1.0.63.zip",
+        "checksum": "c74d1981e8fd4fab51652ddebc2b8834",
+        "timestamp": "2026-08-01T00:07:21Z"
       }
     ]
   }
