@@ -85,6 +85,20 @@ public sealed class CollectionManagerController : ControllerBase
         });
     }
 
+    /// <summary>Saves the optional full scheduled reconciliation setting and reloads its native Jellyfin task trigger.</summary>
+    [HttpPost("settings/scheduled-reconciliation")]
+    public IActionResult UpdateScheduledReconciliationSettings([FromBody] ScheduledReconciliationSettingsRequest request)
+    {
+        if (request.IntervalHours < 1 || request.IntervalHours > 168)
+        {
+            return BadRequest("Choose a full reconciliation interval from 1 to 168 hours.");
+        }
+
+        var configuration = RequirePlugin().UpdateScheduledReconciliationSettings(request);
+        ReloadScheduledTaskTriggers();
+        return Ok(configuration);
+    }
+
     /// <summary>Saves only the selected library roots from the Main Settings page.</summary>
     [HttpPost("settings/libraries")]
     public IActionResult UpdateLibraries([FromBody] LibrarySelectionRequest request)

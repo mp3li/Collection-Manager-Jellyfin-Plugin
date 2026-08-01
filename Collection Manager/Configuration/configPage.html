@@ -196,6 +196,15 @@
         </section>
 
         <section class="mcm-section">
+            <h2>Scheduled Full Collection Reconciliation</h2>
+            <p class="fieldDescription">Optionally run a full check of every enabled collection rule and saved collection-creation setting. Metadata changes use targeted updates automatically; this optional full check is only a safety pass and is off unless you turn it on.</p>
+            <label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" id="scheduledReconciliationEnabled" /> <span>Enable Scheduled Full Collection Reconciliation</span></label>
+            <div id="scheduledReconciliationInterval" class="inputContainer" hidden><label class="inputLabel inputLabelUnfocused" for="scheduledReconciliationHours">Full reconciliation interval in hours</label><input is="emby-input" id="scheduledReconciliationHours" type="number" min="1" max="168" step="1" value="24" /></div>
+            <div class="mcm-actions"><button is="emby-button" type="button" class="raised" id="saveScheduledReconciliationSettingsButton">Save Scheduled Full Collection Reconciliation Settings</button></div>
+            <p id="scheduledReconciliationStatus" class="fieldDescription" aria-live="polite"></p>
+        </section>
+
+        <section class="mcm-section">
             <h2>My Metadata Tags</h2>
             <p class="fieldDescription">View the metadata currently assigned to media in your selected and saved libraries. This includes all available metadata, including—but never limited to—metadata assigned by Media Tagging Manager.</p>
             <button is="emby-button" type="button" class="raised" id="toggleMetadataOverview">Click here to expand</button>
@@ -280,6 +289,8 @@
             return {
                 LibraryIds: prop(raw, 'LibraryIds') || [],
                 AutomaticallyAddNewMediaToApplicableCollections: prop(raw, 'AutomaticallyAddNewMediaToApplicableCollections') === true,
+                ScheduledReconciliationEnabled: prop(raw, 'ScheduledReconciliationEnabled') === true,
+                ScheduledReconciliationMinutes: Number(prop(raw, 'ScheduledReconciliationMinutes') || 1440),
                 MetadataTagOverviewColor: prop(raw, 'MetadataTagOverviewColor') || '#00A4DC',
                 ShowPluginMadeCollections: prop(raw, 'ShowPluginMadeCollections') !== false,
                 ShowNonPluginMadeCollections: prop(raw, 'ShowNonPluginMadeCollections') !== false,
@@ -416,6 +427,9 @@
                 renderLibraries();
                 $('#automaticallyAddNewMediaYes').checked = config.AutomaticallyAddNewMediaToApplicableCollections;
                 $('#automaticallyAddNewMediaNo').checked = !config.AutomaticallyAddNewMediaToApplicableCollections;
+                $('#scheduledReconciliationEnabled').checked = config.ScheduledReconciliationEnabled;
+                $('#scheduledReconciliationHours').value = Math.max(1, Math.min(168, Math.round(config.ScheduledReconciliationMinutes / 60)));
+                updateScheduledReconciliationControls();
                 $('#showPluginMadeCollections').checked = config.ShowPluginMadeCollections;
                 $('#showNonPluginMadeCollections').checked = config.ShowNonPluginMadeCollections;
                 $('#collectionsOverviewAddedColor').value = config.CollectionOverviewAddedColor;
@@ -667,6 +681,24 @@
                 renderLibraries();
                 Dashboard.alert('Main Settings saved successfully.');
             }, function (error) { Dashboard.alert('Main Settings could not be saved. Please try again. ' + err(error)); });
+        }
+
+        function updateScheduledReconciliationControls() {
+            $('#scheduledReconciliationInterval').hidden = !$('#scheduledReconciliationEnabled').checked;
+        }
+
+        function saveScheduledReconciliationSettings() {
+            var enabled = $('#scheduledReconciliationEnabled').checked;
+            var hours = Number($('#scheduledReconciliationHours').value);
+            var status = $('#scheduledReconciliationStatus');
+            if (!Number.isInteger(hours) || hours < 1 || hours > 168) { status.textContent = 'Choose a whole number from 1 to 168 hours.'; return; }
+            send('POST', 'settings/scheduled-reconciliation', { Enabled:enabled, IntervalHours:hours }).then(function (updated) {
+                config = normalize(updated || config);
+                $('#scheduledReconciliationEnabled').checked = config.ScheduledReconciliationEnabled;
+                $('#scheduledReconciliationHours').value = Math.max(1, Math.min(168, Math.round(config.ScheduledReconciliationMinutes / 60)));
+                updateScheduledReconciliationControls();
+                status.textContent = config.ScheduledReconciliationEnabled ? 'Scheduled full collection reconciliation is enabled and will run every ' + $('#scheduledReconciliationHours').value + ' hour(s).' : 'Scheduled full collection reconciliation is off.';
+            }, function (error) { status.textContent = 'Could not save scheduled full collection reconciliation settings: ' + err(error); });
         }
 
         function refreshStatus() {
@@ -1319,6 +1351,8 @@
         refreshCollectionBackupButtons();
         $('#saveLibrariesButton').addEventListener('click', saveLibraries);
         $('#saveMainSettingsButton').addEventListener('click', saveMainSettings);
+        $('#scheduledReconciliationEnabled').addEventListener('change', updateScheduledReconciliationControls);
+        $('#saveScheduledReconciliationSettingsButton').addEventListener('click', saveScheduledReconciliationSettings);
         $('#scanMetadataTagsButton').addEventListener('click', startScan);
         $('#cleanUpCollectionsButton').addEventListener('click', function () {
             var request = { UndoLastCollectionAction: $('#undoLastCollectionAction').checked, RemoveAllPluginMadeCollections: $('#removeAllPluginCollections').checked, RemoveAllMediaAdditionsToExternalCollections: $('#removeAllExternalCollectionAdditions').checked };

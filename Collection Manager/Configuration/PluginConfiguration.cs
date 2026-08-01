@@ -68,11 +68,15 @@ public sealed class PluginConfiguration : BasePluginConfiguration
     /// <summary>Gets or sets a value indicating whether metadata-change events can reconcile enabled rules.</summary>
     public bool WatchMetadataChanges { get; set; } = true;
 
-    /// <summary>Gets or sets a value indicating whether the scheduled task can reconcile enabled rules.</summary>
-    public bool ScheduledReconciliationEnabled { get; set; } = true;
+    /// <summary>Gets or sets a value indicating whether the optional full scheduled reconciliation is enabled.</summary>
+    public bool ScheduledReconciliationEnabled { get; set; }
 
-    /// <summary>Gets or sets the minimum number of minutes between scheduled reconciliations.</summary>
-    public int ScheduledReconciliationMinutes { get; set; } = 360;
+    /// <summary>Gets or sets the number of minutes between optional full scheduled reconciliations.</summary>
+    public int ScheduledReconciliationMinutes { get; set; } = 1440;
+
+    /// <summary>Gets or sets whether the administrator has seen the opt-in full scheduled reconciliation setting.</summary>
+    /// <remarks>Used once to safely disable the legacy six-hour default when this setting is introduced.</remarks>
+    public bool FullScheduledReconciliationSettingInitialized { get; set; }
 
     /// <summary>Gets or sets the last scheduled reconciliation completion time.</summary>
     public DateTime? LastScheduledReconciliationUtc { get; set; }

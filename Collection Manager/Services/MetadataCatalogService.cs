@@ -236,6 +236,46 @@ public sealed class MetadataCatalogService
         return matchingIds.ToArray();
     }
 
+    /// <summary>Determines whether one changed item currently matches one saved tag-based creation recipe without scanning a library.</summary>
+    public bool MatchesLiveRecipeItem(CollectionCreationRecipe recipe, BaseItem changedItem)
+    {
+        if (recipe.Kind == CollectionCreationRecipeKind.Manual)
+        {
+            return recipe.ManualItemIds.Contains(changedItem.Id);
+        }
+
+        var tags = recipe.SelectedTags
+            .Where(tag => tag.SourceLibraryId != Guid.Empty && !string.IsNullOrWhiteSpace(tag.MetadataType) && !string.IsNullOrWhiteSpace(tag.MetadataValue))
+            .ToArray();
+        if (tags.Length == 0)
+        {
+            return false;
+        }
+
+        var recipeLibraryIds = tags.Select(tag => tag.SourceLibraryId)
+            .Concat(recipe.AdditionalLibraryIds)
+            .Distinct()
+            .ToHashSet();
+        var collectionItem = ResolveCollectionItem(changedItem);
+        var itemLibraryIds = collectionItem.GetAncestorIds().Append(collectionItem.Id).ToHashSet();
+        if (!itemLibraryIds.Overlaps(recipeLibraryIds))
+        {
+            return false;
+        }
+
+        var metadataSources = collectionItem.Id == changedItem.Id
+            ? new[] { collectionItem }
+            : new[] { collectionItem, changedItem };
+        var metadata = CreateCatalogItem(collectionItem, Guid.Empty, string.Empty, metadataSources).Metadata;
+        return recipe.RequireAllTags
+            ? tags.All(tag => MetadataContains(metadata, tag))
+            : tags.Any(tag => MetadataContains(metadata, tag));
+    }
+
+    private static bool MetadataContains(IReadOnlyDictionary<string, IReadOnlyList<string>> metadata, CollectionCreationTagSelection tag) =>
+        metadata.TryGetValue(tag.MetadataType.Trim(), out var values)
+        && values.Contains(tag.MetadataValue.Trim(), StringComparer.OrdinalIgnoreCase);
+
     private async Task ScanAsync()
     {
         try

@@ -3,6 +3,7 @@ using Jellyfin.Plugin.CollectionManager.Models;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
@@ -143,6 +144,153 @@ public sealed class CollectionReconciler
         {
             ReconciliationLock.Release();
         }
+    }
+
+    /// <summary>Reconciles only changed items against automatic collections without rescanning any library.</summary>
+    public async Task ReconcileChangedItemsAsync(IReadOnlyCollection<Guid> changedItemIds, CancellationToken cancellationToken)
+    {
+        var plugin = RequirePlugin();
+        var rules = plugin.GetRulesSnapshot().Where(rule => rule.Enabled).ToArray();
+        var recipes = plugin.Configuration.CollectionCreationRecipes.ToArray();
+        var changedCount = 0;
+        var collectionChanges = 0;
+
+        foreach (var itemId in changedItemIds.Distinct())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var item = _libraryManager.GetItemById<BaseItem>(itemId);
+            changedCount++;
+            if (item is null)
+            {
+                collectionChanges += await RemoveDeletedItemFromAutomaticCollectionsAsync(itemId, rules, recipes, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            if (item is BoxSet)
+            {
+                continue;
+            }
+
+            foreach (var rule in rules)
+            {
+                collectionChanges += await ReconcileChangedItemForRuleAsync(rule, item, cancellationToken).ConfigureAwait(false);
+            }
+
+            foreach (var recipe in recipes)
+            {
+                if (recipe.Kind == CollectionCreationRecipeKind.Manual)
+                {
+                    continue;
+                }
+
+                collectionChanges += await ReconcileChangedItemForRecipeAsync(recipe, item, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        _logger.LogInformation(
+            "Targeted metadata reconciliation processed {ChangedItemCount} changed item(s) and changed {CollectionChangeCount} collection membership(s).",
+            changedCount,
+            collectionChanges);
+    }
+
+    private async Task<int> ReconcileChangedItemForRuleAsync(CollectionRule rule, BaseItem item, CancellationToken cancellationToken)
+    {
+        await ReconciliationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (!rule.CollectionId.HasValue || _libraryManager.GetItemById<BoxSet>(rule.CollectionId.Value) is not { } collection)
+            {
+                return 0;
+            }
+
+            var isCurrentMember = collection.GetLinkedChildren().Any(child => child.Id == item.Id);
+            var shouldBeMember = IsInSelectedLibraryScope(item) && Matches(rule, item);
+            if (shouldBeMember && !isCurrentMember)
+            {
+                await _collectionManager.AddToCollectionAsync(collection.Id, [item.Id]).ConfigureAwait(false);
+                _logger.LogInformation("Targeted metadata reconciliation added {ItemName} to {CollectionName}.", item.Name, collection.Name);
+                return 1;
+            }
+
+            if (!shouldBeMember && isCurrentMember && rule.RemoveItemsNoLongerMatching)
+            {
+                await _collectionManager.RemoveFromCollectionAsync(collection.Id, [item.Id]).ConfigureAwait(false);
+                _logger.LogInformation("Targeted metadata reconciliation removed {ItemName} from {CollectionName}.", item.Name, collection.Name);
+                return 1;
+            }
+
+            return 0;
+        }
+        finally
+        {
+            ReconciliationLock.Release();
+        }
+    }
+
+    private async Task<int> ReconcileChangedItemForRecipeAsync(CollectionCreationRecipe recipe, BaseItem item, CancellationToken cancellationToken)
+    {
+        await ReconciliationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_libraryManager.GetItemById<BoxSet>(recipe.CollectionId) is not { } collection)
+            {
+                return 0;
+            }
+
+            var collectionItemId = ResolveRecipeCollectionItemId(item);
+            var isCurrentMember = collection.GetLinkedChildren().Any(child => child.Id == collectionItemId);
+            var shouldBeMember = _metadataCatalog.MatchesLiveRecipeItem(recipe, item);
+            if (shouldBeMember && !isCurrentMember)
+            {
+                await _collectionManager.AddToCollectionAsync(collection.Id, [collectionItemId]).ConfigureAwait(false);
+                _logger.LogInformation("Targeted metadata reconciliation added {ItemName} to {CollectionName}.", item.Name, collection.Name);
+                return 1;
+            }
+
+            if (!shouldBeMember && isCurrentMember)
+            {
+                await _collectionManager.RemoveFromCollectionAsync(collection.Id, [collectionItemId]).ConfigureAwait(false);
+                _logger.LogInformation("Targeted metadata reconciliation removed {ItemName} from {CollectionName}.", item.Name, collection.Name);
+                return 1;
+            }
+
+            return 0;
+        }
+        finally
+        {
+            ReconciliationLock.Release();
+        }
+    }
+
+    private async Task<int> RemoveDeletedItemFromAutomaticCollectionsAsync(Guid itemId, IReadOnlyCollection<CollectionRule> rules, IReadOnlyCollection<CollectionCreationRecipe> recipes, CancellationToken cancellationToken)
+    {
+        var collectionIds = rules.Where(rule => rule.CollectionId.HasValue).Select(rule => rule.CollectionId!.Value)
+            .Concat(recipes.Select(recipe => recipe.CollectionId))
+            .Distinct()
+            .ToArray();
+        var changes = 0;
+        foreach (var collectionId in collectionIds)
+        {
+            await ReconciliationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                if (_libraryManager.GetItemById<BoxSet>(collectionId) is not { } collection
+                    || !collection.GetLinkedChildren().Any(child => child.Id == itemId))
+                {
+                    continue;
+                }
+
+                await _collectionManager.RemoveFromCollectionAsync(collection.Id, [itemId]).ConfigureAwait(false);
+                changes++;
+                _logger.LogInformation("Targeted metadata reconciliation removed deleted item {ItemId} from {CollectionName}.", itemId, collection.Name);
+            }
+            finally
+            {
+                ReconciliationLock.Release();
+            }
+        }
+
+        return changes;
     }
 
     /// <summary>Reconciles exactly one stored rule.</summary>
@@ -359,6 +507,25 @@ public sealed class CollectionReconciler
             .GroupBy(item => item.Id)
             .Select(group => group.First());
     }
+
+    private bool IsInSelectedLibraryScope(BaseItem item)
+    {
+        var configuration = RequireConfiguration();
+        if (configuration.UseAllLibraries)
+        {
+            return true;
+        }
+
+        var selectedLibraryIds = configuration.LibraryIds.ToHashSet();
+        return item.GetAncestorIds().Append(item.Id).Any(selectedLibraryIds.Contains);
+    }
+
+    private static Guid ResolveRecipeCollectionItemId(BaseItem item) => item switch
+    {
+        Episode { Series: not null } episode => episode.Series.Id,
+        Season { Series: not null } season => season.Series.Id,
+        _ => item.Id,
+    };
 
     private bool Matches(CollectionRule rule, BaseItem item)
     {

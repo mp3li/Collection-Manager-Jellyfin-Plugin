@@ -6,7 +6,9 @@ namespace Jellyfin.Plugin.CollectionManager.Tasks;
 public sealed class ManualReconciliationRequestQueue
 {
     private readonly ConcurrentQueue<Guid> _ruleIds = new();
+    private readonly ConcurrentDictionary<Guid, byte> _changedItemIds = new();
     private int _allRulesRequested;
+    private int _targetedMetadataTaskQueuedOrRunning;
 
     /// <summary>Requests reconciliation of every enabled rule.</summary>
     public void EnqueueAllEnabledRules() => Interlocked.Exchange(ref _allRulesRequested, 1);
@@ -28,4 +30,36 @@ public sealed class ManualReconciliationRequestQueue
 
         return ids.ToArray();
     }
+
+    /// <summary>Adds one changed Jellyfin item to the next targeted metadata reconciliation batch.</summary>
+    public void EnqueueChangedItem(Guid itemId)
+    {
+        if (itemId != Guid.Empty)
+        {
+            _changedItemIds.TryAdd(itemId, 0);
+        }
+    }
+
+    /// <summary>Starts one queued targeted metadata task when a changed-item batch is waiting.</summary>
+    public bool TryQueueTargetedMetadataReconciliation() =>
+        !_changedItemIds.IsEmpty && Interlocked.CompareExchange(ref _targetedMetadataTaskQueuedOrRunning, 1, 0) == 0;
+
+    /// <summary>Drains the currently batched changed Jellyfin item ids.</summary>
+    public IReadOnlyList<Guid> DrainChangedItemIds()
+    {
+        var ids = new List<Guid>();
+        foreach (var itemId in _changedItemIds.Keys)
+        {
+            if (_changedItemIds.TryRemove(itemId, out _))
+            {
+                ids.Add(itemId);
+            }
+        }
+
+        return ids;
+    }
+
+    /// <summary>Marks the active targeted metadata task complete.</summary>
+    public void CompleteTargetedMetadataReconciliation() =>
+        Interlocked.Exchange(ref _targetedMetadataTaskQueuedOrRunning, 0);
 }

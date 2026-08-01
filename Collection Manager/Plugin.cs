@@ -17,6 +17,7 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         : base(applicationPaths, xmlSerializer)
     {
         Instance = this;
+        EnsureFullScheduledReconciliationIsOptIn();
     }
 
     /// <summary>Gets the active plugin instance.</summary>
@@ -62,6 +63,16 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             configuration.UseAllLibraries = false;
             configuration.LibraryIds = request.LibraryIds.Distinct().ToList();
             configuration.AutomaticallyAddNewMediaToApplicableCollections = request.AutomaticallyAddNewMediaToApplicableCollections;
+            return CloneConfiguration(configuration);
+        });
+
+    /// <summary>Saves the opt-in full scheduled collection reconciliation setting.</summary>
+    public PluginConfiguration UpdateScheduledReconciliationSettings(ScheduledReconciliationSettingsRequest request) =>
+        UpdateConfigurationSafely(configuration =>
+        {
+            configuration.ScheduledReconciliationEnabled = request.Enabled;
+            configuration.ScheduledReconciliationMinutes = Math.Clamp(request.IntervalHours, 1, 168) * 60;
+            configuration.FullScheduledReconciliationSettingInitialized = true;
             return CloneConfiguration(configuration);
         });
 
@@ -213,9 +224,26 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         WatchMetadataChanges = source.WatchMetadataChanges,
         ScheduledReconciliationEnabled = source.ScheduledReconciliationEnabled,
         ScheduledReconciliationMinutes = source.ScheduledReconciliationMinutes,
+        FullScheduledReconciliationSettingInitialized = source.FullScheduledReconciliationSettingInitialized,
         LastScheduledReconciliationUtc = source.LastScheduledReconciliationUtc,
         Rules = source.Rules.Select(CloneRule).ToList(),
     };
+
+    private void EnsureFullScheduledReconciliationIsOptIn()
+    {
+        if (Configuration.FullScheduledReconciliationSettingInitialized)
+        {
+            return;
+        }
+
+        UpdateConfigurationSafely(configuration =>
+        {
+            configuration.ScheduledReconciliationEnabled = false;
+            configuration.ScheduledReconciliationMinutes = 1440;
+            configuration.FullScheduledReconciliationSettingInitialized = true;
+            return 0;
+        });
+    }
 
     private static CollectionRule CloneRule(CollectionRule source) => new()
     {

@@ -12,6 +12,16 @@ public sealed class MainSettingsRequest
     public bool AutomaticallyAddNewMediaToApplicableCollections { get; set; }
 }
 
+/// <summary>Values owned by the optional full scheduled collection reconciliation setting.</summary>
+public sealed class ScheduledReconciliationSettingsRequest
+{
+    /// <summary>Gets or sets whether the optional full scheduled reconciliation is enabled.</summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>Gets or sets the interval between full reconciliations, in whole hours.</summary>
+    public int IntervalHours { get; set; } = 24;
+}
+
 /// <summary>A request that saves only the selected Jellyfin libraries.</summary>
 public sealed class LibrarySelectionRequest
 {

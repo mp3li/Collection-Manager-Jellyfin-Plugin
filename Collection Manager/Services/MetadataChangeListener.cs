@@ -62,6 +62,8 @@ public sealed class MetadataChangeListener : IHostedService, IDisposable
             return;
         }
 
+        _requests.EnqueueChangedItem(eventArgs.Item.Id);
+
         lock (_timerLock)
         {
             _timer ??= new Timer(_ => QueueReconciliationAfterQuietPeriod(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
@@ -73,8 +75,10 @@ public sealed class MetadataChangeListener : IHostedService, IDisposable
     {
         try
         {
-            _requests.EnqueueAllEnabledRules();
-            _taskManager.QueueScheduledTask<ReconcileCollectionsTask>();
+            if (_requests.TryQueueTargetedMetadataReconciliation())
+            {
+                _taskManager.QueueScheduledTask<ReconcileCollectionsTask>();
+            }
         }
         catch (Exception exception)
         {

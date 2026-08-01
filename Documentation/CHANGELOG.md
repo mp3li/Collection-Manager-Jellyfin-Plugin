@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.0.74] - 2026-08-01
+
+### Changed
+
+- Replaces metadata-change full library reconciliations with targeted, batched
+  updates for only the changed media items.
+- Prevents duplicate targeted reconciliation runs and logs targeted versus full
+  scheduled reconciliation separately.
+
+### Added
+
+- Adds **Scheduled Full Collection Reconciliation** below **Repair Primary
+  Image Metadata**. It is off by default, including after updating from the
+  former six-hour schedule, and provides a one-to-168-hour interval when
+  enabled.
+
 ## [0.1.0.73] - 2026-08-01
 
 ### Fixed

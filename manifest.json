@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.73",
-        "changelog": "Uses Jellyfin's displayed library title for text-based library art.",
+        "version": "0.1.0.74",
+        "changelog": "Replaces library-wide metadata-change reconciliations with targeted, batched updates and adds an opt-in full scheduled reconciliation setting.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.73/CollectionManager_0.1.0.73.zip",
-        "checksum": "25282bcb23592b757e6bb63133bd1a7b",
-        "timestamp": "2026-08-01T19:12:19Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.74/CollectionManager_0.1.0.74.zip",
+        "checksum": "b23a08a71635f59467b7985fbc3a3a09",
+        "timestamp": "2026-08-01T19:40:40Z"
       }
     ]
   }
