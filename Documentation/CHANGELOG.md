@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.0.64] - 2026-07-31
+
+### Fixed
+
+- Defers the expensive collection-art list load and native checkbox rendering
+  until the corresponding art tab is opened.
+- Makes Multi-Collection/Library Gradient Art preview tiles match the selected
+  Jellyfin art type's aspect ratio.
+
+### Added
+
+- Lets you drag gradient preview tiles to set the applied gradient order.
+
 ## [0.1.0.63] - 2026-07-31
 
 ### Fixed

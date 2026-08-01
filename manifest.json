@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.63",
-        "changelog": "Keeps searched tag checkbox rows stable until complete and prevents gradient-art selections from rebuilding their preview on every click.",
+        "version": "0.1.0.64",
+        "changelog": "Loads artwork collections only when their tab opens and adds correctly proportioned, drag-reorderable gradient previews.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.63/CollectionManager_0.1.0.63.zip",
-        "checksum": "c74d1981e8fd4fab51652ddebc2b8834",
-        "timestamp": "2026-08-01T00:07:21Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.64/CollectionManager_0.1.0.64.zip",
+        "checksum": "21ba96ccfedef97a80b4125f3b8e5fd2",
+        "timestamp": "2026-08-01T00:13:44Z"
       }
     ]
   }
