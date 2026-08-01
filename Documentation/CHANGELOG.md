@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.0.67] - 2026-08-01
+
+### Fixed
+
+- Makes the Collection Overview & Editor dialog scroll within a bounded
+  viewport so its footer controls remain reachable.
+- Restores saved creation-tab inputs in the collection editor whether Jellyfin
+  returns the creation-tab enum as text or its numeric value.
+
 ## [0.1.0.66] - 2026-08-01
 
 ### Added

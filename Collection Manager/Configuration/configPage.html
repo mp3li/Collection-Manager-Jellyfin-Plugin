@@ -18,6 +18,7 @@
         #collectionManagerPage .mcm-last-removed { color:var(--mcm-last-removed-color,#F44336); text-decoration:line-through; }
         .mcm-collection-dialog .mcm-collection-editor-items,
         .mcm-collection-dialog .mcm-target-picker { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65em 1em; max-height:24em; overflow-y:auto; padding:.45em; border:1px solid var(--mcm-outline-color,rgba(255,255,255,.16)); border-radius:.4em; }
+        .mcm-collection-dialog .formDialogContent { max-height:calc(100vh - 11rem); overflow-y:auto; }
         .mcm-collection-dialog .mcm-picker-item { display:flex; align-items:center; gap:.5em; min-width:0; margin:0; }
         .mcm-collection-dialog .mcm-picker-poster { width:2.25em; height:3.375em; flex:0 0 auto; object-fit:cover; border-radius:.3em; margin:0; background:rgba(255,255,255,.08); }
         .mcm-collection-dialog .mcm-picker-item > span { min-width:0; overflow-wrap:anywhere; }
@@ -1036,7 +1037,7 @@
         }
         function resetCollectionEditor(id) { collectionEditor = { id:id, selected:{}, page:1, originalName:'', originalOverview:'', pendingRemovals:{}, pendingAdds:[] }; }
         function createNativeDialog(id, title, body, footer, size) {
-            var dialog = Dashboard.dialogHelper.createDialog({ id:id, size:size || 'small', removeOnClose:true, scrollY:false });
+            var dialog = Dashboard.dialogHelper.createDialog({ id:id, size:size || 'small', removeOnClose:true, scrollY:true });
             dialog.classList.add('ui-body-a'); dialog.classList.add('background-theme-a'); dialog.classList.add('formDialog'); dialog.classList.add('mcm-collection-dialog');
             dialog.innerHTML = '<div class="formDialogHeader"><h3 class="formDialogHeaderTitle">' + escapeHtml(title) + '</h3></div><div class="formDialogContent smoothScrollY"><div class="dialogContentInner dialog-content-centered" style="padding-top:1em;">' + body + '</div></div><div class="formDialogFooter">' + footer + '</div>';
             return dialog;
@@ -1077,7 +1078,8 @@
             }, function (error) { Dashboard.alert('Could not load this collection’s saved creation settings: ' + err(error)); });
         }
         function copyEditorState(value) { return JSON.parse(JSON.stringify(value)); }
-        function recipeMode(kind) { return kind === 'CombinedTags' ? 'combined' : (kind === 'MultiMatchTags' ? 'multi' : ''); }
+        function recipeKind(value) { var kind = String(value === undefined || value === null ? '' : value); return kind === '0' ? 'Manual' : kind === '1' ? 'IndividualTag' : kind === '2' ? 'CombinedTags' : kind === '3' ? 'MultiMatchTags' : kind; }
+        function recipeMode(kind) { kind = recipeKind(kind); return kind === 'CombinedTags' ? 'combined' : (kind === 'MultiMatchTags' ? 'multi' : ''); }
         function recipeSourcePanel(kind) { return page.querySelector('[data-panel="' + (kind === 'Manual' ? 'manual' : kind === 'IndividualTag' ? 'individual' : recipeMode(kind)) + '"]'); }
         function moveRecipeSourceIntoDialog(kind, host) {
             var source = recipeSourcePanel(kind);
@@ -1096,7 +1098,7 @@
             collectionRecipeEditor = null;
         }
         function openCollectionCreationSource(recipe) {
-            var dialog = collectionEditorDialog, kind = String(prop(recipe, 'Kind') || ''), recipeSection = dialog && dialog.querySelector('[data-editor-recipe]'), host, source;
+            var dialog = collectionEditorDialog, kind = recipeKind(prop(recipe, 'Kind')), recipeSection = dialog && dialog.querySelector('[data-editor-recipe]'), host, source;
             if (!dialog || !recipeSection || !recipeSourcePanel(kind)) { return; }
             restoreCollectionCreationSource();
             recipeSection.hidden = false;

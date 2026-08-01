@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.66",
-        "changelog": "Saves editable creation-tab settings for new Collection Manager collections, fully synchronizes their current metadata matches, and adds text- and poster-focused library artwork.",
+        "version": "0.1.0.67",
+        "changelog": "Fixes collection-editor scrolling and restores saved creation-tab settings when editing newly created collections.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.66/CollectionManager_0.1.0.66.zip",
-        "checksum": "550a7af8dc1590dfc41c10178c116d52",
-        "timestamp": "2026-08-01T04:36:38Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.67/CollectionManager_0.1.0.67.zip",
+        "checksum": "60daf8a1196135e9b6de1e77526836b9",
+        "timestamp": "2026-08-01T04:52:06Z"
       }
     ]
   }
