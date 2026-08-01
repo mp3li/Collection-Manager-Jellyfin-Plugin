@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.67",
-        "changelog": "Fixes collection-editor scrolling and restores saved creation-tab settings when editing newly created collections.",
+        "version": "0.1.0.68",
+        "changelog": "Lets existing collections be recreated with Manual, Individual Tag, Combined Tag, or Multi-Match Tag Collection Manager settings.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.67/CollectionManager_0.1.0.67.zip",
-        "checksum": "60daf8a1196135e9b6de1e77526836b9",
-        "timestamp": "2026-08-01T04:52:06Z"
+        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.68/CollectionManager_0.1.0.68.zip",
+        "checksum": "98b78adeac980ea3da77251100b21faa",
+        "timestamp": "2026-08-01T05:05:56Z"
       }
     ]
   }

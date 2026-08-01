@@ -633,13 +633,7 @@ public sealed class CollectionManagerController : ControllerBase
     {
         var plugin = RequirePlugin();
         var existingRecipe = plugin.GetCollectionCreationRecipe(collectionId);
-        if (!plugin.Configuration.PluginManagedCollectionIds.Contains(collectionId)
-            || existingRecipe is null)
-        {
-            return NotFound("This collection does not have saved creation settings.");
-        }
-
-        if (request.Kind != existingRecipe.Kind)
+        if (existingRecipe is not null && request.Kind != existingRecipe.Kind)
         {
             return BadRequest("This collection must keep the creation tab it was originally made from.");
         }
@@ -659,6 +653,7 @@ public sealed class CollectionManagerController : ControllerBase
             ?? throw new KeyNotFoundException("This collection no longer exists.");
         await UpdateCollectionOverviewAsync(collection, recipe.Overview, cancellationToken).ConfigureAwait(false);
         plugin.SaveCollectionCreationRecipe(recipe);
+        plugin.MarkCollectionManaged(collectionId);
         await _reconciler.ReconcileSavedCreationRecipeAsync(collectionId, cancellationToken).ConfigureAwait(false);
         return Ok(new { Recipe = recipe });
     }

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.0.68] - 2026-08-01
+
+### Added
+
+- Adds **Recreate This Section With This Plugin Settings** for every collection
+  without saved Collection Manager settings. It opens Manual, Individual Tag,
+  Combined Tag, and Multi-Match Tag editors beginning on Manual, then saves
+  the selected editor as that collection's future managed recipe.
+
 ## [0.1.0.67] - 2026-08-01
 
 ### Fixed
