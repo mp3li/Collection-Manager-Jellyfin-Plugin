@@ -433,6 +433,29 @@ public sealed class CollectionManagerController : ControllerBase
             .ToArray());
     }
 
+    /// <summary>Returns the native top-level media posters in one Jellyfin library for poster-focused library artwork.</summary>
+    [HttpGet("art/libraries/{libraryId:guid}/poster-examples")]
+    public ActionResult<IReadOnlyList<object>> GetLibraryPosterExamples(Guid libraryId)
+    {
+        if (!HasOnlyKnownLibraries([libraryId]))
+        {
+            return NotFound("The selected Jellyfin library is no longer available on this server.");
+        }
+
+        var library = _libraryManager.GetItemById(libraryId);
+        var collectionType = library is null ? CollectionType.unknown : _libraryManager.GetConfiguredContentType(library);
+
+        return Ok(_libraryManager.GetItemList(new InternalItemsQuery
+        {
+            ParentId = libraryId,
+            Recursive = true,
+            IncludeItemTypes = GetManualCollectionItemTypes(collectionType),
+        })
+            .Where(item => item.HasImage(ImageType.Primary, 0))
+            .Select(item => new { item.Id, item.Name })
+            .ToArray());
+    }
+
     /// <summary>Saves one browser-rendered PNG as the selected native Jellyfin collection image type.</summary>
     [HttpPost("art/apply")]
     public async Task<IActionResult> ApplyCollectionArt(
