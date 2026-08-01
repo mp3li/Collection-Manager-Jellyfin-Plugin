@@ -54,7 +54,10 @@ public sealed class MetadataChangeListener : IHostedService, IDisposable
 
     private void OnItemChanged(object? sender, ItemChangeEventArgs eventArgs)
     {
-        if (eventArgs.Item is BoxSet || Plugin.Instance?.Configuration.WatchMetadataChanges != true)
+        var configuration = Plugin.Instance?.Configuration;
+        if (eventArgs.Item is BoxSet
+            || configuration?.WatchMetadataChanges != true
+            || configuration.AutomaticallyAddNewMediaToApplicableCollections != true)
         {
             return;
         }

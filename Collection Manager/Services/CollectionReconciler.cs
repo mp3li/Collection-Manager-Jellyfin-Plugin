@@ -24,16 +24,19 @@ public sealed class CollectionReconciler
     private static readonly SemaphoreSlim ReconciliationLock = new(1, 1);
     private readonly ICollectionManager _collectionManager;
     private readonly ILibraryManager _libraryManager;
+    private readonly MetadataCatalogService _metadataCatalog;
     private readonly ILogger<CollectionReconciler> _logger;
 
     /// <summary>Initializes a new instance of the <see cref="CollectionReconciler"/> class.</summary>
     public CollectionReconciler(
         ICollectionManager collectionManager,
         ILibraryManager libraryManager,
+        MetadataCatalogService metadataCatalog,
         ILogger<CollectionReconciler> logger)
     {
         _collectionManager = collectionManager;
         _libraryManager = libraryManager;
+        _metadataCatalog = metadataCatalog;
         _logger = logger;
     }
 
@@ -79,6 +82,67 @@ public sealed class CollectionReconciler
         }
 
         return results;
+    }
+
+    /// <summary>Reconciles every collection with a saved creation-tab recipe against current metadata.</summary>
+    public async Task ReconcileSavedCreationRecipesAsync(CancellationToken cancellationToken)
+    {
+        var recipes = Plugin.Instance?.Configuration.CollectionCreationRecipes
+            .Select(recipe => new { recipe.CollectionId, recipe.CollectionTitle })
+            .ToArray() ?? [];
+        foreach (var recipe in recipes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await ReconcileSavedCreationRecipeAsync(recipe.CollectionId, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Replaces one recipe-backed collection's members with the current live metadata matches.</summary>
+    public async Task ReconcileSavedCreationRecipeAsync(Guid collectionId, CancellationToken cancellationToken)
+    {
+        await ReconciliationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var plugin = RequirePlugin();
+            var recipe = plugin.GetCollectionCreationRecipe(collectionId);
+            if (recipe is null)
+            {
+                throw new KeyNotFoundException("The saved collection creation recipe no longer exists.");
+            }
+
+            var collection = _libraryManager.GetItemById<BoxSet>(collectionId);
+            if (collection is null)
+            {
+                plugin.ForgetManagedCollection(collectionId);
+                return;
+            }
+
+            var desiredIds = _metadataCatalog.GetLiveMatchingItemIds(recipe).ToHashSet();
+            var currentIds = collection.GetLinkedChildren().Select(item => item.Id).ToHashSet();
+            var additions = desiredIds.Except(currentIds).ToArray();
+            var removals = currentIds.Except(desiredIds).ToArray();
+
+            if (additions.Length > 0)
+            {
+                await _collectionManager.AddToCollectionAsync(collection.Id, additions).ConfigureAwait(false);
+            }
+
+            if (removals.Length > 0)
+            {
+                await _collectionManager.RemoveFromCollectionAsync(collection.Id, removals).ConfigureAwait(false);
+            }
+
+            _logger.LogInformation(
+                "Reconciled saved creation recipe for {CollectionName}: {Matching} matching, {Added} added, {Removed} removed.",
+                collection.Name,
+                desiredIds.Count,
+                additions.Length,
+                removals.Length);
+        }
+        finally
+        {
+            ReconciliationLock.Release();
+        }
     }
 
     /// <summary>Reconciles exactly one stored rule.</summary>

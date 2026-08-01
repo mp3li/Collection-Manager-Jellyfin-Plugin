@@ -23,7 +23,7 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
     public string Key => "CollectionManagerReconcile";
 
     /// <inheritdoc />
-    public string Description => "Creates, adds, and removes collection items from the enabled Collection Manager rules.";
+    public string Description => "Creates, adds, and removes collection items from enabled Collection Manager rules and saved collection creation settings.";
 
     /// <inheritdoc />
     public string Category => "Library";
@@ -34,6 +34,7 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
         if (_requests.TryTakeAllEnabledRulesRequest())
         {
             await _reconciler.ReconcileEnabledRulesAsync(cancellationToken).ConfigureAwait(false);
+            await _reconciler.ReconcileSavedCreationRecipesAsync(cancellationToken).ConfigureAwait(false);
             progress.Report(100);
             return;
         }
@@ -66,6 +67,10 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
         }
 
         await _reconciler.ReconcileEnabledRulesAsync(cancellationToken).ConfigureAwait(false);
+        if (configuration.AutomaticallyAddNewMediaToApplicableCollections)
+        {
+            await _reconciler.ReconcileSavedCreationRecipesAsync(cancellationToken).ConfigureAwait(false);
+        }
         Plugin.Instance?.UpdateConfigurationSafely(updated =>
         {
             updated.LastScheduledReconciliationUtc = DateTime.UtcNow;

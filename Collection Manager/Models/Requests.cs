@@ -85,6 +85,9 @@ public sealed class IndividualCollectionDraftRequest
 
     /// <summary>Gets or sets how a same-title native collection has been resolved.</summary>
     public string ExistingCollectionAction { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the selected Collection Manager art preference.</summary>
+    public CollectionArtPreference ArtPreference { get; set; } = CollectionArtPreference.JellyfinDefault;
 }
 
 /// <summary>One reviewed combined or multi-match collection draft.</summary>
@@ -107,6 +110,9 @@ public sealed class TagCollectionDraftRequest
 
     /// <summary>Gets or sets the administrator-selected existing-collection action.</summary>
     public string ExistingCollectionAction { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the selected Collection Manager art preference.</summary>
+    public CollectionArtPreference ArtPreference { get; set; } = CollectionArtPreference.JellyfinDefault;
 }
 
 /// <summary>A request to create or update an automatic collection rule.</summary>
@@ -169,6 +175,37 @@ public sealed class CreateCollectionRequest
     /// <summary>Gets or sets the overview saved on the new native Jellyfin collection.</summary>
     public string? Overview { get; set; }
 
+    /// <summary>Gets or sets the selected Collection Manager art preference.</summary>
+    public CollectionArtPreference ArtPreference { get; set; } = CollectionArtPreference.JellyfinDefault;
+
     /// <summary>Gets or sets its initial media item ids.</summary>
     public List<Guid> ItemIds { get; set; } = [];
+}
+
+/// <summary>One complete, editable saved set of inputs from a Collection Manager creation tab.</summary>
+public sealed class CollectionCreationRecipeUpdateRequest
+{
+    /// <summary>Gets or sets the source creation tab.</summary>
+    public CollectionCreationRecipeKind Kind { get; set; }
+
+    /// <summary>Gets or sets the collection title.</summary>
+    public string CollectionTitle { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the collection overview.</summary>
+    public string? Overview { get; set; }
+
+    /// <summary>Gets or sets the selected Collection Manager art preference.</summary>
+    public CollectionArtPreference ArtPreference { get; set; } = CollectionArtPreference.JellyfinDefault;
+
+    /// <summary>Gets or sets the fixed media selection for a manual collection.</summary>
+    public List<Guid> ManualItemIds { get; set; } = [];
+
+    /// <summary>Gets or sets every source metadata tag selected in a tag-based creation tab.</summary>
+    public List<CollectionCreationTagSelection> SelectedTags { get; set; } = [];
+
+    /// <summary>Gets or sets additional libraries selected by a tag-based creation tab.</summary>
+    public List<Guid> AdditionalLibraryIds { get; set; } = [];
+
+    /// <summary>Gets or sets whether every selected metadata tag is required.</summary>
+    public bool RequireAllTags { get; set; }
 }

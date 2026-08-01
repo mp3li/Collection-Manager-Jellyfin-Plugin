@@ -225,6 +225,7 @@ public sealed class CollectionManagerController : ControllerBase
 
         var collection = await _reconciler.CreateCollectionAsync(draft.CollectionTitle, itemIds).ConfigureAwait(false);
         await UpdateCollectionOverviewAsync(collection, draft.Overview, cancellationToken).ConfigureAwait(false);
+        RequirePlugin().SaveCollectionCreationRecipe(CreateIndividualCreationRecipe(collection.Id, draft));
         return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Created", $"Created with {itemIds.Count} matching media item(s).", collection.Id));
     }
 
@@ -253,6 +254,7 @@ public sealed class CollectionManagerController : ControllerBase
         if (itemIds.Count == 0) return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Skipped", draft.RequireAllTags ? "No media currently matches every selected metadata tag." : "No current catalog media matches the selected metadata tags."));
         var collection = await _reconciler.CreateCollectionAsync(draft.CollectionTitle, itemIds).ConfigureAwait(false);
         await UpdateCollectionOverviewAsync(collection, draft.Overview, cancellationToken).ConfigureAwait(false);
+        RequirePlugin().SaveCollectionCreationRecipe(CreateTagCreationRecipe(collection.Id, draft));
         return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Created", $"Created with {itemIds.Count} unique media item(s).", collection.Id));
     }
 
@@ -583,6 +585,84 @@ public sealed class CollectionManagerController : ControllerBase
         return Ok(new { LibraryId = libraryId, Items = items });
     }
 
+    /// <summary>Returns the still-available selected media for one saved manual-creation recipe.</summary>
+    [HttpGet("collection-creation-recipes/{collectionId:guid}/manual-items")]
+    public IActionResult GetSavedManualRecipeItems(Guid collectionId)
+    {
+        var recipe = RequirePlugin().GetCollectionCreationRecipe(collectionId);
+        if (recipe?.Kind != CollectionCreationRecipeKind.Manual)
+        {
+            return NotFound("This collection does not have saved manual creation settings.");
+        }
+
+        var items = recipe.ManualItemIds
+            .Distinct()
+            .Select(id => _libraryManager.GetItemById<BaseItem>(id))
+            .Where(item => item is not null)
+            .Select(item => new
+            {
+                item!.Id,
+                item.Name,
+                Type = GetManualCollectionDisplayType(item.GetBaseItemKind()),
+                item.ProductionYear,
+                item.Overview,
+                HasPrimaryImage = item.HasImage(ImageType.Primary, 0),
+            })
+            .ToArray();
+        return Ok(new { Items = items, MissingItemIds = recipe.ManualItemIds.Except(items.Select(item => item.Id)).ToArray() });
+    }
+
+    /// <summary>Returns whether a collection has editable creation-tab settings and, when available, those saved settings.</summary>
+    [HttpGet("collection-creation-recipes/{collectionId:guid}")]
+    public IActionResult GetCollectionCreationRecipe(Guid collectionId)
+    {
+        var plugin = RequirePlugin();
+        return Ok(new
+        {
+            IsPluginManaged = plugin.Configuration.PluginManagedCollectionIds.Contains(collectionId),
+            Recipe = plugin.GetCollectionCreationRecipe(collectionId),
+        });
+    }
+
+    /// <summary>Saves one edited creation-tab recipe and fully synchronizes its native Jellyfin collection membership.</summary>
+    [HttpPost("collection-creation-recipes/{collectionId:guid}")]
+    public async Task<ActionResult<object>> UpdateCollectionCreationRecipe(
+        Guid collectionId,
+        [FromBody] CollectionCreationRecipeUpdateRequest request,
+        CancellationToken cancellationToken)
+    {
+        var plugin = RequirePlugin();
+        var existingRecipe = plugin.GetCollectionCreationRecipe(collectionId);
+        if (!plugin.Configuration.PluginManagedCollectionIds.Contains(collectionId)
+            || existingRecipe is null)
+        {
+            return NotFound("This collection does not have saved creation settings.");
+        }
+
+        if (request.Kind != existingRecipe.Kind)
+        {
+            return BadRequest("This collection must keep the creation tab it was originally made from.");
+        }
+
+        if (_libraryManager.GetItemById<BoxSet>(collectionId) is null)
+        {
+            return NotFound("This collection no longer exists.");
+        }
+
+        if (!TryCreateUpdatedRecipe(collectionId, request, out var recipe, out var validationError))
+        {
+            return BadRequest(validationError);
+        }
+
+        await _reconciler.RenameCollectionAsync(collectionId, recipe.CollectionTitle, cancellationToken).ConfigureAwait(false);
+        var collection = _libraryManager.GetItemById<BoxSet>(collectionId)
+            ?? throw new KeyNotFoundException("This collection no longer exists.");
+        await UpdateCollectionOverviewAsync(collection, recipe.Overview, cancellationToken).ConfigureAwait(false);
+        plugin.SaveCollectionCreationRecipe(recipe);
+        await _reconciler.ReconcileSavedCreationRecipeAsync(collectionId, cancellationToken).ConfigureAwait(false);
+        return Ok(new { Recipe = recipe });
+    }
+
     /// <summary>Returns persisted automatic collection rules.</summary>
     [HttpGet("rules")]
     public ActionResult<IReadOnlyList<CollectionRule>> GetRules() =>
@@ -764,6 +844,15 @@ public sealed class CollectionManagerController : ControllerBase
     {
         var collection = await _reconciler.CreateCollectionAsync(request.Name, request.ItemIds).ConfigureAwait(false);
         await UpdateCollectionOverviewAsync(collection, request.Overview, cancellationToken).ConfigureAwait(false);
+        RequirePlugin().SaveCollectionCreationRecipe(new CollectionCreationRecipe
+        {
+            CollectionId = collection.Id,
+            Kind = CollectionCreationRecipeKind.Manual,
+            CollectionTitle = collection.Name,
+            Overview = request.Overview,
+            ArtPreference = request.ArtPreference,
+            ManualItemIds = request.ItemIds.Distinct().ToList(),
+        });
         return Ok(new { collection.Id, collection.Name });
     }
 
@@ -1220,6 +1309,114 @@ public sealed class CollectionManagerController : ControllerBase
         BaseItemKind.AudioBook => "Audiobook",
         BaseItemKind.MusicVideo => "Music Video",
         _ => itemType.ToString(),
+    };
+
+    private bool TryCreateUpdatedRecipe(
+        Guid collectionId,
+        CollectionCreationRecipeUpdateRequest request,
+        out CollectionCreationRecipe recipe,
+        out string validationError)
+    {
+        recipe = new CollectionCreationRecipe
+        {
+            CollectionId = collectionId,
+            Kind = request.Kind,
+            CollectionTitle = request.CollectionTitle?.Trim() ?? string.Empty,
+            Overview = string.IsNullOrWhiteSpace(request.Overview) ? null : request.Overview.Trim(),
+            ArtPreference = request.ArtPreference,
+            ManualItemIds = request.ManualItemIds.Distinct().ToList(),
+            SelectedTags = request.SelectedTags
+                .Where(tag => tag.SourceLibraryId != Guid.Empty && !string.IsNullOrWhiteSpace(tag.MetadataType) && !string.IsNullOrWhiteSpace(tag.MetadataValue))
+                .Select(tag => new CollectionCreationTagSelection
+                {
+                    SourceLibraryId = tag.SourceLibraryId,
+                    MetadataType = tag.MetadataType.Trim(),
+                    MetadataValue = tag.MetadataValue.Trim(),
+                })
+                .ToList(),
+            AdditionalLibraryIds = request.AdditionalLibraryIds.Distinct().ToList(),
+            RequireAllTags = request.Kind == CollectionCreationRecipeKind.MultiMatchTags,
+        };
+        validationError = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(recipe.CollectionTitle))
+        {
+            validationError = "A collection title is required.";
+            return false;
+        }
+
+        if (recipe.Kind == CollectionCreationRecipeKind.Manual)
+        {
+            if (recipe.ManualItemIds.Count == 0)
+            {
+                validationError = "Select one or more media items for this manual collection.";
+                return false;
+            }
+
+            return true;
+        }
+
+        var requiredTagCount = recipe.Kind == CollectionCreationRecipeKind.IndividualTag ? 1 : 2;
+        if (recipe.SelectedTags.Count < requiredTagCount)
+        {
+            validationError = requiredTagCount == 1
+                ? "Select one metadata tag for this collection."
+                : "Select at least two metadata tags for this collection.";
+            return false;
+        }
+
+        if (!HasOnlyKnownLibraries(recipe.SelectedTags.Select(tag => tag.SourceLibraryId).Concat(recipe.AdditionalLibraryIds)))
+        {
+            validationError = "One or more selected libraries are no longer available on this server.";
+            return false;
+        }
+
+        if (recipe.Kind is not (CollectionCreationRecipeKind.IndividualTag or CollectionCreationRecipeKind.CombinedTags or CollectionCreationRecipeKind.MultiMatchTags))
+        {
+            validationError = "The saved creation tab is not recognized.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static CollectionCreationRecipe CreateIndividualCreationRecipe(Guid collectionId, IndividualCollectionDraftRequest draft) => new()
+    {
+        CollectionId = collectionId,
+        Kind = CollectionCreationRecipeKind.IndividualTag,
+        CollectionTitle = draft.CollectionTitle.Trim(),
+        Overview = draft.Overview,
+        ArtPreference = draft.ArtPreference,
+        SelectedTags =
+        [
+            new CollectionCreationTagSelection
+            {
+                SourceLibraryId = draft.SourceLibraryId,
+                MetadataType = draft.MetadataType.Trim(),
+                MetadataValue = draft.MetadataValue.Trim(),
+            },
+        ],
+        AdditionalLibraryIds = draft.AdditionalLibraryIds.Distinct().ToList(),
+    };
+
+    private static CollectionCreationRecipe CreateTagCreationRecipe(Guid collectionId, TagCollectionDraftRequest draft) => new()
+    {
+        CollectionId = collectionId,
+        Kind = draft.RequireAllTags ? CollectionCreationRecipeKind.MultiMatchTags : CollectionCreationRecipeKind.CombinedTags,
+        CollectionTitle = draft.CollectionTitle.Trim(),
+        Overview = draft.Overview,
+        ArtPreference = draft.ArtPreference,
+        SelectedTags = draft.SelectedTags
+            .Where(tag => tag.SourceLibraryId != Guid.Empty && !string.IsNullOrWhiteSpace(tag.MetadataType) && !string.IsNullOrWhiteSpace(tag.MetadataValue))
+            .Select(tag => new CollectionCreationTagSelection
+            {
+                SourceLibraryId = tag.SourceLibraryId,
+                MetadataType = tag.MetadataType.Trim(),
+                MetadataValue = tag.MetadataValue.Trim(),
+            })
+            .ToList(),
+        AdditionalLibraryIds = draft.AdditionalLibraryIds.Distinct().ToList(),
+        RequireAllTags = draft.RequireAllTags,
     };
 
     private bool IsCompletedDraft(IndividualCollectionDraftRequest draft) =>

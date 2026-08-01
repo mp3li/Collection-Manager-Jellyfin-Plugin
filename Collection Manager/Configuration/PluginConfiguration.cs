@@ -62,6 +62,9 @@ public sealed class PluginConfiguration : BasePluginConfiguration
 
     /// <summary>Gets or sets saved logo assignments for logo-focused collection art.</summary>
     public List<CollectionLogoSelection> CollectionLogoSelections { get; set; } = [];
+
+    /// <summary>Gets or sets the complete saved creation recipes for collections made through the creation tabs.</summary>
+    public List<CollectionCreationRecipe> CollectionCreationRecipes { get; set; } = [];
     /// <summary>Gets or sets a value indicating whether metadata-change events can reconcile enabled rules.</summary>
     public bool WatchMetadataChanges { get; set; } = true;
 

@@ -127,8 +127,29 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public void ForgetManagedCollection(Guid collectionId) => UpdateConfigurationSafely(configuration =>
     {
         configuration.PluginManagedCollectionIds.RemoveAll(id => id == collectionId);
+        configuration.CollectionCreationRecipes.RemoveAll(recipe => recipe.CollectionId == collectionId);
         return 0;
     });
+
+    /// <summary>Gets the saved creation-tab recipe for one Collection Manager collection.</summary>
+    public CollectionCreationRecipe? GetCollectionCreationRecipe(Guid collectionId)
+    {
+        lock (_configurationLock)
+        {
+            var recipe = Configuration.CollectionCreationRecipes.SingleOrDefault(candidate => candidate.CollectionId == collectionId);
+            return recipe is null ? null : CloneCollectionCreationRecipe(recipe);
+        }
+    }
+
+    /// <summary>Saves the complete creation-tab recipe for one Collection Manager collection.</summary>
+    public CollectionCreationRecipe SaveCollectionCreationRecipe(CollectionCreationRecipe recipe) =>
+        UpdateConfigurationSafely(configuration =>
+        {
+            configuration.CollectionCreationRecipes.RemoveAll(candidate => candidate.CollectionId == recipe.CollectionId);
+            var saved = CloneCollectionCreationRecipe(recipe);
+            configuration.CollectionCreationRecipes.Add(saved);
+            return CloneCollectionCreationRecipe(saved);
+        });
 
     /// <summary>Removes the most recent action after it has been undone.</summary>
     public void RemoveLastCollectionAction() => UpdateConfigurationSafely(configuration =>
@@ -188,6 +209,7 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         LogoFocusedArt = CloneLogoFocusedArt(source.LogoFocusedArt),
         MultiCollectionGradientArt = CloneMultiCollectionGradientArt(source.MultiCollectionGradientArt),
         CollectionLogoSelections = source.CollectionLogoSelections.Select(CloneCollectionLogoSelection).ToList(),
+        CollectionCreationRecipes = source.CollectionCreationRecipes.Select(CloneCollectionCreationRecipe).ToList(),
         WatchMetadataChanges = source.WatchMetadataChanges,
         ScheduledReconciliationEnabled = source.ScheduledReconciliationEnabled,
         ScheduledReconciliationMinutes = source.ScheduledReconciliationMinutes,
@@ -206,6 +228,24 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         RemoveItemsNoLongerMatching = source.RemoveItemsNoLongerMatching,
         CollectionId = source.CollectionId,
         LastRunUtc = source.LastRunUtc,
+    };
+
+    private static CollectionCreationRecipe CloneCollectionCreationRecipe(CollectionCreationRecipe source) => new()
+    {
+        CollectionId = source.CollectionId,
+        Kind = source.Kind,
+        CollectionTitle = source.CollectionTitle,
+        Overview = source.Overview,
+        ArtPreference = source.ArtPreference,
+        ManualItemIds = source.ManualItemIds.Distinct().ToList(),
+        SelectedTags = source.SelectedTags.Select(tag => new CollectionCreationTagSelection
+        {
+            SourceLibraryId = tag.SourceLibraryId,
+            MetadataType = tag.MetadataType,
+            MetadataValue = tag.MetadataValue,
+        }).ToList(),
+        AdditionalLibraryIds = source.AdditionalLibraryIds.Distinct().ToList(),
+        RequireAllTags = source.RequireAllTags,
     };
 
     private static CollectionActionRecord CloneAction(CollectionActionRecord source) => new()

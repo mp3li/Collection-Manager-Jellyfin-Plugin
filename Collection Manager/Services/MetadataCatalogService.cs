@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
+using Jellyfin.Plugin.CollectionManager.Configuration;
 using Jellyfin.Plugin.CollectionManager.Models;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -179,6 +180,61 @@ public sealed class MetadataCatalogService
 
     /// <summary>Gets the current unique media item ids for a union or intersection draft.</summary>
     public IReadOnlyList<Guid> GetMatchingItemIds(TagCollectionDraftRequest draft) => MatchingTagCollectionItems(draft).Select(item => item.Id).ToArray();
+
+    /// <summary>Reads current Jellyfin and NFO metadata directly for one saved creation recipe.</summary>
+    /// <remarks>This deliberately does not use the dashboard's cached tag catalog, so scheduled reconciliation sees metadata saved after the last dashboard scan.</remarks>
+    public IReadOnlyList<Guid> GetLiveMatchingItemIds(CollectionCreationRecipe recipe)
+    {
+        if (recipe.Kind == CollectionCreationRecipeKind.Manual)
+        {
+            return recipe.ManualItemIds
+                .Where(id => _libraryManager.GetItemById<BaseItem>(id) is not null)
+                .Distinct()
+                .ToArray();
+        }
+
+        var tags = recipe.SelectedTags
+            .Where(tag => tag.SourceLibraryId != Guid.Empty && !string.IsNullOrWhiteSpace(tag.MetadataType) && !string.IsNullOrWhiteSpace(tag.MetadataValue))
+            .ToArray();
+        if (tags.Length == 0)
+        {
+            return [];
+        }
+
+        var libraryIds = tags.Select(tag => tag.SourceLibraryId)
+            .Concat(recipe.AdditionalLibraryIds)
+            .Distinct()
+            .ToArray();
+        var libraries = _libraryManager.GetVirtualFolders(true)
+            .Select(folder => new { Id = Guid.TryParse(folder.ItemId, out var id) ? id : Guid.Empty, folder.Name })
+            .Where(folder => folder.Id != Guid.Empty && libraryIds.Contains(folder.Id))
+            .ToArray();
+        var items = libraries.SelectMany(library => _libraryManager.GetItemList(new InternalItemsQuery
+        {
+            ParentId = library.Id,
+            Recursive = true,
+        })
+            .Where(item => item is not BoxSet)
+            .GroupBy(item => ResolveCollectionItem(item).Id)
+            .Select(group => CreateCatalogItem(ResolveCollectionItem(group.First()), library.Id, library.Name, group)))
+            .GroupBy(item => item.Id)
+            .Select(group => group.First())
+            .ToArray();
+
+        var matchingSets = tags.Select(tag => items
+            .Where(item => item.Metadata.TryGetValue(tag.MetadataType.Trim(), out var values)
+                && values.Contains(tag.MetadataValue.Trim(), StringComparer.OrdinalIgnoreCase))
+            .ToDictionary(item => item.Id))
+            .ToArray();
+        var matchingIds = recipe.RequireAllTags
+            ? matchingSets.Skip(1).Aggregate(new HashSet<Guid>(matchingSets[0].Keys), (current, next) =>
+            {
+                current.IntersectWith(next.Keys);
+                return current;
+            })
+            : matchingSets.SelectMany(set => set.Keys).ToHashSet();
+        return matchingIds.ToArray();
+    }
 
     private async Task ScanAsync()
     {
