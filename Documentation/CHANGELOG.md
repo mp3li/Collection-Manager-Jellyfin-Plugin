@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0.69] - 2026-08-01
+
+### Fixed
+
+- Loads each full creation tab's libraries, metadata tag picker, saved draft,
+  matching-media preview, and controls inside Collection Overview & Editor.
+
 ## [0.1.0.68] - 2026-08-01
 
 ### Added
