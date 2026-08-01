@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0.71] - 2026-08-01
+
+### Changed
+
+- Collapses every collection Overview section by default.
+- Keeps the editor footer action as **Save** and adds a separate **Recreate
+  Collection** action with progress and result text for recreation settings.
+
 ## [0.1.0.70] - 2026-08-01
 
 ### Added

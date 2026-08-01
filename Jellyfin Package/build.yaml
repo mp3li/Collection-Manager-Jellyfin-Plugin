@@ -1,7 +1,7 @@
 ---
 name: "Collection Manager"
 guid: "5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9"
-version: "0.1.0.70"
+version: "0.1.0.71"
 targetAbi: "10.11.11.0"
 framework: "net9.0"
 overview: "Visual metadata-driven native collection creation for Jellyfin."
@@ -13,5 +13,5 @@ owner: "mp3li"
 artifacts:
   - "Jellyfin.Plugin.CollectionManager.dll"
 changelog: >
-  Adds Retain Current Collection Art as the first art choice in collection
-  editor creation tabs.
+  Adds collapsed Overview sections and a separate Recreate Collection action
+  with progress and results in the collection editor.
