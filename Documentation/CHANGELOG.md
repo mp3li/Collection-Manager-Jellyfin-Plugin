@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.0.65] - 2026-07-31
+
+### Fixed
+
+- Persists Jellyfin's image-update state after Collection Manager applies a
+  collection image, so its saved image dimensions update with the artwork.
+- Restores the visible native checkbox state for tag search results.
+- Normalizes standard Jellyfin and NFO metadata field names consistently in
+  every collection-creation tag picker.
+
+### Added
+
+- Adds **Repair Primary Image Metadata** under Clean Up Settings. It resaves
+  each existing collection's exact current Primary image solely to make
+  Jellyfin recalculate and persist its dimensions.
+
 ## [0.1.0.64] - 2026-07-31
 
 ### Fixed

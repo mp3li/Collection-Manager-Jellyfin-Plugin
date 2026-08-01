@@ -9,6 +9,7 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Model.Tasks;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -455,6 +456,7 @@ public sealed class CollectionManagerController : ControllerBase
         {
             await using var stream = image.OpenReadStream();
             await _providerManager.SaveImage(collection, stream, "image/png", ToJellyfinImageType(artType), artType == CollectionArtImageType.Backdrop ? 0 : null, cancellationToken).ConfigureAwait(false);
+            await collection.UpdateToRepositoryAsync(ItemUpdateType.ImageUpdate, cancellationToken).ConfigureAwait(false);
             return NoContent();
         }
         catch (Exception exception)
@@ -464,6 +466,62 @@ public sealed class CollectionManagerController : ControllerBase
                 title: "Could not apply the rendered collection art.",
                 detail: $"{exception.GetType().Name}: {exception.Message}");
         }
+    }
+
+    /// <summary>Resaves existing primary collection images so Jellyfin recalculates and persists their dimensions.</summary>
+    [HttpPost("art/repair-primary-image-metadata")]
+    public async Task<ActionResult<object>> RepairPrimaryImageMetadata(CancellationToken cancellationToken)
+    {
+        var collections = _libraryManager
+            .GetItemList(new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.BoxSet] })
+            .OfType<BoxSet>()
+            .OrderBy(collection => collection.SortName ?? collection.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var repaired = 0;
+        var skipped = 0;
+        var failures = new List<string>();
+
+        foreach (var collection in collections)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var image = collection.GetImageInfo(ImageType.Primary, 0);
+            if (string.IsNullOrWhiteSpace(image?.Path) || !System.IO.File.Exists(image.Path))
+            {
+                skipped++;
+                continue;
+            }
+
+            var mimeType = MimeTypes.GetMimeType(image.Path);
+            if (!mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            {
+                skipped++;
+                continue;
+            }
+
+            try
+            {
+                // Read before saving: SaveImage may write back to this same path.
+                var imageBytes = await System.IO.File.ReadAllBytesAsync(image.Path, cancellationToken).ConfigureAwait(false);
+                var stream = new MemoryStream(imageBytes, writable: false);
+                await _providerManager.SaveImage(collection, stream, mimeType, ImageType.Primary, 0, cancellationToken).ConfigureAwait(false);
+                await collection.UpdateToRepositoryAsync(ItemUpdateType.ImageUpdate, cancellationToken).ConfigureAwait(false);
+                repaired++;
+            }
+            catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+            {
+                failures.Add($"{collection.Name}: {exception.GetType().Name}: {exception.Message}");
+            }
+        }
+
+        return Ok(new
+        {
+            TotalCollections = collections.Length,
+            RepairedCollections = repaired,
+            SkippedCollections = skipped,
+            FailedCollections = failures.Count,
+            Failures = failures,
+        });
     }
 
     /// <summary>Returns the selectable media in one Jellyfin library for the manual collection picker.</summary>
