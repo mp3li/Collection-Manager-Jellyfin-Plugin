@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.0.66] - 2026-08-01
+
+### Added
+
+- Saves every new Collection Manager collection's creation-tab settings, then
+  shows that exact editable tab under its current contents in the collection
+  editor.
+- Adds text-focused and poster-focused artwork application for Jellyfin
+  libraries.
+
+### Changed
+
+- The existing Collection Manager reconciliation task now fully synchronizes
+  saved creation settings against live Jellyfin and NFO metadata: it adds new
+  matches and removes media that no longer matches.
+- Newly Added Media Settings now controls automatic event and scheduled
+  synchronization for saved creation settings.
+
 ## [0.1.0.65] - 2026-07-31
 
 ### Fixed
