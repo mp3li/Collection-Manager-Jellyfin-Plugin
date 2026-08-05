@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Jellyfin.Plugin.CollectionManager.Models;
 
 namespace Jellyfin.Plugin.CollectionManager.Tasks;
 
@@ -6,7 +7,10 @@ namespace Jellyfin.Plugin.CollectionManager.Tasks;
 public sealed class ManualReconciliationRequestQueue
 {
     private readonly ConcurrentQueue<Guid> _ruleIds = new();
+    private readonly ConcurrentQueue<Guid> _savedRecipeRecreationIds = new();
     private readonly ConcurrentDictionary<Guid, byte> _changedItemIds = new();
+    private readonly ConcurrentDictionary<Guid, byte> _savedRecipeRecreationsQueuedOrRunning = new();
+    private readonly ConcurrentDictionary<Guid, CollectionRecreationStatus> _savedRecipeRecreationStatuses = new();
     private int _allRulesRequested;
     private int _targetedMetadataTaskQueuedOrRunning;
 
@@ -29,6 +33,72 @@ public sealed class ManualReconciliationRequestQueue
         }
 
         return ids.ToArray();
+    }
+
+    /// <summary>Queues one saved creation recipe to rebuild its collection membership through Jellyfin's native task runner.</summary>
+    public CollectionRecreationStatus EnqueueSavedRecipeRecreation(Guid collectionId, string collectionTitle)
+    {
+        if (_savedRecipeRecreationsQueuedOrRunning.TryAdd(collectionId, 0))
+        {
+            var queued = new CollectionRecreationStatus(
+                collectionId,
+                "Queued",
+                $"Recreation of {collectionTitle} is queued.",
+                DateTime.UtcNow);
+            _savedRecipeRecreationStatuses[collectionId] = queued;
+            _savedRecipeRecreationIds.Enqueue(collectionId);
+            return queued;
+        }
+
+        return GetSavedRecipeRecreationStatus(collectionId);
+    }
+
+    /// <summary>Returns the next queued saved-recipe recreation and marks it as running.</summary>
+    public bool TryTakeSavedRecipeRecreation(out Guid collectionId)
+    {
+        if (_savedRecipeRecreationIds.TryDequeue(out collectionId))
+        {
+            var previous = GetSavedRecipeRecreationStatus(collectionId);
+            _savedRecipeRecreationStatuses[collectionId] = previous with
+            {
+                State = "Running",
+                Message = "Recreating this collection from its saved settings.",
+                UpdatedUtc = DateTime.UtcNow,
+            };
+            return true;
+        }
+
+        collectionId = Guid.Empty;
+        return false;
+    }
+
+    /// <summary>Records a completed saved-recipe recreation.</summary>
+    public void CompleteSavedRecipeRecreation(SavedRecipeReconciliationResult result) =>
+        CompleteSavedRecipeRecreation(result.CollectionId, "Completed", $"Recreated {result.CollectionName}.", result);
+
+    /// <summary>Records a failed saved-recipe recreation.</summary>
+    public void FailSavedRecipeRecreation(Guid collectionId, string message) =>
+        CompleteSavedRecipeRecreation(collectionId, "Failed", message, null);
+
+    /// <summary>Gets the last known state for one saved-recipe recreation.</summary>
+    public CollectionRecreationStatus GetSavedRecipeRecreationStatus(Guid collectionId) =>
+        _savedRecipeRecreationStatuses.TryGetValue(collectionId, out var status)
+            ? status
+            : new CollectionRecreationStatus(collectionId, "Idle", "No recreation is queued or running for this collection.", DateTime.UtcNow);
+
+    private void CompleteSavedRecipeRecreation(
+        Guid collectionId,
+        string state,
+        string message,
+        SavedRecipeReconciliationResult? reconciliation)
+    {
+        _savedRecipeRecreationsQueuedOrRunning.TryRemove(collectionId, out _);
+        _savedRecipeRecreationStatuses[collectionId] = new CollectionRecreationStatus(
+            collectionId,
+            state,
+            message,
+            DateTime.UtcNow,
+            reconciliation);
     }
 
     /// <summary>Adds one changed Jellyfin item to the next targeted metadata reconciliation batch.</summary>

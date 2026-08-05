@@ -36,6 +36,9 @@ public sealed class CollectionCreationRecipe
 
     /// <summary>Gets or sets whether every selected tag must match.</summary>
     public bool RequireAllTags { get; set; }
+
+    /// <summary>Gets or sets whether a recreated external collection retains the full creation-tab editor on later edits.</summary>
+    public bool UsesFullEditorTabs { get; set; }
 }
 
 /// <summary>One saved selected tag from a creation-tab recipe.</summary>

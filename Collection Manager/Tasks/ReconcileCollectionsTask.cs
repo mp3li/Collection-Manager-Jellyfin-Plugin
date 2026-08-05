@@ -41,6 +41,28 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
         await TaskExecutionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            while (_requests.TryTakeSavedRecipeRecreation(out var collectionId))
+            {
+                try
+                {
+                    progress.Report(5);
+                    var reconciliation = await _reconciler.ReconcileSavedCreationRecipeAsync(collectionId, cancellationToken).ConfigureAwait(false);
+                    _requests.CompleteSavedRecipeRecreation(reconciliation);
+                    progress.Report(100);
+                }
+                catch (OperationCanceledException)
+                {
+                    _requests.FailSavedRecipeRecreation(collectionId, "Jellyfin stopped the recreation before it finished.");
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogError(exception, "Could not recreate saved Collection Manager recipe {CollectionId}.", collectionId);
+                    _requests.FailSavedRecipeRecreation(collectionId, exception.Message);
+                    progress.Report(100);
+                }
+            }
+
             if (_requests.TryTakeAllEnabledRulesRequest())
             {
                 await _reconciler.ReconcileEnabledRulesAsync(cancellationToken).ConfigureAwait(false);

@@ -638,39 +638,45 @@ public sealed class CollectionManagerController : ControllerBase
         });
     }
 
-    /// <summary>Saves one edited creation-tab recipe and fully synchronizes its native Jellyfin collection membership.</summary>
+    /// <summary>Saves one edited creation-tab recipe without changing its native Jellyfin collection membership.</summary>
     [HttpPost("collection-creation-recipes/{collectionId:guid}")]
     public async Task<ActionResult<object>> UpdateCollectionCreationRecipe(
         Guid collectionId,
         [FromBody] CollectionCreationRecipeUpdateRequest request,
         CancellationToken cancellationToken)
     {
-        var plugin = RequirePlugin();
-        var existingRecipe = plugin.GetCollectionCreationRecipe(collectionId);
-        if (existingRecipe is not null && request.Kind != existingRecipe.Kind)
+        var saved = await SaveCollectionCreationRecipeAsync(collectionId, request, false, cancellationToken).ConfigureAwait(false);
+        if (saved.Error is not null)
         {
-            return BadRequest("This collection must keep the creation tab it was originally made from.");
+            return saved.Error;
         }
 
-        if (_libraryManager.GetItemById<BoxSet>(collectionId) is null)
-        {
-            return NotFound("This collection no longer exists.");
-        }
-
-        if (!TryCreateUpdatedRecipe(collectionId, request, out var recipe, out var validationError))
-        {
-            return BadRequest(validationError);
-        }
-
-        await _reconciler.RenameCollectionAsync(collectionId, recipe.CollectionTitle, cancellationToken).ConfigureAwait(false);
-        var collection = _libraryManager.GetItemById<BoxSet>(collectionId)
-            ?? throw new KeyNotFoundException("This collection no longer exists.");
-        await UpdateCollectionOverviewAsync(collection, recipe.Overview, cancellationToken).ConfigureAwait(false);
-        plugin.SaveCollectionCreationRecipe(recipe);
-        plugin.MarkCollectionManaged(collectionId);
-        var reconciliation = await _reconciler.ReconcileSavedCreationRecipeAsync(collectionId, cancellationToken).ConfigureAwait(false);
-        return Ok(new { Recipe = recipe, Reconciliation = reconciliation });
+        return Ok(new { Recipe = saved.Recipe });
     }
+
+    /// <summary>Saves recipe settings and queues a native Jellyfin task to replace the collection membership.</summary>
+    [HttpPost("collection-creation-recipes/{collectionId:guid}/recreate")]
+    public async Task<ActionResult<object>> RecreateCollectionCreationRecipe(
+        Guid collectionId,
+        [FromBody] CollectionCreationRecipeUpdateRequest request,
+        CancellationToken cancellationToken)
+    {
+        var saved = await SaveCollectionCreationRecipeAsync(collectionId, request, true, cancellationToken).ConfigureAwait(false);
+        if (saved.Error is not null)
+        {
+            return saved.Error;
+        }
+
+        var recipe = saved.Recipe!;
+        var status = _requests.EnqueueSavedRecipeRecreation(collectionId, recipe.CollectionTitle);
+        _taskManager.QueueScheduledTask<ReconcileCollectionsTask>();
+        return Accepted(new { Recipe = recipe, Recreation = status });
+    }
+
+    /// <summary>Returns progress and outcome for one queued collection recreation.</summary>
+    [HttpGet("collection-creation-recipes/{collectionId:guid}/recreate-status")]
+    public IActionResult GetCollectionCreationRecipeRecreationStatus(Guid collectionId) =>
+        Ok(_requests.GetSavedRecipeRecreationStatus(collectionId));
 
     /// <summary>Returns persisted automatic collection rules.</summary>
     [HttpGet("rules")]
@@ -1284,6 +1290,33 @@ public sealed class CollectionManagerController : ControllerBase
     {
         collection.Overview = string.IsNullOrWhiteSpace(overview) ? null : overview.Trim();
         await _libraryManager.UpdateItemAsync(collection, collection, ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<(CollectionCreationRecipe? Recipe, ActionResult<object>? Error)> SaveCollectionCreationRecipeAsync(
+        Guid collectionId,
+        CollectionCreationRecipeUpdateRequest request,
+        bool enableFullEditorTabs,
+        CancellationToken cancellationToken)
+    {
+        if (_libraryManager.GetItemById<BoxSet>(collectionId) is null)
+        {
+            return (null, NotFound("This collection no longer exists."));
+        }
+
+        if (!TryCreateUpdatedRecipe(collectionId, request, out var recipe, out var validationError))
+        {
+            return (null, BadRequest(validationError));
+        }
+
+        var plugin = RequirePlugin();
+        recipe.UsesFullEditorTabs = enableFullEditorTabs || plugin.GetCollectionCreationRecipe(collectionId)?.UsesFullEditorTabs == true;
+        await _reconciler.RenameCollectionAsync(collectionId, recipe.CollectionTitle, cancellationToken).ConfigureAwait(false);
+        var collection = _libraryManager.GetItemById<BoxSet>(collectionId)
+            ?? throw new KeyNotFoundException("This collection no longer exists.");
+        await UpdateCollectionOverviewAsync(collection, recipe.Overview, cancellationToken).ConfigureAwait(false);
+        plugin.SaveCollectionCreationRecipe(recipe);
+        plugin.MarkCollectionManaged(collectionId);
+        return (recipe, null);
     }
 
     private static Plugin RequirePlugin() =>

@@ -72,6 +72,14 @@ public sealed record SavedRecipeReconciliationResult(
     int RemovedItems,
     int CurrentItems);
 
+/// <summary>Current state and result of one queued collection recreation.</summary>
+public sealed record CollectionRecreationStatus(
+    Guid CollectionId,
+    string State,
+    string Message,
+    DateTime UpdatedUtc,
+    SavedRecipeReconciliationResult? Reconciliation = null);
+
 /// <summary>A media item available to the dashboard's scoped manual search.</summary>
 public sealed record MediaSearchResult(Guid Id, string Name, string Type, int? ProductionYear);
 

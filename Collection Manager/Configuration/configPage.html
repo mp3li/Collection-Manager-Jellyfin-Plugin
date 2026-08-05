@@ -1136,6 +1136,41 @@
         function recipeKind(value) { var kind = String(value === undefined || value === null ? '' : value); return kind === '0' ? 'Manual' : kind === '1' ? 'IndividualTag' : kind === '2' ? 'CombinedTags' : kind === '3' ? 'MultiMatchTags' : kind; }
         function recipeMode(kind) { kind = recipeKind(kind); return kind === 'CombinedTags' ? 'combined' : (kind === 'MultiMatchTags' ? 'multi' : ''); }
         function recipeSourcePanel(kind) { return page.querySelector('[data-panel="' + (kind === 'Manual' ? 'manual' : kind === 'IndividualTag' ? 'individual' : recipeMode(kind)) + '"]'); }
+        function savedRecipeWorkspace(recipe) {
+            var kind = recipeKind(prop(recipe, 'Kind')), tags = prop(recipe, 'SelectedTags') || [], tag, key, mode;
+            if (kind === 'IndividualTag') {
+                tag = tags[0]; if (!tag) { return null; }
+                key = draftKey(prop(tag, 'SourceLibraryId'), prop(tag, 'MetadataType'), prop(tag, 'MetadataValue'));
+                return { kind:kind, state:{ drafts:(function () { var drafts = {}; drafts[key] = { key:key, sourceLibraryId:String(prop(tag, 'SourceLibraryId')), metadataType:prop(tag, 'MetadataType'), metadataValue:prop(tag, 'MetadataValue'), additionalLibraryIds:(prop(recipe, 'AdditionalLibraryIds') || []).map(String), includeOtherLibraries:(prop(recipe, 'AdditionalLibraryIds') || []).length > 0, collectionTitle:prop(recipe, 'CollectionTitle') || '', overview:prop(recipe, 'Overview') || '', included:true, preview:null, artPreference:prop(recipe, 'ArtPreference') || 'RetainCurrentCollectionArt' }; return drafts; })(), conflicts:{}, search:'' } };
+            }
+            mode = recipeMode(kind);
+            if (!mode) { return null; }
+            var selected = {};
+            tags.forEach(function (selectedTag) { var selectedKey = draftKey(prop(selectedTag, 'SourceLibraryId'), prop(selectedTag, 'MetadataType'), prop(selectedTag, 'MetadataValue')); selected[selectedKey] = { SourceLibraryId:String(prop(selectedTag, 'SourceLibraryId')), MetadataType:prop(selectedTag, 'MetadataType'), MetadataValue:prop(selectedTag, 'MetadataValue'), MatchingItems:0, AdditionalLibraryIds:[] }; });
+            return { kind:kind, state:{ state:{ tags:selected, title:prop(recipe, 'CollectionTitle') || '', overview:prop(recipe, 'Overview') || '', additional:(prop(recipe, 'AdditionalLibraryIds') || []).map(String), action:'', preview:null, result:'', recreationStatus:'', conflict:false, creating:false, artPreference:prop(recipe, 'ArtPreference') || 'RetainCurrentCollectionArt' }, search:'' } };
+        }
+        function loadSavedManualRecreationWorkspace(context, recipe) {
+            get('collection-creation-recipes/' + encodeURIComponent(context.collectionId) + '/manual-items').then(function (result) {
+                if (!collectionRecipeEditor || collectionRecipeEditor !== context) { return; }
+                var draft = { title:prop(recipe, 'CollectionTitle') || '', overview:prop(recipe, 'Overview') || '', selected:{}, artPreference:prop(recipe, 'ArtPreference') || 'RetainCurrentCollectionArt' };
+                (prop(result, 'Items') || []).forEach(function (item) { draft.selected[String(prop(item, 'Id'))] = item; });
+                context.workspace.Manual = { draft:draft, items:{}, libraries:{} };
+                if (context.kind === 'Manual') { applyRecreationTabState(context, 'Manual'); renderRecreationSource('Manual'); }
+            }, function (error) {
+                if (collectionRecipeEditor === context && context.kind === 'Manual') { $('#manualCollectionStatus').textContent = 'Could not load the saved manual media selection: ' + err(error); }
+            });
+        }
+        function openFullSavedCollectionCreationSource(recipe) {
+            var dialog = collectionEditorDialog, savedKind = recipeKind(prop(recipe, 'Kind')), workspace;
+            if (!dialog || !recipeSourcePanel('Manual')) { return; }
+            openCollectionRecreationEditor(dialog, recipe);
+            var context = collectionRecipeEditor;
+            context.savedRecipe = recipe;
+            context.savedRecipeKind = savedKind;
+            workspace = savedRecipeWorkspace(recipe);
+            if (workspace) { context.workspace[workspace.kind] = workspace.state; }
+            if (savedKind === 'Manual') { loadSavedManualRecreationWorkspace(context, recipe); }
+        }
         function moveRecipeSourceIntoDialog(kind, host) {
             var source = recipeSourcePanel(kind);
             if (!source) { throw new Error('The saved collection creation tab is not available.'); }
@@ -1145,6 +1180,7 @@
         function restoreCollectionCreationSource() {
             var context = collectionRecipeEditor;
             if (!context) { return; }
+            if (context.recreationPollTimer) { window.clearTimeout(context.recreationPollTimer); }
             if (context.recreating) {
                 if (context.source && context.host) { Array.prototype.slice.call(context.host.childNodes).forEach(function (node) { context.source.appendChild(node); }); }
                 manualCollectionDraft = context.originalState.manualCollectionDraft; manualLibraryItems = context.originalState.manualLibraryItems; manualLibraryStates = context.originalState.manualLibraryStates;
@@ -1168,9 +1204,10 @@
         function openCollectionCreationSource(recipe) {
             var dialog = collectionEditorDialog, kind = recipeKind(prop(recipe, 'Kind')), recipeSection = dialog && dialog.querySelector('[data-editor-recipe]'), host, source;
             if (!dialog || !recipeSection || !recipeSourcePanel(kind)) { return; }
+            if (prop(recipe, 'UsesFullEditorTabs') === true) { openFullSavedCollectionCreationSource(recipe); return; }
             restoreCollectionCreationSource();
             recipeSection.hidden = false;
-            recipeSection.innerHTML = '<p class="fieldDescription">These saved creation settings are authoritative. Saving them recalculates the whole collection: matching media is added and media that no longer matches is removed.</p><div data-editor-recipe-host></div>';
+            recipeSection.innerHTML = '<p class="fieldDescription">Save changes to these creation settings without changing this collection’s current media. Use Recreate Collection below when you want to replace its media with the current matching results.</p><div data-editor-recipe-host></div>';
             host = recipeSection.querySelector('[data-editor-recipe-host]');
             collectionRecipeEditor = {
                 collectionId:collectionEditor.id,
@@ -1225,9 +1262,9 @@
         }
         function applyRecreationTabState(context, kind) {
             var stored = context.workspace[kind], mode = recipeMode(kind);
-            if (kind === 'Manual') { manualCollectionDraft = stored ? stored.draft : { title:context.title, overview:context.overview, selected:{}, artPreference:'JellyfinDefault' }; manualLibraryItems = stored ? stored.items : {}; manualLibraryStates = stored ? stored.libraries : {}; return; }
+            if (kind === 'Manual') { manualCollectionDraft = stored ? stored.draft : { title:context.title, overview:context.overview, selected:{}, artPreference:context.defaultArtPreference }; manualLibraryItems = stored ? stored.items : {}; manualLibraryStates = stored ? stored.libraries : {}; return; }
             if (kind === 'IndividualTag') { individualDrafts = stored ? stored.drafts : {}; individualConflictActions = stored ? stored.conflicts : {}; tagPickerSearches.individual = stored ? stored.search : ''; return; }
-            tagCollectionStates[mode] = stored ? stored.state : { tags:{}, title:context.title, overview:context.overview, additional:[], action:'', preview:null, result:'', recreationStatus:'', conflict:false, creating:false, artPreference:'JellyfinDefault' }; tagPickerSearches[mode] = stored ? stored.search : '';
+            tagCollectionStates[mode] = stored ? stored.state : { tags:{}, title:context.title, overview:context.overview, additional:[], action:'', preview:null, result:'', recreationStatus:'', conflict:false, creating:false, artPreference:context.defaultArtPreference }; tagPickerSearches[mode] = stored ? stored.search : '';
         }
         function setRecreationActionLabels(kind, recreating) {
             var button, section, description;
@@ -1255,16 +1292,36 @@
         function recreateCollection() {
             var request = recipeRequestFromEditor(), context = collectionRecipeEditor;
             if (!request || !context || !context.recreating) { return; }
-            reportRecreationProgress(context, true, 'Recreating ' + request.CollectionTitle + '…', '');
-            send('POST', 'collection-creation-recipes/' + encodeURIComponent(context.collectionId), request).then(function (result) {
-                var reconciliation = prop(result, 'Reconciliation') || {}, matching = Number(prop(reconciliation, 'MatchingItems') || 0), added = Number(prop(reconciliation, 'AddedItems') || 0), removed = Number(prop(reconciliation, 'RemovedItems') || 0), current = Number(prop(reconciliation, 'CurrentItems') || 0);
-                reportRecreationProgress(context, true, 'Recreated collection membership: ' + matching + ' matching, ' + added + ' added, ' + removed + ' removed. Applying collection art…', '');
-                return applyDraftArtPreference(context.collectionId, request.CollectionTitle, request.ArtPreference).then(function () { return result; });
-            }).then(function (result) {
-                var reconciliation = prop(result, 'Reconciliation') || {};
-                reportRecreationProgress(context, false, 'Recreated collection.', '<strong>Completed:</strong> Recreated ' + escapeHtml(request.CollectionTitle) + '. Jellyfin now reports ' + escapeHtml(prop(reconciliation, 'CurrentItems')) + ' media item(s): ' + escapeHtml(prop(reconciliation, 'MatchingItems')) + ' matching, ' + escapeHtml(prop(reconciliation, 'AddedItems')) + ' added, and ' + escapeHtml(prop(reconciliation, 'RemovedItems')) + ' removed.'); refreshCollectionsAfterEdit();
+            reportRecreationProgress(context, true, 'Queueing recreation of ' + request.CollectionTitle + '…', '');
+            send('POST', 'collection-creation-recipes/' + encodeURIComponent(context.collectionId) + '/recreate', request).then(function () {
+                pollCollectionRecreation(context, request);
             }, function (error) {
                 reportRecreationProgress(context, false, 'Recreate Collection could not be completed.', '<strong>Failed:</strong> ' + escapeHtml(err(error)));
+            });
+        }
+        function pollCollectionRecreation(context, request) {
+            if (!collectionEditorDialog || collectionRecipeEditor !== context) { return; }
+            get('collection-creation-recipes/' + encodeURIComponent(context.collectionId) + '/recreate-status').then(function (status) {
+                if (!collectionEditorDialog || collectionRecipeEditor !== context) { return; }
+                var state = String(prop(status, 'State') || ''), message = prop(status, 'Message') || 'Recreating ' + request.CollectionTitle + '…';
+                if (state === 'Queued' || state === 'Running') {
+                    reportRecreationProgress(context, true, message, '');
+                    context.recreationPollTimer = window.setTimeout(function () { pollCollectionRecreation(context, request); }, 750);
+                    return;
+                }
+                if (state === 'Completed') {
+                    var reconciliation = prop(status, 'Reconciliation') || {};
+                    reportRecreationProgress(context, true, 'Recreated collection membership: ' + Number(prop(reconciliation, 'MatchingItems') || 0) + ' matching, ' + Number(prop(reconciliation, 'AddedItems') || 0) + ' added, ' + Number(prop(reconciliation, 'RemovedItems') || 0) + ' removed. Applying collection art…', '');
+                    applyDraftArtPreference(context.collectionId, request.CollectionTitle, request.ArtPreference).then(function () {
+                        reportRecreationProgress(context, false, 'Recreated collection.', '<strong>Completed:</strong> Recreated ' + escapeHtml(request.CollectionTitle) + '. Jellyfin now reports ' + escapeHtml(prop(reconciliation, 'CurrentItems')) + ' media item(s): ' + escapeHtml(prop(reconciliation, 'MatchingItems')) + ' matching, ' + escapeHtml(prop(reconciliation, 'AddedItems')) + ' added, and ' + escapeHtml(prop(reconciliation, 'RemovedItems')) + ' removed.'); refreshCollectionsAfterEdit();
+                    }, function (error) {
+                        reportRecreationProgress(context, false, 'Recreated collection membership, but collection art could not be applied.', '<strong>Completed:</strong> Recreated ' + escapeHtml(request.CollectionTitle) + '. Collection art could not be applied: ' + escapeHtml(err(error))); refreshCollectionsAfterEdit();
+                    });
+                    return;
+                }
+                reportRecreationProgress(context, false, 'Recreate Collection could not be completed.', '<strong>Failed:</strong> ' + escapeHtml(message));
+            }, function (error) {
+                reportRecreationProgress(context, false, 'Could not check Recreate Collection progress.', '<strong>Failed:</strong> ' + escapeHtml(err(error)));
             });
         }
         function renderRecreationSource(kind) {
@@ -1282,8 +1339,8 @@
             context.host.previousElementSibling.innerHTML = recreationTabsMarkup(kind);
             renderRecreationSource(kind);
         }
-        function openCollectionRecreationEditor(dialog) {
-            var recipeSection = dialog.querySelector('[data-editor-recipe]'), title = dialog.querySelector('#collectionEditorName').value || collectionEditor.originalName, overview = dialog.querySelector('#collectionEditorOverview').value || collectionEditor.originalOverview;
+        function openCollectionRecreationEditor(dialog, savedRecipe) {
+            var recipeSection = dialog.querySelector('[data-editor-recipe]'), title = prop(savedRecipe, 'CollectionTitle') || dialog.querySelector('#collectionEditorName').value || collectionEditor.originalName, overview = prop(savedRecipe, 'Overview') || dialog.querySelector('#collectionEditorOverview').value || collectionEditor.originalOverview, defaultArtPreference = prop(savedRecipe, 'ArtPreference') || 'JellyfinDefault';
             if (collectionRecipeEditor) { return; }
             recipeSection.innerHTML = '<div class="mcm-tabs mcm-tabs-secondary" data-editor-recreate-tabs>' + recreationTabsMarkup('Manual') + '</div><div data-editor-recipe-host></div>';
             collectionRecipeEditor = {
@@ -1292,6 +1349,7 @@
                 kind:'Manual',
                 title:title,
                 overview:overview,
+                defaultArtPreference:defaultArtPreference,
                 host:recipeSection.querySelector('[data-editor-recipe-host]'),
                 source:null,
                 workspace:{},
@@ -1324,9 +1382,7 @@
             if (!request || !context || !dialog) { return; }
             var saveButton = dialog.querySelector('[data-editor-save]'); saveButton.disabled = true;
             send('POST', 'collection-creation-recipes/' + encodeURIComponent(context.collectionId), request).then(function () {
-                return applyDraftArtPreference(context.collectionId, request.CollectionTitle, request.ArtPreference);
-            }).then(function () {
-                closeNativeDialog(dialog); refreshCollectionsAfterEdit(); Dashboard.alert('Collection creation settings saved and collection membership synchronized.');
+                Dashboard.alert('Collection creation settings saved. Use Recreate Collection below when you are ready to replace this collection’s media.');
             }, function (error) { Dashboard.alert('Could not save collection creation settings: ' + err(error)); }).then(function () { if (collectionEditorDialog) { collectionEditorDialog.querySelector('[data-editor-save]').disabled = false; } });
         }
         function selectedEditorItems() { return Object.keys(collectionEditor.selected).filter(function (id) { return collectionEditor.selected[id]; }); }

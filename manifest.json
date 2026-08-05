@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.75",
-        "changelog": "Fixes collection-editor selection and add/remove controls, and shows authoritative recreation results while recreating a collection.",
+        "version": "0.1.0.76",
+        "changelog": "Separates saving creation settings from recreating collection membership, queues recreations with live progress, and keeps full editor tabs for recreated collections.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://github.com/mp3li/Collection-Manager-Jellyfin-Plugin/releases/download/v0.1.0.75/CollectionManager_0.1.0.75.zip",
-        "checksum": "bf2b943da255297dcd98755debc0799e",
-        "timestamp": "2026-08-01T20:07:41Z"
+        "sourceUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Releases/0.1.0.76/CollectionManager_0.1.0.76.zip",
+        "checksum": "98cd8da4a42e47ba4e855435643a9972",
+        "timestamp": "2026-08-05T20:46:57Z"
       }
     ]
   }

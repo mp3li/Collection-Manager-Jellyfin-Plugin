@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.0.76] - 2026-08-01
+
+### Fixed
+
+- Separates **Save** from **Recreate Collection** in the collection editor, so
+  saving creation settings does not replace collection membership.
+- Queues recreation through Jellyfin's native scheduled-task runner and shows
+  real queued, running, completed, or failed progress in the editor instead of
+  waiting for the HTTP request to finish.
+- Retains the full Manual, Individual Tag, Combined Tag, and Multi-Match Tag
+  editor tabs for collections recreated with plugin settings, beginning on
+  Manual and retaining the saved rules in their original tab.
+
 ## [0.1.0.75] - 2026-08-01
 
 ### Fixed
