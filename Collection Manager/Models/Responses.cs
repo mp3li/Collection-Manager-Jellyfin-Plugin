@@ -164,3 +164,37 @@ public sealed record IndividualCollectionDraftConflict(string CollectionTitle, b
 
 /// <summary>The completed outcome for one individual collection draft.</summary>
 public sealed record IndividualCollectionDraftResult(string CollectionTitle, string Outcome, string Message, Guid? CollectionId = null);
+
+/// <summary>One configured physical location available beneath a Jellyfin library.</summary>
+public sealed record FolderCollectionRoot(
+    Guid LibraryId,
+    string LibraryName,
+    int LocationIndex,
+    string LocationName,
+    bool Available,
+    string? Error = null);
+
+/// <summary>One child directory shown in the folder collection picker.</summary>
+public sealed record FolderCollectionDirectory(string Name, string RelativePath, bool HasChildren);
+
+/// <summary>One navigable directory level beneath a configured Jellyfin library location.</summary>
+public sealed record FolderCollectionBrowseResult(
+    Guid LibraryId,
+    string LibraryName,
+    int LocationIndex,
+    string LocationName,
+    string RelativePath,
+    string? ParentRelativePath,
+    IReadOnlyList<FolderCollectionDirectory> Folders);
+
+/// <summary>One current Jellyfin media item found beneath a selected folder.</summary>
+public sealed record FolderCollectionPreviewItem(
+    Guid Id,
+    string Name,
+    string Type,
+    int? ProductionYear,
+    Guid LibraryId,
+    string LibraryName);
+
+/// <summary>The deduplicated media currently found beneath every selected folder.</summary>
+public sealed record FolderCollectionDraftPreview(int MatchingItems, IReadOnlyList<FolderCollectionPreviewItem> Items);

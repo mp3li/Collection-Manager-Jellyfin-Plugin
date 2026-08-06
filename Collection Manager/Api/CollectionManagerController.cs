@@ -272,6 +272,139 @@ public sealed class CollectionManagerController : ControllerBase
         return Ok(new IndividualCollectionDraftResult(draft.CollectionTitle.Trim(), "Created", $"Created with {itemIds.Count} unique media item(s).", collection.Id));
     }
 
+    /// <summary>Returns every configured Jellyfin library location available to the folder picker.</summary>
+    [HttpGet("folder-collection-drafts/roots")]
+    public ActionResult<IReadOnlyList<FolderCollectionRoot>> GetFolderCollectionRoots()
+    {
+        var roots = _libraryManager.GetVirtualFolders(true)
+            .SelectMany(folder => Guid.TryParse(folder.ItemId, out var libraryId)
+                ? folder.Locations.Select((location, index) => new FolderCollectionRoot(
+                    libraryId,
+                    GetLibraryDisplayName(folder.ItemId, folder.Name),
+                    index,
+                    location,
+                    Directory.Exists(location),
+                    Directory.Exists(location) ? null : "This configured library location is not currently available to Jellyfin."))
+                : [])
+            .OrderBy(root => root.LibraryName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(root => root.LocationName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return Ok(roots);
+    }
+
+    /// <summary>Returns one safe, navigable directory level beneath a configured Jellyfin library location.</summary>
+    [HttpGet("folder-collection-drafts/browse")]
+    public ActionResult<FolderCollectionBrowseResult> BrowseFolderCollectionLocation(
+        [FromQuery] Guid libraryId,
+        [FromQuery] int locationIndex,
+        [FromQuery] string? relativePath)
+    {
+        var selection = new FolderCollectionSelection
+        {
+            LibraryId = libraryId,
+            LocationIndex = locationIndex,
+            RelativePath = relativePath ?? string.Empty,
+        };
+        if (!TryResolveFolderSelection(selection, out var resolved, out var error))
+        {
+            return BadRequest(error);
+        }
+
+        try
+        {
+            var folders = new DirectoryInfo(resolved.FullPath)
+                .EnumerateDirectories()
+                .Where(directory => directory.LinkTarget is null)
+                .OrderBy(directory => directory.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(directory => new FolderCollectionDirectory(
+                    directory.Name,
+                    JoinRelativeFolderPath(resolved.RelativePath, directory.Name),
+                    HasBrowsableChildDirectory(directory)))
+                .ToArray();
+            return Ok(new FolderCollectionBrowseResult(
+                resolved.LibraryId,
+                resolved.LibraryName,
+                resolved.LocationIndex,
+                resolved.LocationName,
+                resolved.RelativePath,
+                ParentRelativeFolderPath(resolved.RelativePath),
+                folders));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, "Jellyfin does not have permission to browse this folder.");
+        }
+        catch (IOException exception)
+        {
+            return BadRequest($"Jellyfin could not browse this folder: {exception.Message}");
+        }
+    }
+
+    /// <summary>Previews the one collection produced by combining every selected folder recursively.</summary>
+    [HttpPost("folder-collection-drafts/preview")]
+    public ActionResult<FolderCollectionDraftPreview> PreviewFolderCollectionDraft([FromBody] FolderCollectionDraftRequest draft)
+    {
+        if (!TryResolveFolderCollectionItems(draft.SelectedFolders, out var items, out var error))
+        {
+            return BadRequest(error);
+        }
+
+        return Ok(new FolderCollectionDraftPreview(items.Count, items));
+    }
+
+    /// <summary>Creates one native Jellyfin collection from the combined recursive contents of every selected folder.</summary>
+    [HttpPost("folder-collection-drafts/create")]
+    public async Task<ActionResult<IndividualCollectionDraftResult>> CreateFolderCollectionDraft(
+        [FromBody] FolderCollectionDraftRequest draft,
+        CancellationToken cancellationToken)
+    {
+        var title = draft.CollectionTitle?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            return BadRequest("Enter a collection title before creating this collection.");
+        }
+
+        if (!TryResolveFolderCollectionItems(draft.SelectedFolders, out var items, out var error))
+        {
+            return BadRequest(error);
+        }
+
+        if (items.Count == 0)
+        {
+            return Ok(new IndividualCollectionDraftResult(title, "Skipped", "No current Jellyfin media was found beneath the selected folder(s)."));
+        }
+
+        var existing = FindCollectionByName(title);
+        if (existing is not null)
+        {
+            if (string.Equals(draft.ExistingCollectionAction, "UseExisting", StringComparison.OrdinalIgnoreCase))
+            {
+                return Ok(new IndividualCollectionDraftResult(title, "Matched an existing collection", "The existing Jellyfin collection was left unchanged."));
+            }
+
+            if (string.Equals(draft.ExistingCollectionAction, "Skip", StringComparison.OrdinalIgnoreCase))
+            {
+                return Ok(new IndividualCollectionDraftResult(title, "Skipped", "The draft was skipped because a collection with this title already exists."));
+            }
+
+            return Conflict("A Jellyfin collection with this title already exists. Choose whether to use the existing collection or skip this draft.");
+        }
+
+        var itemIds = items.Select(item => item.Id).ToArray();
+        var collection = await _reconciler.CreateCollectionAsync(title, itemIds).ConfigureAwait(false);
+        await UpdateCollectionOverviewAsync(collection, draft.Overview, cancellationToken).ConfigureAwait(false);
+        RequirePlugin().SaveCollectionCreationRecipe(new CollectionCreationRecipe
+        {
+            CollectionId = collection.Id,
+            Kind = CollectionCreationRecipeKind.Manual,
+            CollectionTitle = collection.Name,
+            Overview = draft.Overview,
+            ArtPreference = draft.ArtPreference,
+            ManualItemIds = itemIds.ToList(),
+        });
+        return Ok(new IndividualCollectionDraftResult(title, "Created", $"Created with {itemIds.Length} unique media item(s) from {draft.SelectedFolders.Count} selected folder(s).", collection.Id));
+    }
+
     /// <summary>Returns metadata values currently present in the server libraries.</summary>
     [HttpGet("facets")]
     public ActionResult<MetadataFacets> GetFacets() => Ok(_reconciler.GetFacets());
@@ -1344,6 +1477,193 @@ public sealed class CollectionManagerController : ControllerBase
         return libraryIds.Distinct().All(id => known.Contains(id));
     }
 
+    private bool TryResolveFolderCollectionItems(
+        IReadOnlyCollection<FolderCollectionSelection> selections,
+        out IReadOnlyList<FolderCollectionPreviewItem> items,
+        out string error)
+    {
+        items = [];
+        error = string.Empty;
+        if (selections.Count == 0)
+        {
+            error = "Select one or more folders for this collection.";
+            return false;
+        }
+
+        var resolvedFolders = new List<ResolvedFolderSelection>();
+        foreach (var selection in selections
+            .GroupBy(selection => new { selection.LibraryId, selection.LocationIndex, RelativePath = selection.RelativePath ?? string.Empty })
+            .Select(group => group.First()))
+        {
+            if (!TryResolveFolderSelection(selection, out var resolved, out error))
+            {
+                return false;
+            }
+
+            resolvedFolders.Add(resolved);
+        }
+
+        var matchingItems = new List<FolderCollectionPreviewItem>();
+        foreach (var libraryFolders in resolvedFolders.GroupBy(folder => folder.LibraryId))
+        {
+            var library = _libraryManager.GetItemById(libraryFolders.Key);
+            if (library is null)
+            {
+                error = "One of the selected Jellyfin libraries is no longer available.";
+                return false;
+            }
+
+            var collectionType = _libraryManager.GetConfiguredContentType(library);
+            var folderPaths = libraryFolders.Select(folder => folder.FullPath).ToArray();
+            matchingItems.AddRange(_libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    ParentId = libraryFolders.Key,
+                    Recursive = true,
+                    IncludeItemTypes = GetManualCollectionItemTypes(collectionType),
+                })
+                .Where(item => item is not Video { ExtraType: not null })
+                .Where(item => !string.IsNullOrWhiteSpace(item.Path) && folderPaths.Any(folderPath => IsPathInsideFolder(item.Path, folderPath)))
+                .Select(item => new FolderCollectionPreviewItem(
+                    item.Id,
+                    item.Name,
+                    GetManualCollectionDisplayType(item.GetBaseItemKind()),
+                    item.ProductionYear,
+                    libraryFolders.Key,
+                    libraryFolders.First().LibraryName)));
+        }
+
+        items = matchingItems
+            .GroupBy(item => item.Id)
+            .Select(group => group.First())
+            .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return true;
+    }
+
+    private bool TryResolveFolderSelection(
+        FolderCollectionSelection selection,
+        out ResolvedFolderSelection resolved,
+        out string error)
+    {
+        resolved = default!;
+        error = string.Empty;
+        var virtualFolder = _libraryManager.GetVirtualFolders(true)
+            .FirstOrDefault(folder => Guid.TryParse(folder.ItemId, out var id) && id == selection.LibraryId);
+        if (virtualFolder is null)
+        {
+            error = "The selected Jellyfin library is no longer available.";
+            return false;
+        }
+
+        if (selection.LocationIndex < 0 || selection.LocationIndex >= virtualFolder.Locations.Length)
+        {
+            error = "The selected Jellyfin library location is no longer available.";
+            return false;
+        }
+
+        var location = virtualFolder.Locations[selection.LocationIndex];
+        if (!Directory.Exists(location))
+        {
+            error = "The selected Jellyfin library location is not currently available.";
+            return false;
+        }
+
+        try
+        {
+            var current = new DirectoryInfo(location);
+            var normalizedSegments = new List<string>();
+            foreach (var segment in (selection.RelativePath ?? string.Empty).Split('/', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (segment is "." or ".." || segment.Contains(Path.DirectorySeparatorChar) || segment.Contains(Path.AltDirectorySeparatorChar))
+                {
+                    error = "The selected folder path is not valid.";
+                    return false;
+                }
+
+                var child = current.EnumerateDirectories()
+                    .FirstOrDefault(directory => string.Equals(directory.Name, segment, FolderPathComparison));
+                if (child is null || child.LinkTarget is not null)
+                {
+                    error = "The selected folder is no longer available beneath this Jellyfin library location.";
+                    return false;
+                }
+
+                current = child;
+                normalizedSegments.Add(child.Name);
+            }
+
+            resolved = new ResolvedFolderSelection(
+                selection.LibraryId,
+                GetLibraryDisplayName(virtualFolder.ItemId, virtualFolder.Name),
+                selection.LocationIndex,
+                location,
+                string.Join('/', normalizedSegments),
+                current.FullName);
+            return true;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            error = "Jellyfin does not have permission to browse the selected folder.";
+            return false;
+        }
+        catch (IOException exception)
+        {
+            error = $"Jellyfin could not browse the selected folder: {exception.Message}";
+            return false;
+        }
+    }
+
+    private static bool HasBrowsableChildDirectory(DirectoryInfo directory)
+    {
+        try
+        {
+            return directory.EnumerateDirectories().Any(child => child.LinkTarget is null);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+    }
+
+    private static bool IsPathInsideFolder(string itemPath, string folderPath)
+    {
+        try
+        {
+            var item = Path.TrimEndingDirectorySeparator(Path.GetFullPath(itemPath));
+            var folder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folderPath));
+            var folderPrefix = folder.EndsWith(Path.DirectorySeparatorChar) || folder.EndsWith(Path.AltDirectorySeparatorChar)
+                ? folder
+                : folder + Path.DirectorySeparatorChar;
+            return string.Equals(item, folder, FolderPathComparison)
+                || item.StartsWith(folderPrefix, FolderPathComparison);
+        }
+        catch (Exception exception) when (exception is ArgumentException or IOException or NotSupportedException)
+        {
+            return false;
+        }
+    }
+
+    private static string JoinRelativeFolderPath(string parent, string name) =>
+        string.IsNullOrEmpty(parent) ? name : parent + "/" + name;
+
+    private static string? ParentRelativeFolderPath(string relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath))
+        {
+            return null;
+        }
+
+        var separator = relativePath.LastIndexOf('/');
+        return separator < 0 ? string.Empty : relativePath[..separator];
+    }
+
+    private static StringComparison FolderPathComparison =>
+        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
     private string GetLibraryDisplayName(string itemId, string fallbackName)
     {
         if (!Guid.TryParse(itemId, out var libraryId))
@@ -1354,6 +1674,14 @@ public sealed class CollectionManagerController : ControllerBase
         var library = _libraryManager.GetItemById(libraryId);
         return string.IsNullOrWhiteSpace(library?.Name) ? fallbackName : library.Name;
     }
+
+    private sealed record ResolvedFolderSelection(
+        Guid LibraryId,
+        string LibraryName,
+        int LocationIndex,
+        string LocationName,
+        string RelativePath,
+        string FullPath);
 
     private static BaseItemKind[] GetManualCollectionItemTypes(CollectionType? collectionType) => collectionType switch
     {

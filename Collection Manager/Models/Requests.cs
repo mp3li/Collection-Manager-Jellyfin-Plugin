@@ -125,6 +125,38 @@ public sealed class TagCollectionDraftRequest
     public CollectionArtPreference ArtPreference { get; set; } = CollectionArtPreference.JellyfinDefault;
 }
 
+/// <summary>One folder selected beneath a configured Jellyfin library location.</summary>
+public sealed class FolderCollectionSelection
+{
+    /// <summary>Gets or sets the Jellyfin virtual-folder id.</summary>
+    public Guid LibraryId { get; set; }
+
+    /// <summary>Gets or sets the zero-based configured location index inside the Jellyfin library.</summary>
+    public int LocationIndex { get; set; }
+
+    /// <summary>Gets or sets the slash-delimited path relative to the configured library location.</summary>
+    public string RelativePath { get; set; } = string.Empty;
+}
+
+/// <summary>One collection draft built from the combined recursive contents of selected folders.</summary>
+public sealed class FolderCollectionDraftRequest
+{
+    /// <summary>Gets or sets every folder whose contents belong in the one collection.</summary>
+    public List<FolderCollectionSelection> SelectedFolders { get; set; } = [];
+
+    /// <summary>Gets or sets the requested native Jellyfin collection title.</summary>
+    public string CollectionTitle { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the overview saved on the new native Jellyfin collection.</summary>
+    public string? Overview { get; set; }
+
+    /// <summary>Gets or sets how a same-title native collection has been resolved.</summary>
+    public string ExistingCollectionAction { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the selected Collection Manager art preference.</summary>
+    public CollectionArtPreference ArtPreference { get; set; } = CollectionArtPreference.JellyfinDefault;
+}
+
 /// <summary>A request to create or update an automatic collection rule.</summary>
 public sealed class SaveRuleRequest
 {

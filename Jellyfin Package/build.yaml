@@ -1,7 +1,7 @@
 ---
 name: "Collection Manager"
 guid: "5e9d033a-41dd-4c93-b53f-aa94f8e2f7e9"
-version: "0.1.0.76"
+version: "0.1.0.77"
 targetAbi: "10.11.11.0"
 framework: "net9.0"
 overview: "Visual metadata-driven native collection creation for Jellyfin."
@@ -13,4 +13,4 @@ owner: "mp3li"
 artifacts:
   - "Jellyfin.Plugin.CollectionManager.dll"
 changelog: >
-  Separates saving collection creation settings from rebuilding a collection, queues recreations through Jellyfin's native task runner with live progress, and keeps the full editor tabs for recreated external collections.
+  Adds a safe folder browser that combines the recursive contents of one or more selected Jellyfin library folders into one native collection.

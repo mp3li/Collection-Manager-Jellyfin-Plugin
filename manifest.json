@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.76",
-        "changelog": "Separates saving creation settings from recreating collection membership, queues recreations with live progress, and keeps full editor tabs for recreated collections.",
+        "version": "0.1.0.77",
+        "changelog": "Adds Create Collections by Folder, with safe configured-library folder navigation and one deduplicated native collection from the recursive contents of one or more selected folders.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Releases/0.1.0.76/CollectionManager_0.1.0.76.zip",
-        "checksum": "98cd8da4a42e47ba4e855435643a9972",
-        "timestamp": "2026-08-05T20:46:57Z"
+        "sourceUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Releases/0.1.0.77/CollectionManager_0.1.0.77.zip",
+        "checksum": "6cd8fa3d50822a9d46f34365e5be42bf",
+        "timestamp": "2026-08-06T05:19:14Z"
       }
     ]
   }

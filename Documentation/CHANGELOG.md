@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.0.77] - 2026-08-05
+
+### Added
+
+- Adds **Create Collections by Folder** as the first tab in the second row and
+  moves **Logo Focused Collection Art** to the first position in the third row.
+- Lets an administrator safely browse configured Jellyfin library locations,
+  search and page their child folders, and select one folder or multiple
+  folders for a single collection draft.
+- Combines the current recursive contents of every selected folder into one
+  deduplicated native Jellyfin collection with a preview, title, overview, art
+  preference, and visible same-title conflict handling.
+
 ## [0.1.0.76] - 2026-08-01
 
 ### Fixed

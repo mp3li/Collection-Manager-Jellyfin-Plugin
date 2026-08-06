@@ -36,7 +36,7 @@ Dashboard visual system
 
 Current release scope
 ---------------------
-The complete current release currently exposes eleven dashboard tabs. The five
+The complete current release currently exposes twelve dashboard tabs. The five
 art tabs below are intentionally blank placeholders until their separate
 feature plans are defined.
 
@@ -90,7 +90,24 @@ feature plans are defined.
      selected media, then clear the title and selections for the next manual
      collection.
 
-3. Individual Tag Collections
+3. Create Collections by Folder
+   - Place this tab first in the second dashboard-tab row.
+   - Expose only the physical locations already configured for Jellyfin
+     libraries, and browse child folders without allowing navigation outside
+     those configured roots.
+   - Let the administrator search, page ten folders at a time, open folders,
+     move up one folder, and select the current folder or any visible child
+     folders. Select All and Select None apply to the ten visible folders.
+   - Maintain one collection draft across one selected folder or multiple
+     selected folders, including selections from different configured library
+     locations.
+   - Resolve every selected folder recursively against Jellyfin's current
+     media items, combine the results, and deduplicate overlapping selections
+     into one preview and one ordinary native Jellyfin collection.
+   - Provide one editable title, collapsed overview, collection-art preference,
+     visible same-title conflict choices, creation progress, and final outcome.
+
+4. Individual Tag Collections
    - Show every saved library as an initially collapsed selector section.
    - Load metadata types only when a library is expanded, and metadata values
      only when a type is expanded.
@@ -113,7 +130,7 @@ feature plans are defined.
      progress and outcomes, and require a visible administrator choice before
      a same-title collection is used unchanged or skipped.
 
-4. Combined Tag Collections
+5. Combined Tag Collections
    - Reuse the full lazy, searchable, paginated metadata picker used by
      Individual Tag Collections.
    - Maintain one draft containing two or more selected metadata tags.
@@ -130,7 +147,7 @@ feature plans are defined.
    - Clear a successfully created draft so the administrator can start the
      next combined collection.
 
-5. Multi-Match Tag Collections
+6. Multi-Match Tag Collections
    - Reuse the same full lazy, searchable, paginated metadata picker and
      shared-library scope as Combined Tag Collections.
    - Maintain one draft containing two or more selected metadata tags.
@@ -147,7 +164,7 @@ feature plans are defined.
    - Clear a successfully created draft so the administrator can start the
      next multi-match collection.
 
-6. Collection Overview & Editor
+7. Collection Overview & Editor
    - Place this tab in the same dedicated secondary-tab row used by Media
      Tagging Manager, below the primary row, so its longer name does not force
      the primary tab row to extend or wrap off-screen.
@@ -174,26 +191,25 @@ feature plans are defined.
      remove media additions recorded as made by this plugin to existing
      collections not made by this plugin.
 
-7. Default Art Settings
+8. Default Art Settings
    - Provide an intentionally blank dashboard tab until its art-settings plan
      is defined.
 
-8. Text Focused Art Settings
+9. Text Focused Art Settings
    - Provide an intentionally blank dashboard tab until its art-settings plan
      is defined.
 
-9. Poster Focused Art Settings
+10. Poster Focused Art Settings
    - Provide an intentionally blank dashboard tab until its art-settings plan
      is defined.
 
-10. Logo Focused Art Settings
+11. Logo Focused Art Settings
     - Provide an intentionally blank dashboard tab until its art-settings plan
-      is defined. Place it in the second tab row after Poster Focused Art
-      Settings.
+      is defined. Place it first in the third tab row.
 
-11. Multi-Collection Gradient Art
+12. Multi-Collection Gradient Art
     - Provide an intentionally blank dashboard tab until its art-settings plan
-      is defined. Place it alone in the third tab row.
+      is defined. Place it second in the third tab row.
 
 Native Jellyfin and safety requirements
 ---------------------------------------
