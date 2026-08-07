@@ -11,7 +11,8 @@
 <p align="center">
   <img src="Assets/Badges/target.svg" alt="Target: Jellyfin 10.11.11" />
   <img src="Assets/Badges/interface.svg" alt="Interface: Jellyfin Server Dashboard" />
-  <img src="Assets/Badges/collections.svg" alt="Collections: Standard Jellyfin Collections" />
+  <img src="Assets/Badges/collections.svg" alt="Create and Manage Jellyfin Collections" />
+  <img src="Assets/Badges/collection-art.svg" alt="Create, Edit and Apply Collection Art" />
   <img src="Assets/Badges/bulk-tools.svg" alt="Bulk Tools: Create, Add, and Remove" />
   <img src="Assets/Badges/automation.svg" alt="Automation: Optional Metadata Sync" />
 </p>
