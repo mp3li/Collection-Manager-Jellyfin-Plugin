@@ -11,14 +11,21 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
     private readonly CollectionReconciler _reconciler;
     private readonly ManualReconciliationRequestQueue _requests;
     private readonly ITaskManager _taskManager;
+    private readonly LibraryIdentityService _libraryIdentities;
     private readonly ILogger<ReconcileCollectionsTask> _logger;
 
     /// <summary>Initializes a new instance of the <see cref="ReconcileCollectionsTask"/> class.</summary>
-    public ReconcileCollectionsTask(CollectionReconciler reconciler, ManualReconciliationRequestQueue requests, ITaskManager taskManager, ILogger<ReconcileCollectionsTask> logger)
+    public ReconcileCollectionsTask(
+        CollectionReconciler reconciler,
+        ManualReconciliationRequestQueue requests,
+        ITaskManager taskManager,
+        LibraryIdentityService libraryIdentities,
+        ILogger<ReconcileCollectionsTask> logger)
     {
         _reconciler = reconciler;
         _requests = requests;
         _taskManager = taskManager;
+        _libraryIdentities = libraryIdentities;
         _logger = logger;
     }
 
@@ -41,6 +48,7 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
         await TaskExecutionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            _libraryIdentities.Reconcile();
             while (_requests.TryTakeSavedRecipeRecreation(out var collectionId))
             {
                 try

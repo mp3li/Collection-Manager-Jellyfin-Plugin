@@ -49,6 +49,80 @@ public sealed class MetadataCatalogService
         }
     }
 
+    /// <summary>Infers a renamed library's current id from media retained in the last completed catalog.</summary>
+    public Guid? InferCurrentLibraryId(Guid formerLibraryId, IReadOnlySet<Guid> currentLibraryIds)
+    {
+        Guid[] catalogItemIds;
+        lock (_sync)
+        {
+            if (!_catalogs.TryGetValue(formerLibraryId, out var catalog))
+            {
+                return null;
+            }
+
+            catalogItemIds = catalog.Items.Select(item => item.Id).Distinct().ToArray();
+        }
+
+        var candidates = new HashSet<Guid>();
+        foreach (var itemId in catalogItemIds)
+        {
+            if (_libraryManager.GetItemById<BaseItem>(itemId) is not { } item)
+            {
+                continue;
+            }
+
+            candidates.UnionWith(item.GetAncestorIds().Append(item.Id).Where(currentLibraryIds.Contains));
+            if (candidates.Count > 1)
+            {
+                return null;
+            }
+        }
+
+        return candidates.Count == 1 ? candidates.Single() : null;
+    }
+
+    /// <summary>Moves cached catalog entries to current library ids and current Jellyfin display names.</summary>
+    public void RemapLibraries(IReadOnlyDictionary<Guid, Guid> mappings, IReadOnlyDictionary<Guid, string> currentNames)
+    {
+        if (mappings.Count == 0)
+        {
+            return;
+        }
+
+        DateTime completedAt;
+        IReadOnlyDictionary<Guid, CatalogLibrary> snapshot;
+        lock (_sync)
+        {
+            foreach (var mapping in mappings.Where(mapping => mapping.Key != mapping.Value))
+            {
+                if (!_catalogs.Remove(mapping.Key, out var former) || _catalogs.ContainsKey(mapping.Value))
+                {
+                    continue;
+                }
+
+                var currentName = currentNames.TryGetValue(mapping.Value, out var name) ? name : former.LibraryName;
+                _catalogs[mapping.Value] = former with
+                {
+                    LibraryId = mapping.Value,
+                    LibraryName = currentName,
+                    Items = former.Items.Select(item => item with { LibraryId = mapping.Value, LibraryName = currentName }).ToArray(),
+                };
+            }
+
+            completedAt = _status.LastCompletedUtc ?? DateTime.UtcNow;
+            var itemCount = _catalogs.Values.Sum(library => library.Items.Count);
+            _status = _status with
+            {
+                ProcessedItems = itemCount,
+                TotalItems = itemCount,
+                Message = "Last available metadata tag scan updated for the renamed library.",
+            };
+            snapshot = new Dictionary<Guid, CatalogLibrary>(_catalogs);
+        }
+
+        PersistLastAvailableCatalog(completedAt, snapshot);
+    }
+
     /// <summary>Gets the timestamp and library list captured by the last completed metadata scan.</summary>
     public MetadataCatalogAvailability GetLastAvailableCatalog()
     {

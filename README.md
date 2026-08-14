@@ -172,7 +172,7 @@ library artwork and all other Jellyfin data.
 
 ## Current Release
 
-The current catalog build is **0.1.0.77**. It is the feature-complete candidate
+The current catalog build is **0.1.0.78**. It is the feature-complete candidate
 for the first **1.0.0** release. The catalog version will change to 1.0.0 only
 when the final v1 DLL, ZIP, manifest checksum, commit, and publication are made
 together.

@@ -18,6 +18,9 @@ public sealed class PluginConfiguration : BasePluginConfiguration
     /// <summary>Gets or sets the library roots available when <see cref="UseAllLibraries"/> is false.</summary>
     public List<Guid> LibraryIds { get; set; } = [];
 
+    /// <summary>Gets or sets stable physical-location identities for library roots whose Jellyfin ids can change when renamed.</summary>
+    public List<ConfiguredLibraryIdentity> LibraryIdentities { get; set; } = [];
+
     /// <summary>Gets or sets whether newly added media may join applicable managed collections.</summary>
     public bool AutomaticallyAddNewMediaToApplicableCollections { get; set; }
 
@@ -83,6 +86,16 @@ public sealed class PluginConfiguration : BasePluginConfiguration
 
     /// <summary>Gets or sets all stored automatic collection rules.</summary>
     public List<CollectionRule> Rules { get; set; } = [];
+}
+
+/// <summary>Identifies one Jellyfin library by its current id and stable configured media locations.</summary>
+public sealed class ConfiguredLibraryIdentity
+{
+    /// <summary>Gets or sets the Jellyfin library root id current when this identity was saved.</summary>
+    public Guid LibraryId { get; set; }
+
+    /// <summary>Gets or sets the configured physical media locations that survive a library rename.</summary>
+    public List<string> Locations { get; set; } = [];
 }
 
 /// <summary>Controls which existing metadata source may be used for collection matching.</summary>

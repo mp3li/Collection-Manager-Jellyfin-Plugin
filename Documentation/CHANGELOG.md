@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.0.78] - 2026-08-14
+
+### Fixed
+
+- Displays the actual Jellyfin validation response when collection recreation
+  is rejected instead of reporting that HTTP 400 returned no error details.
+- Keeps selected libraries and saved collection recipes attached to the same
+  configured media locations when a Jellyfin library is renamed, and displays
+  the library's current Jellyfin name.
+- Preserves the full-editor-tabs flag while cloning saved recreation recipes.
+
 ## [0.1.0.77] - 2026-08-05
 
 ### Added

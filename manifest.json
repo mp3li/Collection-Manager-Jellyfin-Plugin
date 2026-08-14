@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.77",
-        "changelog": "Adds Create Collections by Folder, with safe configured-library folder navigation and one deduplicated native collection from the recursive contents of one or more selected folders.",
+        "version": "0.1.0.78",
+        "changelog": "Shows recreation validation details and preserves saved library references across Jellyfin library renames.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Releases/0.1.0.77/CollectionManager_0.1.0.77.zip",
-        "checksum": "6cd8fa3d50822a9d46f34365e5be42bf",
-        "timestamp": "2026-08-06T05:19:14Z"
+        "sourceUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Releases/0.1.0.78/CollectionManager_0.1.0.78.zip",
+        "checksum": "607c6a49081737a87fcb83f0df3364b6",
+        "timestamp": "2026-08-14T07:50:45Z"
       }
     ]
   }

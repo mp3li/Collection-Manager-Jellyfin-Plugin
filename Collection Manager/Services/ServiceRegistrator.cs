@@ -14,6 +14,7 @@ public sealed class ServiceRegistrator : IPluginServiceRegistrator
     {
         serviceCollection.AddSingleton<CollectionReconciler>();
         serviceCollection.AddSingleton<MetadataCatalogService>();
+        serviceCollection.AddSingleton<LibraryIdentityService>();
         serviceCollection.AddSingleton<CollectionOverviewService>();
         serviceCollection.AddSingleton<CollectionArtAssetStore>();
         serviceCollection.AddSingleton<CollectionBackupManager>();

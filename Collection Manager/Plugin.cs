@@ -205,6 +205,11 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         MetadataSourcePriority = source.MetadataSourcePriority,
         UseAllLibraries = source.UseAllLibraries,
         LibraryIds = source.LibraryIds.Distinct().ToList(),
+        LibraryIdentities = (source.LibraryIdentities ?? []).Select(identity => new ConfiguredLibraryIdentity
+        {
+            LibraryId = identity.LibraryId,
+            Locations = identity.Locations.Distinct(StringComparer.Ordinal).ToList(),
+        }).ToList(),
         AutomaticallyAddNewMediaToApplicableCollections = source.AutomaticallyAddNewMediaToApplicableCollections,
         MetadataTagOverviewColor = source.MetadataTagOverviewColor,
         ShowPluginMadeCollections = source.ShowPluginMadeCollections,
@@ -274,6 +279,7 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         }).ToList(),
         AdditionalLibraryIds = source.AdditionalLibraryIds.Distinct().ToList(),
         RequireAllTags = source.RequireAllTags,
+        UsesFullEditorTabs = source.UsesFullEditorTabs,
     };
 
     private static CollectionActionRecord CloneAction(CollectionActionRecord source) => new()

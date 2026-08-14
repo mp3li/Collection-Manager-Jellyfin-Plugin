@@ -31,6 +31,7 @@ public sealed class CollectionManagerController : ControllerBase
     private readonly IProviderManager _providerManager;
     private readonly CollectionArtAssetStore _artAssets;
     private readonly CollectionBackupManager _collectionBackups;
+    private readonly LibraryIdentityService _libraryIdentities;
 
     /// <summary>Initializes a new instance of the <see cref="CollectionManagerController"/> class.</summary>
     public CollectionManagerController(
@@ -42,7 +43,8 @@ public sealed class CollectionManagerController : ControllerBase
         ITaskManager taskManager,
         IProviderManager providerManager,
         CollectionArtAssetStore artAssets,
-        CollectionBackupManager collectionBackups)
+        CollectionBackupManager collectionBackups,
+        LibraryIdentityService libraryIdentities)
     {
         _reconciler = reconciler;
         _metadataCatalog = metadataCatalog;
@@ -53,16 +55,17 @@ public sealed class CollectionManagerController : ControllerBase
         _providerManager = providerManager;
         _artAssets = artAssets;
         _collectionBackups = collectionBackups;
+        _libraryIdentities = libraryIdentities;
     }
 
     /// <summary>Returns settings and selectable Jellyfin libraries for the dashboard's main settings tab.</summary>
     [HttpGet("settings/main")]
     public IActionResult GetSettings()
     {
-        var plugin = RequirePlugin();
+        var configuration = _libraryIdentities.Reconcile();
         return Ok(new
         {
-            Configuration = plugin.Configuration,
+            Configuration = configuration,
             Libraries = _libraryManager.GetVirtualFolders(true).Select(folder => new { folder.ItemId, folder.Name, DisplayName = GetLibraryDisplayName(folder.ItemId, folder.Name) }),
         });
     }
@@ -76,7 +79,8 @@ public sealed class CollectionManagerController : ControllerBase
             return BadRequest("One or more selected libraries are no longer available on this server.");
         }
 
-        var configuration = RequirePlugin().UpdateMainSettings(request);
+        RequirePlugin().UpdateMainSettings(request);
+        var configuration = _libraryIdentities.Reconcile();
         ReloadScheduledTaskTriggers();
         return Ok(new
         {
@@ -108,7 +112,8 @@ public sealed class CollectionManagerController : ControllerBase
             return BadRequest("One or more selected libraries are no longer available on this server.");
         }
 
-        return Ok(RequirePlugin().UpdateSelectedLibraries(request.LibraryIds));
+        RequirePlugin().UpdateSelectedLibraries(request.LibraryIds);
+        return Ok(_libraryIdentities.Reconcile());
     }
 
     /// <summary>Returns every optional complete collection backup available to this plugin.</summary>
