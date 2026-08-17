@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0.79] - 2026-08-17
+
+### Fixed
+
+- Stops Combined Tag and Multi-Match Tag collection recreation status checks
+  from repeatedly re-rendering the editor and relaunching matching-media
+  previews, which caused flashing and could delay the active recreation.
+
 ## [0.1.0.78] - 2026-08-14
 
 ### Fixed

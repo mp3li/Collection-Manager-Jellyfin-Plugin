@@ -1384,7 +1384,7 @@
             }
         }
         function reportRecreationProgress(context, working, message, result) {
-            var mode, state;
+            var mode, state, host, button, progress, status, resultHost, tags;
             if (!collectionEditorDialog || collectionRecipeEditor !== context) { return; }
             collectionEditorDialog.querySelector('[data-editor-close]').disabled = working;
             if (context.kind === 'Manual') {
@@ -1393,7 +1393,18 @@
             if (context.kind === 'IndividualTag') {
                 $('#createIndividualCollectionsButton').disabled = working; $('#individualCreationProgress').style.width = working ? '45%' : (result ? '100%' : '0'); $('#individualCreationStatus').textContent = message; $('#individualCreationResults').innerHTML = result ? '<p class="fieldDescription">' + result + '</p>' : ''; return;
             }
-            mode = recipeMode(context.kind); state = tagCollectionStates[mode]; state.creating = working; state.result = result || ''; state.recreationStatus = message; renderMode(mode);
+            mode = recipeMode(context.kind); state = tagCollectionStates[mode]; state.creating = working; state.result = result || ''; state.recreationStatus = message;
+            host = find('[data-mode="' + mode + '"]');
+            if (!host) { return; }
+            tags = modeTags(mode);
+            button = host.querySelector('[data-mode-create="' + mode + '"]');
+            progress = host.querySelector('[data-mode-progress="' + mode + '"]');
+            status = host.querySelector('[data-mode-status="' + mode + '"]');
+            resultHost = host.querySelector('[data-mode-result="' + mode + '"]');
+            if (button) { button.disabled = working || tags.length < 2 || !state.title.trim() || (state.preview && Number(prop(state.preview, 'MatchingItems') || 0) === 0); button.textContent = working ? 'Recreating Collection…' : 'Recreate Collection'; }
+            if (progress) { progress.style.width = working ? '45%' : (result ? '100%' : '0'); }
+            if (status) { status.textContent = message; }
+            if (resultHost) { resultHost.innerHTML = result ? '<p class="fieldDescription">' + result + '</p>' : ''; }
         }
         function recreateCollection() {
             var request = recipeRequestFromEditor(), context = collectionRecipeEditor;

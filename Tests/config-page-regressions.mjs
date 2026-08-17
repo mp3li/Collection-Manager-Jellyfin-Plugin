@@ -48,4 +48,17 @@ vm.createContext(nameContext);
 vm.runInContext(`${catalogNameMatch[0]}; globalThis.__catalogLibraryName = catalogLibraryName;`, nameContext);
 assert.equal(nameContext.__catalogLibraryName('stable-id'), 'Renamed Movies');
 
+const recreationProgressMatch = scriptMatch[1].match(/function reportRecreationProgress\(context, working, message, result\) \{[\s\S]*?\n        \}/);
+assert.ok(recreationProgressMatch, 'The recreation progress updater was not found.');
+assert.doesNotMatch(
+    recreationProgressMatch[0],
+    /renderMode\(mode\)/,
+    'Recreation status polling must not rerender the tag editor and relaunch its matching-media preview.',
+);
+assert.match(
+    recreationProgressMatch[0],
+    /data-mode-status/,
+    'Recreation status polling should update the existing status controls directly.',
+);
+
 console.log('Collection Manager dashboard regression tests passed.');
