@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.0.80] - 2026-08-17
+
+### Fixed
+
+- Loads each automatic collection's current membership once per targeted
+  metadata batch instead of resolving all of its linked children again for
+  every changed item. This prevents stale Jellyfin collection links from being
+  checked hundreds of times during one reconciliation job.
+- Logs one summary naming an affected collection and its unresolved-link count
+  without deleting or rewriting those links.
+
 ## [0.1.0.79] - 2026-08-17
 
 ### Fixed

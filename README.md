@@ -172,16 +172,16 @@ library artwork and all other Jellyfin data.
 
 ## Current Release
 
-The current catalog build is **0.1.0.79**. It is the feature-complete candidate
+The current catalog build is **0.1.0.80**. It is the feature-complete candidate
 for the first **1.0.0** release. The catalog version will change to 1.0.0 only
 when the final v1 DLL, ZIP, manifest checksum, commit, and publication are made
 together.
 
 The latest build stops Combined Tag and Multi-Match Tag recreation status
-checks from repeatedly reloading the matching-media preview. Recreation still
-returns immediately, runs through Jellyfin's scheduled-task system, and
-reports its actual status without making the editor flash or launching
-overlapping preview scans.
+checks from repeatedly reloading the matching-media preview. It also loads
+each automatic collection's membership once per targeted metadata batch, so
+stale Jellyfin collection links are not resolved again for every changed
+item.
 
 ## Requirements
 
