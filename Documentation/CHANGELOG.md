@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.1.0.81] - 2026-08-20
+
+### Changed
+
+- Defers every automatic, manual, recreation, and scheduled collection
+  reconciliation while a Media Tagging Manager task or Jellyfin media-library
+  scan is running, then waits for three minutes without another tag or
+  metadata change before starting.
+- Coalesces metadata events and safely requeues interrupted work at idempotent
+  checkpoints instead of allowing the two plugins to scan and mutate
+  collections side by side.
+- Scans selected media once for a full rule batch, caches NFO and people-field
+  evaluation per item, scans live recipe libraries once for all saved recipes,
+  batches targeted membership writes per collection, and saves completed rule
+  state once per batch.
+- Runs metadata-catalog and collection-overview scans as cancellable native
+  Jellyfin scheduled tasks rather than unmanaged or request-blocking work, and
+  prevents reconciliation from overlapping those scans.
+- Replaces permanent 1.5-second dashboard polling and 750-millisecond
+  recreation polling with non-overlapping, visibility-aware active-work
+  polling.
+- Replaces recursive cross-type tag-search request fan-out with one bounded
+  search request, caches metadata types per library, pages the manual picker in
+  Jellyfin's database query, and loads saved collection members only when the
+  collection is expanded.
+
+### Fixed
+
+- Clears and requeues targeted reconciliation reservations on every exit path,
+  preventing a deferred or manually requested job from leaving later metadata
+  changes stuck behind a stale queued flag.
+
 ## [0.1.0.80] - 2026-08-17
 
 ### Fixed

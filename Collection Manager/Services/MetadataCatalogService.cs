@@ -24,15 +24,20 @@ public sealed class MetadataCatalogService
 
     private readonly ILibraryManager _libraryManager;
     private readonly ILogger<MetadataCatalogService> _logger;
+    private readonly MediaTaggingManagerActivityGate _mediaTaggingManager;
     private readonly string _catalogFilePath;
     private readonly object _sync = new();
     private Dictionary<Guid, CatalogLibrary> _catalogs = [];
     private MetadataCatalogStatus _status = new(false, 0, 0, null, "Save one or more libraries, then scan metadata tags.");
 
     /// <summary>Initializes a new instance of the <see cref="MetadataCatalogService"/> class.</summary>
-    public MetadataCatalogService(ILibraryManager libraryManager, ILogger<MetadataCatalogService> logger)
+    public MetadataCatalogService(
+        ILibraryManager libraryManager,
+        MediaTaggingManagerActivityGate mediaTaggingManager,
+        ILogger<MetadataCatalogService> logger)
     {
         _libraryManager = libraryManager;
+        _mediaTaggingManager = mediaTaggingManager;
         _logger = logger;
         _catalogFilePath = Plugin.Instance is { } plugin
             ? Path.Combine(plugin.DataFolderPath, CatalogFileName)
@@ -138,25 +143,27 @@ public sealed class MetadataCatalogService
     }
 
     /// <summary>Starts a fresh scan of the saved library selections when another scan is not already running.</summary>
-    public MetadataCatalogStatus StartScan()
+    public bool TryStartScan(out MetadataCatalogStatus status)
     {
         lock (_sync)
         {
             if (_status.IsScanning)
             {
-                return _status;
+                status = _status;
+                return false;
             }
 
             var savedLibraryIds = Plugin.Instance?.Configuration.LibraryIds.Distinct().ToArray() ?? [];
             if (savedLibraryIds.Length == 0)
             {
                 _status = new MetadataCatalogStatus(false, 0, 0, _status.LastCompletedUtc, "Save one or more libraries before scanning metadata tags.");
-                return _status;
+                status = _status;
+                return false;
             }
 
             _status = new MetadataCatalogStatus(true, 0, 0, _status.LastCompletedUtc, "Preparing the metadata tag scan…");
-            _ = Task.Run(ScanAsync);
-            return _status;
+            status = _status;
+            return true;
         }
     }
 
@@ -234,6 +241,37 @@ public sealed class MetadataCatalogService
         }
     }
 
+    /// <summary>Searches all requested catalog types in one bounded in-memory pass.</summary>
+    public IReadOnlyList<MetadataCatalogSearchResult> SearchValues(IReadOnlySet<Guid> libraryIds, string? searchTerm, int limit)
+    {
+        var term = searchTerm?.Trim() ?? string.Empty;
+        if (term.Length < 2 || libraryIds.Count == 0)
+        {
+            return [];
+        }
+
+        lock (_sync)
+        {
+            return _catalogs.Values
+                .Where(catalog => libraryIds.Contains(catalog.LibraryId))
+                .SelectMany(catalog => catalog.ValuesByType.SelectMany(type => type.Value
+                    .Where(value => type.Key.Contains(term, StringComparison.OrdinalIgnoreCase)
+                        || value.Value.Contains(term, StringComparison.OrdinalIgnoreCase))
+                    .Select(value => new MetadataCatalogSearchResult(
+                        catalog.LibraryId,
+                        catalog.LibraryName,
+                        type.Key,
+                        value.Value,
+                        value.MatchingItems,
+                        value.PersonImageUrl))))
+                .OrderBy(result => result.MetadataType, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(result => result.Value, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(result => result.LibraryName, StringComparer.OrdinalIgnoreCase)
+                .Take(Math.Clamp(limit, 1, 250))
+                .ToArray();
+        }
+    }
+
     /// <summary>Previews every current catalog item that matches a draft across its chosen libraries.</summary>
     public IndividualCollectionDraftPreview PreviewDraft(IndividualCollectionDraftRequest draft)
     {
@@ -258,64 +296,112 @@ public sealed class MetadataCatalogService
     /// <summary>Reads current Jellyfin and NFO metadata directly for one saved creation recipe.</summary>
     /// <remarks>This deliberately does not use the dashboard's cached tag catalog, so scheduled reconciliation sees metadata saved after the last dashboard scan.</remarks>
     public IReadOnlyList<Guid> GetLiveMatchingItemIds(CollectionCreationRecipe recipe)
+        => GetLiveMatchingItemIds([recipe], CancellationToken.None).GetValueOrDefault(recipe.CollectionId) ?? [];
+
+    /// <summary>Reads selected libraries once and evaluates every saved creation recipe against that shared live snapshot.</summary>
+    public IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> GetLiveMatchingItemIds(
+        IReadOnlyCollection<CollectionCreationRecipe> recipes,
+        CancellationToken cancellationToken)
     {
-        if (recipe.Kind == CollectionCreationRecipeKind.Manual)
+        var results = new Dictionary<Guid, IReadOnlyList<Guid>>();
+        foreach (var manual in recipes.Where(recipe => recipe.Kind == CollectionCreationRecipeKind.Manual))
         {
-            return recipe.ManualItemIds
+            results[manual.CollectionId] = manual.ManualItemIds
                 .Where(id => _libraryManager.GetItemById<BaseItem>(id) is not null)
                 .Distinct()
                 .ToArray();
         }
 
-        var tags = recipe.SelectedTags
-            .Where(tag => tag.SourceLibraryId != Guid.Empty && !string.IsNullOrWhiteSpace(tag.MetadataType) && !string.IsNullOrWhiteSpace(tag.MetadataValue))
-            .ToArray();
-        if (tags.Length == 0)
+        var tagRecipes = recipes.Where(recipe => recipe.Kind != CollectionCreationRecipeKind.Manual).ToArray();
+        var libraryIds = tagRecipes.SelectMany(recipe => recipe.SelectedTags.Select(tag => tag.SourceLibraryId)
+                .Concat(recipe.AdditionalLibraryIds))
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToHashSet();
+        if (tagRecipes.Length == 0 || libraryIds.Count == 0)
         {
-            return [];
+            foreach (var recipe in tagRecipes)
+            {
+                results[recipe.CollectionId] = [];
+            }
+
+            return results;
         }
 
-        var libraryIds = tags.Select(tag => tag.SourceLibraryId)
-            .Concat(recipe.AdditionalLibraryIds)
-            .Distinct()
-            .ToArray();
         var libraries = _libraryManager.GetVirtualFolders(true)
             .Select(folder => new { Id = Guid.TryParse(folder.ItemId, out var id) ? id : Guid.Empty, folder.Name })
             .Where(folder => folder.Id != Guid.Empty && libraryIds.Contains(folder.Id))
             .ToArray();
-        var items = libraries.SelectMany(library => _libraryManager.GetItemList(new InternalItemsQuery
+        var items = new List<MetadataCatalogItem>();
+        foreach (var library in libraries)
         {
-            ParentId = library.Id,
-            Recursive = true,
-        })
-            .Where(item => item is not BoxSet)
-            .GroupBy(item => ResolveCollectionItem(item).Id)
-            .Select(group => CreateCatalogItem(ResolveCollectionItem(group.First()), library.Id, library.Name, group)))
-            .GroupBy(item => item.Id)
-            .Select(group => group.First())
-            .ToArray();
-
-        var matchingSets = tags.Select(tag => items
-            .Where(item => item.Metadata.TryGetValue(tag.MetadataType.Trim(), out var values)
-                && values.Contains(tag.MetadataValue.Trim(), StringComparer.OrdinalIgnoreCase))
-            .ToDictionary(item => item.Id))
-            .ToArray();
-        var matchingIds = recipe.RequireAllTags
-            ? matchingSets.Skip(1).Aggregate(new HashSet<Guid>(matchingSets[0].Keys), (current, next) =>
+            cancellationToken.ThrowIfCancellationRequested();
+            _mediaTaggingManager.ThrowIfBusy();
+            var libraryItems = _libraryManager.GetItemList(new InternalItemsQuery
             {
-                current.IntersectWith(next.Keys);
-                return current;
-            })
-            : matchingSets.SelectMany(set => set.Keys).ToHashSet();
-        return matchingIds.ToArray();
+                ParentId = library.Id,
+                Recursive = true,
+            }).Where(item => item is not BoxSet).ToArray();
+            foreach (var group in libraryItems.GroupBy(item => ResolveCollectionItem(item).Id))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                _mediaTaggingManager.ThrowIfBusy();
+                items.Add(CreateCatalogItem(ResolveCollectionItem(group.First()), library.Id, library.Name, group));
+            }
+        }
+
+        foreach (var recipe in tagRecipes)
+        {
+            var tags = recipe.SelectedTags
+                .Where(tag => tag.SourceLibraryId != Guid.Empty && !string.IsNullOrWhiteSpace(tag.MetadataType) && !string.IsNullOrWhiteSpace(tag.MetadataValue))
+                .ToArray();
+            if (tags.Length == 0)
+            {
+                results[recipe.CollectionId] = [];
+                continue;
+            }
+
+            var recipeLibraryIds = tags.Select(tag => tag.SourceLibraryId).Concat(recipe.AdditionalLibraryIds).Distinct().ToHashSet();
+            var scopedItems = items.Where(item => recipeLibraryIds.Contains(item.LibraryId)).ToArray();
+            var matchingSets = tags.Select(tag => scopedItems
+                .Where(item => MetadataContains(item.Metadata, tag))
+                .Select(item => item.Id)
+                .ToHashSet()).ToArray();
+            var matchingIds = recipe.RequireAllTags
+                ? matchingSets.Skip(1).Aggregate(new HashSet<Guid>(matchingSets[0]), (current, next) =>
+                {
+                    current.IntersectWith(next);
+                    return current;
+                })
+                : matchingSets.SelectMany(set => set).ToHashSet();
+            results[recipe.CollectionId] = matchingIds.ToArray();
+        }
+
+        return results;
     }
 
     /// <summary>Determines whether one changed item currently matches one saved tag-based creation recipe without scanning a library.</summary>
     public bool MatchesLiveRecipeItem(CollectionCreationRecipe recipe, BaseItem changedItem)
+        => MatchesLiveRecipeItem(recipe, CreateLiveRecipeItemContext(changedItem));
+
+    /// <summary>Builds the live metadata used by every saved recipe for one changed item exactly once.</summary>
+    public LiveRecipeItemContext CreateLiveRecipeItemContext(BaseItem changedItem)
+    {
+        var collectionItem = ResolveCollectionItem(changedItem);
+        var itemLibraryIds = collectionItem.GetAncestorIds().Append(collectionItem.Id).ToHashSet();
+        var metadataSources = collectionItem.Id == changedItem.Id
+            ? new[] { collectionItem }
+            : new[] { collectionItem, changedItem };
+        var metadata = CreateCatalogItem(collectionItem, Guid.Empty, string.Empty, metadataSources).Metadata;
+        return new LiveRecipeItemContext(collectionItem.Id, itemLibraryIds, metadata);
+    }
+
+    /// <summary>Matches one saved recipe against a previously built changed-item metadata context.</summary>
+    public bool MatchesLiveRecipeItem(CollectionCreationRecipe recipe, LiveRecipeItemContext context)
     {
         if (recipe.Kind == CollectionCreationRecipeKind.Manual)
         {
-            return recipe.ManualItemIds.Contains(changedItem.Id);
+            return recipe.ManualItemIds.Contains(context.CollectionItemId);
         }
 
         var tags = recipe.SelectedTags
@@ -330,27 +416,21 @@ public sealed class MetadataCatalogService
             .Concat(recipe.AdditionalLibraryIds)
             .Distinct()
             .ToHashSet();
-        var collectionItem = ResolveCollectionItem(changedItem);
-        var itemLibraryIds = collectionItem.GetAncestorIds().Append(collectionItem.Id).ToHashSet();
-        if (!itemLibraryIds.Overlaps(recipeLibraryIds))
+        if (!context.LibraryIds.Overlaps(recipeLibraryIds))
         {
             return false;
         }
 
-        var metadataSources = collectionItem.Id == changedItem.Id
-            ? new[] { collectionItem }
-            : new[] { collectionItem, changedItem };
-        var metadata = CreateCatalogItem(collectionItem, Guid.Empty, string.Empty, metadataSources).Metadata;
         return recipe.RequireAllTags
-            ? tags.All(tag => MetadataContains(metadata, tag))
-            : tags.Any(tag => MetadataContains(metadata, tag));
+            ? tags.All(tag => MetadataContains(context.Metadata, tag))
+            : tags.Any(tag => MetadataContains(context.Metadata, tag));
     }
 
     private static bool MetadataContains(IReadOnlyDictionary<string, IReadOnlyList<string>> metadata, CollectionCreationTagSelection tag) =>
         metadata.TryGetValue(tag.MetadataType.Trim(), out var values)
         && values.Contains(tag.MetadataValue.Trim(), StringComparer.OrdinalIgnoreCase);
 
-    private async Task ScanAsync()
+    public async Task ScanAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
         try
         {
@@ -374,15 +454,18 @@ public sealed class MetadataCatalogService
             var processed = 0;
             foreach (var folder in folders)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var rows = new List<MetadataCatalogItem>(folder.Items.Length);
                 foreach (var group in folder.Items.GroupBy(item => ResolveCollectionItem(item).Id))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var collectionItem = ResolveCollectionItem(group.First());
                     rows.Add(CreateCatalogItem(collectionItem, folder.Id, folder.Name, group));
                     processed += group.Count();
                     if (processed % 10 == 0 || processed == totalItems)
                     {
                         UpdateStatus(true, processed, totalItems, "Scanning metadata tags…");
+                        progress.Report(totalItems == 0 ? 100 : processed * 100d / totalItems);
                         await Task.Yield();
                     }
                 }
@@ -409,6 +492,16 @@ public sealed class MetadataCatalogService
             }
 
             PersistLastAvailableCatalog(completedAt, nextCatalogs);
+            progress.Report(100);
+        }
+        catch (OperationCanceledException)
+        {
+            lock (_sync)
+            {
+                _status = new MetadataCatalogStatus(false, 0, 0, _status.LastCompletedUtc, "Metadata tag scan stopped. The last completed catalog is still available.");
+            }
+
+            throw;
         }
         catch (Exception exception)
         {
@@ -766,3 +859,9 @@ public sealed class MetadataCatalogService
         IReadOnlyList<string> Columns,
         IReadOnlyDictionary<string, IReadOnlyList<MetadataCatalogValue>> ValuesByType);
 }
+
+/// <summary>One live changed item's reusable recipe-matching metadata.</summary>
+public sealed record LiveRecipeItemContext(
+    Guid CollectionItemId,
+    IReadOnlySet<Guid> LibraryIds,
+    IReadOnlyDictionary<string, IReadOnlyList<string>> Metadata);

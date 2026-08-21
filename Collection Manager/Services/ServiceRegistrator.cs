@@ -19,7 +19,11 @@ public sealed class ServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<CollectionArtAssetStore>();
         serviceCollection.AddSingleton<CollectionBackupManager>();
         serviceCollection.AddSingleton<ManualReconciliationRequestQueue>();
+        serviceCollection.AddSingleton<MediaTaggingManagerActivityGate>();
+        serviceCollection.AddSingleton<ReconciliationScheduler>();
         serviceCollection.AddSingleton<IScheduledTask, ReconcileCollectionsTask>();
+        serviceCollection.AddSingleton<IScheduledTask, MetadataCatalogScanTask>();
+        serviceCollection.AddSingleton<IScheduledTask, CollectionOverviewScanTask>();
         serviceCollection.AddHostedService<MetadataChangeListener>();
     }
 }

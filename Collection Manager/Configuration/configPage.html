@@ -283,7 +283,7 @@
     (function () {
         'use strict';
         var page = document.querySelector('#collectionManagerPage');
-        var config, libraries = [], lastStatus, collectionOverviewPages = {}, collectionOverviewCollapsed = {}, collectionEditor = { id:null, selected:{}, page:1, originalName:'', originalOverview:'', pendingRemovals:{}, pendingAdds:[] }, collectionTarget = { id:'', page:1 }, collectionEditorDialog, collectionTargetDialog, collectionRecipeEditor = null;
+        var config, libraries = [], lastStatus, statusPollTimer = null, statusRequestActive = false, collectionStatusPollTimer = null, collectionStatusRequestActive = false, metadataTypesCache = {}, collectionOverviewPages = {}, collectionOverviewCollapsed = {}, collectionEditor = { id:null, selected:{}, page:1, originalName:'', originalOverview:'', pendingRemovals:{}, pendingAdds:[] }, collectionTarget = { id:'', page:1 }, collectionEditorDialog, collectionTargetDialog, collectionRecipeEditor = null;
         var artSettings = {}, artCollections = [], artCollectionsLoaded = false, artCollectionsLoad = null, artPosterExamples = {}, artUploads = { text:{}, poster:{}, logo:{} }, artFontLoads = {}, artLogos = null, gradientPreviewTimer = null, gradientArtOrder = { kind:'', ids:[] };
         var find = function (selector) { return page.querySelector(selector) || (collectionEditorDialog && collectionEditorDialog.querySelector(selector)); };
         var $ = find;
@@ -292,6 +292,7 @@
         var get = function (path) { return ApiClient.getJSON(url(path)).catch(normalizeApiError); };
         var send = function (method, path, data) { return ApiClient.ajax({ type: method, url: url(path), data: data === undefined ? undefined : JSON.stringify(data), contentType: 'application/json', dataType: 'json' }).catch(normalizeApiError); };
         var sendForm = function (path, data) { return fetch(ApiClient.getUrl('CollectionManager/' + path, { ApiKey:ApiClient.accessToken() }), { method:'POST', credentials:'same-origin', body:data }).then(function (response) { if (!response.ok) { return response.text().then(function (text) { return Promise.reject({ status:response.status, statusText:response.statusText, responseText:text }); }); } return (response.headers.get('Content-Type') || '').toLowerCase().indexOf('application/json') >= 0 ? response.json() : response; }); };
+        var getCatalogTypes = function (libraryId) { var key = String(libraryId); return metadataTypesCache[key] || (metadataTypesCache[key] = get('metadata-catalog/types?libraryId=' + encodeURIComponent(key)).catch(function (error) { delete metadataTypesCache[key]; return Promise.reject(error); })); };
         var prop = function (object, name) { return object && (object[name] !== undefined ? object[name] : object[name.charAt(0).toLowerCase() + name.slice(1)]); };
         var escapeHtml = function (value) { var element = document.createElement('span'); element.textContent = value === undefined || value === null ? '' : String(value); return element.innerHTML; };
         var plainText = function (value) { var element = document.createElement('div'); element.innerHTML = value === undefined || value === null ? '' : String(value); return element.textContent || ''; };
@@ -430,7 +431,7 @@
             $('#scanProgressBar').style.width = percent + '%';
             $('#scanStatus').textContent = prop(lastStatus, 'Message') || 'Ready to scan your selected libraries.';
             $('#scanMetadataTagsButton').disabled = scanning;
-            if (priorStatus && prop(priorStatus, 'IsScanning') === true && !scanning && $('#metadataOverviewContent').hidden === false && total > 0) { loadMetadataOverview(); }
+            if (priorStatus && prop(priorStatus, 'IsScanning') === true && !scanning) { metadataTypesCache = {}; if ($('#metadataOverviewContent').hidden === false && total > 0) { loadMetadataOverview(); } }
         }
 
         function loadSettings() {
@@ -451,7 +452,6 @@
                 loadCollectionBackups();
                 loadCollectionOverviewStatus();
                 loadArtSettings();
-                refreshStatus();
             }, function (error) { $('#libraryChoices').innerHTML = '<p class="fieldDescription">Could not load plugin settings: ' + escapeHtml(err(error)) + '</p>'; });
         }
 
@@ -715,12 +715,26 @@
         }
 
         function refreshStatus() {
-            get('metadata-catalog/status').then(updateStatus, function () { /* The next regular poll retries safely. */ });
+            if (statusRequestActive) { return; }
+            statusRequestActive = true;
+            get('metadata-catalog/status').then(function (status) {
+                updateStatus(status);
+                if (prop(status, 'IsScanning') === true) { scheduleStatusPoll(document.hidden ? 15000 : 3000); }
+            }, function () {
+                if (lastStatus && prop(lastStatus, 'IsScanning') === true) { scheduleStatusPoll(document.hidden ? 15000 : 5000); }
+            }).then(function () { statusRequestActive = false; });
+        }
+
+        function scheduleStatusPoll(delay) {
+            window.clearTimeout(statusPollTimer);
+            statusPollTimer = window.setTimeout(refreshStatus, delay);
         }
 
         function startScan() {
             send('POST', 'metadata-catalog/scan', {}).then(function (status) {
+                metadataTypesCache = {};
                 updateStatus(status);
+                if (prop(status, 'IsScanning') === true) { scheduleStatusPoll(1000); }
             }, function (error) { Dashboard.alert(err(error)); });
         }
 
@@ -747,7 +761,7 @@
             var container = page.querySelector('[data-catalog-content="' + libraryId + '"]');
             if (!container) { return; }
             container.innerHTML = '<p class="fieldDescription">Loading metadata tag types…</p>';
-            catalogGet('metadata-catalog/types?libraryId=' + encodeURIComponent(libraryId), function (types) {
+            getCatalogTypes(libraryId).then(function (types) {
                 types = Array.isArray(types) ? types : [];
                 container.innerHTML = types.length ? metadataTypeSections(types, function (type) {
                     var name = prop(type, 'Name'), count = prop(type, 'ValueCount');
@@ -893,7 +907,7 @@
 
         var manualCollectionDraft = { title:'', overview:'', selected:{}, artPreference:'JellyfinDefault' }, manualLibraryItems = {}, manualLibraryStates = {};
         function manualSelectedItems() { return Object.keys(manualCollectionDraft.selected).map(function (id) { return manualCollectionDraft.selected[id]; }); }
-        function manualLibraryState(libraryId) { return manualLibraryStates[libraryId] || (manualLibraryStates[libraryId] = { page:1, search:'' }); }
+        function manualLibraryState(libraryId) { return manualLibraryStates[libraryId] || (manualLibraryStates[libraryId] = { page:1, search:'', total:0, pageSize:10, loadedPage:0, loadedSearch:'' }); }
         function manualPickerPoster(item) { return prop(item, 'HasPrimaryImage') ? jellyfinPoster(prop(item, 'Id')) : ''; }
         function manualPickerItem(item, includePicker) {
             var id = String(prop(item, 'Id')), selected = manualCollectionDraft.selected[id], year = prop(item, 'ProductionYear'), type = prop(item, 'Type'), info = (year ? ' (' + year + ')' : '') + (type ? ' · ' + type : ''), overview = plainText(prop(item, 'Overview')), details = manualPickerPoster(item) + '<span class="mcm-related-title-text"><strong>' + escapeHtml(prop(item, 'Name')) + '</strong>' + (includePicker ? '' : '<button is="emby-button" type="button" class="raised mcm-manual-remove" data-manual-remove="' + escapeHtml(id) + '">Remove</button>') + '<span class="fieldDescription">' + escapeHtml(info) + '</span>' + (overview ? '<span class="fieldDescription mcm-manual-description">' + escapeHtml(overview) + '</span>' : '') + '</span>', title = '<div class="mcm-related-title">' + details + '</div>';
@@ -904,24 +918,26 @@
             host.innerHTML = libraries.length ? libraries.map(function (library) { var id = String(prop(library, 'ItemId')); return '<div class="mcm-library-overview" data-manual-library="' + escapeHtml(id) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(prop(library, 'Name')) + '</h3><button is="emby-button" type="button" class="raised" data-toggle-manual-library="' + escapeHtml(id) + '">Click here to expand</button></div><div class="mcm-picker-library-content mcm-manual-picker" data-manual-library-content="' + escapeHtml(id) + '" hidden></div></div>'; }).join('') : '<p class="fieldDescription">No Jellyfin libraries were found.</p>';
         }
         function renderManualLibraryItems(libraryId) {
-            var host = find('[data-manual-library-content="' + libraryId + '"]'), items = manualLibraryItems[libraryId] || [], state = manualLibraryState(libraryId), search = state.search.toLowerCase(), filtered = items.filter(function (item) { return !search || String(prop(item, 'Name') || '').toLowerCase().indexOf(search) >= 0; }), pageSize = 10, pages = Math.max(1, Math.ceil(filtered.length / pageSize)), pageNumber = Math.min(Math.max(1, state.page), pages), visible = filtered.slice((pageNumber - 1) * pageSize, pageNumber * pageSize), results, previous, next, pageText;
+            var host = find('[data-manual-library-content="' + libraryId + '"]'), visible = manualLibraryItems[libraryId] || [], state = manualLibraryState(libraryId), pageSize = state.pageSize || 10, pages = Math.max(1, Math.ceil((state.total || 0) / pageSize)), pageNumber = Math.min(Math.max(1, state.page), pages), results, previous, next, pageText;
             if (!host) { return; }
             state.page = pageNumber;
-            if (!items.length) { host.innerHTML = '<p class="fieldDescription">No selectable media was found in this library.</p>'; return; }
             if (!host.querySelector('[data-manual-results]')) {
                 host.innerHTML = '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search media</label><input is="emby-input" type="search" data-manual-search value="' + escapeHtml(state.search) + '" placeholder="Search this library" /></div><div class="mcm-library-heading mcm-manual-controls"><button is="emby-button" type="button" class="raised" data-manual-page="1" data-manual-previous-page>Previous Page</button><button is="emby-button" type="button" class="raised" data-manual-select-all="1">Select All</button><button is="emby-button" type="button" class="raised" data-manual-select-none="1">Select None</button><button is="emby-button" type="button" class="raised" data-manual-page="1" data-manual-next-page>Next Page</button><span class="fieldDescription mcm-pagination-text" data-manual-page-text></span></div><div data-manual-results></div>';
             }
             results = host.querySelector('[data-manual-results]'); previous = host.querySelector('[data-manual-previous-page]'); next = host.querySelector('[data-manual-next-page]'); pageText = host.querySelector('[data-manual-page-text]');
             results.innerHTML = visible.length ? '<div class="mcm-collection-member-grid">' + visible.map(function (item) { return manualPickerItem(item, true); }).join('') + '</div>' : '<p class="fieldDescription">No selectable media matches this search.</p>';
-            previous.setAttribute('data-manual-page', String(pageNumber - 1)); previous.disabled = pageNumber <= 1; next.setAttribute('data-manual-page', String(pageNumber + 1)); next.disabled = pageNumber >= pages; pageText.textContent = 'Page ' + pageNumber + ' out of ' + pages;
+            previous.setAttribute('data-manual-page', String(pageNumber - 1)); previous.disabled = pageNumber <= 1; next.setAttribute('data-manual-page', String(pageNumber + 1)); next.disabled = pageNumber >= pages; pageText.textContent = 'Page ' + pageNumber + ' out of ' + pages + ' · ' + (state.total || 0) + ' media item' + ((state.total || 0) === 1 ? '' : 's');
         }
         function loadManualLibraryItems(libraryId) {
             var host = find('[data-manual-library-content="' + libraryId + '"]');
             if (!host) { return; }
-            if (manualLibraryItems[libraryId]) { renderManualLibraryItems(libraryId); return; }
-            host.innerHTML = '<p class="fieldDescription">Loading library media…</p>';
-            get('manual-collections/library-items?libraryId=' + encodeURIComponent(libraryId)).then(function (result) {
+            var state = manualLibraryState(libraryId);
+            if (manualLibraryItems[libraryId] && state.loadedPage === state.page && state.loadedSearch === state.search) { renderManualLibraryItems(libraryId); return; }
+            if (host.querySelector('[data-manual-results]')) { host.querySelector('[data-manual-results]').innerHTML = '<p class="fieldDescription">Loading library media…</p>'; }
+            else { host.innerHTML = '<p class="fieldDescription">Loading library media…</p>'; }
+            get('manual-collections/library-items?libraryId=' + encodeURIComponent(libraryId) + '&page=' + encodeURIComponent(state.page) + '&searchTerm=' + encodeURIComponent(state.search)).then(function (result) {
                 manualLibraryItems[libraryId] = prop(result, 'Items') || [];
+                state.page = Number(prop(result, 'Page') || 1); state.pageSize = Number(prop(result, 'PageSize') || 10); state.total = Number(prop(result, 'TotalItems') || 0); state.loadedPage = state.page; state.loadedSearch = state.search;
                 renderManualLibraryItems(libraryId);
             }, function (error) { host.innerHTML = '<p class="fieldDescription">Could not load library media: ' + escapeHtml(err(error)) + '</p>'; });
         }
@@ -986,13 +1002,19 @@
         }
         function toggleTagPickerType(scope, button) { var section = button.closest('[data-flat-tag-type]'), content = section && section.querySelector('[data-flat-tag-content]'), type = section && section.getAttribute('data-flat-tag-type-name'); if (!section || !content || !type) { return; } if (!content.hidden) { content.hidden = true; button.textContent = 'Click here to expand'; return; } button.textContent = 'Click here to collapse'; loadTagPickerType(scope, type, tagPickerSearches[scope] || ''); }
         function searchTagPicker(scope) {
-            var host = tagPickerHost(scope), search = String(tagPickerSearches[scope] || '').trim(), sections, next = 0, active = 0, completed = 0;
+            var host = tagPickerHost(scope), search = String(tagPickerSearches[scope] || '').trim(), loadId, libraryIds;
             if (!host) { return; }
-            sections = Array.prototype.slice.call(host.querySelectorAll('[data-flat-tag-type]'));
-            if (!search) { sections.forEach(function (section) { section.hidden = false; var content = section.querySelector('[data-flat-tag-content]'), button = section.querySelector('[data-flat-tag-toggle]'); content.hidden = true; content.innerHTML = ''; button.textContent = 'Click here to expand'; }); setTagPickerStatus(host, 'Choose a metadata tag type to expand its tags.'); return; }
+            if (!search) { renderTagPicker(scope); return; }
+            if (search.length < 2) { setTagPickerStatus(host, 'Enter at least two characters to search metadata tags.'); return; }
+            libraryIds = selectedSavedLibraries();
+            loadId = (tagPickerLoadIds[scope] || 0) + 1; tagPickerLoadIds[scope] = loadId;
             setTagPickerStatus(host, 'Searching metadata tag types and tags…');
-            function startNext() { if (next >= sections.length) { if (!active) { setTagPickerStatus(host, 'Showing metadata tag search results.'); } return; } var section = sections[next++], type = section.getAttribute('data-flat-tag-type-name'), button = section.querySelector('[data-flat-tag-toggle]'); active++; button.textContent = 'Click here to collapse'; loadTagPickerType(scope, type, search, function () { completed++; active--; startNext(); }); }
-            for (var worker = 0; worker < Math.min(4, sections.length); worker += 1) { startNext(); }
+            get('metadata-catalog/search?libraryIds=' + encodeURIComponent(libraryIds.join(',')) + '&searchTerm=' + encodeURIComponent(search) + '&limit=200').then(function (results) {
+                if (!tagPickerIsCurrent(scope, loadId, host)) { return; }
+                var grouped = {}, order = [];
+                (results || []).forEach(function (result) { var type = prop(result, 'MetadataType'); if (!grouped[type]) { grouped[type] = []; order.push(type); } grouped[type].push(result); });
+                host.innerHTML = '<div class="inputContainer"><label class="inputLabel inputLabelUnfocused">Search tags</label><input is="emby-input" type="search" data-flat-tag-search-input="' + escapeHtml(scope) + '" value="' + escapeHtml(search) + '" placeholder="Search tag types and tags" /></div><p class="fieldDescription" data-flat-tag-load-status>' + ((results || []).length >= 200 ? 'Showing the first 200 matches. Refine your search for fewer results.' : 'Showing metadata tag search results.') + '</p>' + (order.length ? order.map(function (type) { return '<div class="mcm-tag-type" data-flat-tag-type data-flat-tag-type-name="' + escapeHtml(type) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(metadataTypeLabel(type)) + '</h3></div><div class="mcm-tag-type-content"><div class="mcm-tag-picker-grid">' + grouped[type].map(function (choice) { return tagPickerChoiceMarkup(scope, choice); }).join('') + '</div></div></div>'; }).join('') : '<p class="fieldDescription">No metadata tags match this search.</p>');
+            }, function (error) { if (tagPickerIsCurrent(scope, loadId, host)) { setTagPickerStatus(host, 'Could not search metadata tags: ' + err(error)); } });
         }
         function applyTagPickerFilter(scope) {
             var host = tagPickerHost(scope), search = String(tagPickerSearches[scope] || '').trim().toLowerCase();
@@ -1005,7 +1027,7 @@
             if (!selectedSavedLibraries().length) { host.innerHTML = '<p class="fieldDescription">Save one or more libraries and run a metadata tag scan before selecting tags.</p>'; return; }
             host.innerHTML = '<p class="fieldDescription">Loading metadata tags…</p>';
             loadId = (tagPickerLoadIds[scope] || 0) + 1; tagPickerLoadIds[scope] = loadId;
-            Promise.all(selectedSavedLibraries().map(function (libraryId) { return get('metadata-catalog/types?libraryId=' + encodeURIComponent(libraryId)).then(function (types) { return (types || []).map(function (type) { return { libraryId:String(libraryId), libraryName:catalogLibraryName(libraryId), metadataType:prop(type, 'Name'), valueCount:Number(prop(type, 'ValueCount') || 0) }; }); }); })).then(function (lists) {
+            Promise.all(selectedSavedLibraries().map(function (libraryId) { return getCatalogTypes(libraryId).then(function (types) { return (types || []).map(function (type) { return { libraryId:String(libraryId), libraryName:catalogLibraryName(libraryId), metadataType:prop(type, 'Name'), valueCount:Number(prop(type, 'ValueCount') || 0) }; }); }); })).then(function (lists) {
                 if (!tagPickerIsCurrent(scope, loadId, host)) { return; }
                 lists.forEach(function (list) { sources = sources.concat(list); });
                 var grouped = {}, types = [], total = 0;
@@ -1023,7 +1045,7 @@
             var host = find('[data-picker-library-content="' + libraryId + '"]');
             if (!host) { return; }
             host.innerHTML = '<p class="fieldDescription">Loading metadata tag types…</p>';
-            catalogGet('metadata-catalog/types?libraryId=' + encodeURIComponent(libraryId), function (types) {
+            getCatalogTypes(libraryId).then(function (types) {
                 types = Array.isArray(types) ? types : [];
                 host.innerHTML = types.length ? metadataTypeSections(types, function (type) { var name = prop(type, 'Name'), count = prop(type, 'ValueCount'); return '<div class="mcm-tag-type" data-tag-type="' + escapeHtml(name) + '" data-tag-library="' + escapeHtml(libraryId) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(metadataTypeLabel(name)) + ' (' + escapeHtml(count) + ' tags)</h3><button is="emby-button" type="button" class="raised" data-toggle-tag-type="1">Click here to expand</button></div><div class="mcm-tag-type-content" hidden></div></div>'; }) : '<p class="fieldDescription">No scanned metadata tags are available for this library yet.</p>';
             }, function (error) { host.innerHTML = '<p class="fieldDescription">Could not load metadata tag types: ' + escapeHtml(err(error)) + '</p>'; });
@@ -1136,7 +1158,7 @@
             var host = find('[data-mode-types="' + mode + '|' + libraryId + '"]');
             if (!host) { return; }
             host.innerHTML = '<p class="fieldDescription">Loading metadata tag types…</p>';
-            catalogGet('metadata-catalog/types?libraryId=' + encodeURIComponent(libraryId), function (types) {
+            getCatalogTypes(libraryId).then(function (types) {
                 types = Array.isArray(types) ? types : [];
                 host.innerHTML = types.length ? metadataTypeSections(types, function (type) { var name = prop(type, 'Name'); return '<div class="mcm-tag-type" data-mode-section="' + mode + '" data-library="' + escapeHtml(libraryId) + '" data-type="' + escapeHtml(name) + '"><div class="mcm-library-heading"><h3>' + escapeHtml(metadataTypeLabel(name)) + ' (' + escapeHtml(prop(type, 'ValueCount')) + ' tags)</h3><button is="emby-button" type="button" class="raised" data-mode-type="' + mode + '">Click here to expand</button></div><div class="mcm-tag-type-content" hidden></div></div>'; }) : '<p class="fieldDescription">No scanned metadata tags are available for this library yet.</p>';
                 (restoredTypes || []).forEach(function (saved) { var section = Array.prototype.filter.call(host.querySelectorAll('[data-mode-section]'), function (candidate) { return candidate.getAttribute('data-type') === saved.type; })[0], content = section && section.querySelector('.mcm-tag-type-content'), button = section && section.querySelector('[data-mode-type]'); if (content && button) { content.hidden = false; button.textContent = 'Click here to collapse'; loadModeValues(section, saved.page, saved.search); } });
@@ -1164,11 +1186,33 @@
             $('#collectionsScanStatus').textContent = completed ? message + ' Last Scan: ' + new Date(completed).toLocaleString() : message;
             $('#scanCollectionsButton').disabled = scanning;
         }
-        function loadCollectionOverviewStatus() { get('collection-overview/status').then(updateCollectionOverviewStatus, function (error) { $('#collectionsScanStatus').textContent = 'Could not load collection scan status: ' + err(error); }); }
+        function scheduleCollectionStatusPoll(delay) { window.clearTimeout(collectionStatusPollTimer); collectionStatusPollTimer = window.setTimeout(loadCollectionOverviewStatus, delay); }
+        function loadCollectionOverviewStatus() {
+            if (collectionStatusRequestActive) { return; }
+            collectionStatusRequestActive = true;
+            get('collection-overview/status').then(function (status) {
+                updateCollectionOverviewStatus(status);
+                if (prop(status, 'IsScanning') === true) { scheduleCollectionStatusPoll(document.hidden ? 15000 : 3000); }
+                else if ($('#collectionsOverviewContent').hidden === false && Number(prop(status, 'TotalItems') || 0) > 0) { loadCollectionOverview(); }
+            }, function (error) {
+                $('#collectionsScanStatus').textContent = 'Could not load collection scan status: ' + err(error);
+                scheduleCollectionStatusPoll(document.hidden ? 15000 : 5000);
+            }).then(function () { collectionStatusRequestActive = false; });
+        }
         function loadCollectionOverview() {
             get('collection-overview/all').then(function (result) {
                 collectionOverviewPages = { all:result || { Items:[] } }; collectionOverviewCollapsed = {}; renderCollectionOverview();
             }, function (error) { $('#collectionsOverviewGroups').innerHTML = '<p class="fieldDescription">Could not load collection overview: ' + escapeHtml(err(error)) + '</p>'; });
+        }
+        function loadCollectionOverviewMembers(collectionId) {
+            var result = collectionOverviewPages.all, collection = result && (prop(result, 'Items') || []).filter(function (item) { return String(prop(item, 'CollectionId')) === String(collectionId); })[0];
+            if (!collection || prop(collection, 'MembersLoaded') === true || prop(collection, 'MemberLoading') === true) { return; }
+            collection.MemberLoading = true;
+            get('collection-overview/members?collectionId=' + encodeURIComponent(collectionId)).then(function (response) {
+                collection.MemberLoading = false; collection.MembersLoaded = true; collection.Items = prop(response, 'Items') || []; renderCollectionOverview();
+            }, function (error) {
+                collection.MemberLoading = false; collection.MembersLoaded = false; collection.MemberLoadError = err(error); renderCollectionOverview();
+            });
         }
         function collectionClass(collection) { return prop(collection, 'NewlyRemoved') === true ? 'mcm-last-removed' : (prop(collection, 'NewlyAdded') === true ? 'mcm-last-added' : ''); }
         function jellyfinPoster(itemId, className) { return '<img class="' + (className || 'mcm-related-poster') + '" loading="lazy" alt="" src="' + escapeHtml(ApiClient.getUrl('Items/' + encodeURIComponent(itemId) + '/Images/Primary')) + '" onerror="this.remove()" />'; }
@@ -1178,8 +1222,8 @@
             var result = collectionOverviewPages.all;
             if (!result) { $('#collectionsOverviewGroups').innerHTML = '<p class="fieldDescription">Run Scan for Collections to load your saved collection overview.</p>'; return; }
             var entries = (prop(result, 'Items') || []).map(function (collection) {
-                var current = prop(collection, 'Exists') !== false, items = prop(collection, 'Items') || [], id = String(prop(collection, 'CollectionId')), collapsed = collectionOverviewCollapsed[id] !== false, itemCount = items.length, label = escapeHtml(prop(collection, 'Name')) + ' (' + itemCount + ' item' + (itemCount === 1 ? '' : 's') + ')', actions = current ? '<div class="mcm-actions"><button is="emby-button" type="button" class="raised" data-toggle-collection="' + escapeHtml(id) + '">' + (collapsed ? 'Click here to expand' : 'Click here to collapse') + '</button><button is="emby-button" type="button" class="raised" data-edit-collection="' + escapeHtml(id) + '">Edit Collection</button></div>' : '<p class="fieldDescription">This collection was removed since the previous scan.</p>', primary = current ? jellyfinPoster(id, 'mcm-collection-overview-art') : '';
-                return '<section class="mcm-section mcm-collection-overview-entry' + (collapsed ? '' : ' mcm-collection-expanded') + '"><div class="mcm-collection-overview-heading">' + primary + '<div class="mcm-collection-overview-info"><h2 class="' + collectionClass(collection) + '">' + label + '</h2>' + actions + '</div></div><div class="mcm-collection-members"' + (collapsed ? ' hidden' : '') + '><div class="mcm-collection-member-grid">' + relatedTitleList(items) + '</div></div></section>';
+                var current = prop(collection, 'Exists') !== false, items = prop(collection, 'Items') || [], id = String(prop(collection, 'CollectionId')), collapsed = collectionOverviewCollapsed[id] !== false, itemCount = Number(prop(collection, 'ItemCount') || items.length), label = escapeHtml(prop(collection, 'Name')) + ' (' + itemCount + ' item' + (itemCount === 1 ? '' : 's') + ')', actions = current ? '<div class="mcm-actions"><button is="emby-button" type="button" class="raised" data-toggle-collection="' + escapeHtml(id) + '">' + (collapsed ? 'Click here to expand' : 'Click here to collapse') + '</button><button is="emby-button" type="button" class="raised" data-edit-collection="' + escapeHtml(id) + '">Edit Collection</button></div>' : '<p class="fieldDescription">This collection was removed since the previous scan.</p>', primary = current ? jellyfinPoster(id, 'mcm-collection-overview-art') : '', members = prop(collection, 'MemberLoadError') ? '<p class="fieldDescription">Could not load saved collection members: ' + escapeHtml(prop(collection, 'MemberLoadError')) + '</p>' : (prop(collection, 'MemberLoading') === true ? '<p class="fieldDescription">Loading saved collection members…</p>' : relatedTitleList(items));
+                return '<section class="mcm-section mcm-collection-overview-entry' + (collapsed ? '' : ' mcm-collection-expanded') + '"><div class="mcm-collection-overview-heading">' + primary + '<div class="mcm-collection-overview-info"><h2 class="' + collectionClass(collection) + '">' + label + '</h2>' + actions + '</div></div><div class="mcm-collection-members"' + (collapsed ? ' hidden' : '') + '><div class="mcm-collection-member-grid">' + members + '</div></div></section>';
             }).join('') || '<p class="fieldDescription">No collections match the selected collection settings.</p>';
             $('#collectionsOverviewGroups').innerHTML = entries;
             Array.prototype.forEach.call($('#collectionsOverviewGroups').querySelectorAll('[data-edit-collection]'), function (button) { button.insertAdjacentHTML('afterend', '<button is="emby-button" type="button" class="raised" data-delete-collection="' + escapeHtml(button.getAttribute('data-edit-collection')) + '">Delete Collection</button>'); });
@@ -1423,7 +1467,7 @@
                 var state = String(prop(status, 'State') || ''), message = prop(status, 'Message') || 'Recreating ' + request.CollectionTitle + '…';
                 if (state === 'Queued' || state === 'Running') {
                     reportRecreationProgress(context, true, message, '');
-                    context.recreationPollTimer = window.setTimeout(function () { pollCollectionRecreation(context, request); }, 750);
+                    context.recreationPollTimer = window.setTimeout(function () { pollCollectionRecreation(context, request); }, document.hidden ? 15000 : (state === 'Queued' ? 10000 : 3000));
                     return;
                 }
                 if (state === 'Completed') {
@@ -1543,10 +1587,10 @@
             send('POST', 'collections/cleanup', request).then(function (result) { $('#cleanUpCollectionsStatus').textContent = prop(result, 'Message') || 'Cleanup complete.'; $('#undoLastCollectionAction').checked = false; $('#removeAllPluginCollections').checked = false; $('#removeAllExternalCollectionAdditions').checked = false; refreshCollectionsAfterEdit(); }, function (error) { $('#cleanUpCollectionsStatus').textContent = 'Cleanup could not be completed: ' + err(error); });
         });
         $('#saveCollectionOverviewSettingsButton').addEventListener('click', function () { send('POST', 'settings/collection-overview', { ShowPluginMadeCollections: $('#showPluginMadeCollections').checked, ShowNonPluginMadeCollections: $('#showNonPluginMadeCollections').checked }).then(function (updated) { config = normalize(updated || config); Dashboard.alert('Selected Collections Settings saved.'); loadCollectionOverview(); }, function (error) { Dashboard.alert('Could not save Selected Collections Settings: ' + err(error)); }); });
-        $('#scanCollectionsButton').addEventListener('click', function () { $('#collectionsScanProgress').style.width = '25%'; $('#collectionsScanStatus').textContent = 'Scanning collections…'; send('POST', 'collection-overview/scan').then(function (status) { $('#collectionsScanProgress').style.width = '100%'; updateCollectionOverviewStatus(status); loadCollectionOverview(); }, function (error) { $('#collectionsScanProgress').style.width = '0'; $('#collectionsScanStatus').textContent = 'Collection scan could not be completed: ' + err(error); }); });
+        $('#scanCollectionsButton').addEventListener('click', function () { $('#collectionsScanProgress').style.width = '0%'; $('#collectionsScanStatus').textContent = 'Queueing collection scan…'; send('POST', 'collection-overview/scan').then(function (status) { updateCollectionOverviewStatus(status); scheduleCollectionStatusPoll(1000); }, function (error) { $('#collectionsScanProgress').style.width = '0'; $('#collectionsScanStatus').textContent = 'Collection scan could not be queued: ' + err(error); }); });
         $('#toggleCollectionsOverview').addEventListener('click', function () { var content = $('#collectionsOverviewContent'), expanded = !content.hidden; content.hidden = expanded; this.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) loadCollectionOverview(); });
         $('#saveCollectionsOverviewColorsButton').addEventListener('click', function () { send('POST', 'settings/collection-overview-colors', { AddedColor: $('#collectionsOverviewAddedColor').value, RemovedColor: $('#collectionsOverviewRemovedColor').value }).then(function (updated) { config = normalize(updated || config); $('#collectionsOverviewAddedColor').value = config.CollectionOverviewAddedColor; $('#collectionsOverviewRemovedColor').value = config.CollectionOverviewRemovedColor; applyCollectionOverviewColors(); Dashboard.alert('Collection overview colors saved.'); }, function (error) { Dashboard.alert('Could not save collection overview colors: ' + err(error)); }); });
-        $('#collectionsOverviewGroups').addEventListener('click', function (event) { var target = event.target.closest('button'); if (!target) return; if (target.matches('[data-toggle-collection]')) { var id = target.getAttribute('data-toggle-collection'), collapsed = collectionOverviewCollapsed[id] !== false; collectionOverviewCollapsed[id] = !collapsed; renderCollectionOverview(); } if (target.matches('[data-edit-collection]')) { resetCollectionEditor(target.getAttribute('data-edit-collection')); openCollectionEditor(collectionEditor.id, 1); } if (target.matches('[data-delete-collection]')) { var collectionId = target.getAttribute('data-delete-collection'); if (!window.confirm('Are you sure you want to delete this collection?')) { return; } target.disabled = true; send('POST', 'collections/delete', { CollectionId:collectionId }).then(function () { var overview = collectionOverviewPages.all, items = overview && (prop(overview, 'Items') || overview.Items); if (items) { overview.Items = items.filter(function (collection) { return String(prop(collection, 'CollectionId')) !== String(collectionId); }); renderCollectionOverview(); } loadCollectionOverviewStatus(); }, function (error) { target.disabled = false; Dashboard.alert('Could not delete this collection: ' + err(error)); }); } });
+        $('#collectionsOverviewGroups').addEventListener('click', function (event) { var target = event.target.closest('button'); if (!target) return; if (target.matches('[data-toggle-collection]')) { var id = target.getAttribute('data-toggle-collection'), collapsed = collectionOverviewCollapsed[id] !== false; collectionOverviewCollapsed[id] = !collapsed; renderCollectionOverview(); if (collapsed) { loadCollectionOverviewMembers(id); } } if (target.matches('[data-edit-collection]')) { resetCollectionEditor(target.getAttribute('data-edit-collection')); openCollectionEditor(collectionEditor.id, 1); } if (target.matches('[data-delete-collection]')) { var collectionId = target.getAttribute('data-delete-collection'); if (!window.confirm('Are you sure you want to delete this collection?')) { return; } target.disabled = true; send('POST', 'collections/delete', { CollectionId:collectionId }).then(function () { var overview = collectionOverviewPages.all, items = overview && (prop(overview, 'Items') || overview.Items); if (items) { overview.Items = items.filter(function (collection) { return String(prop(collection, 'CollectionId')) !== String(collectionId); }); renderCollectionOverview(); } loadCollectionOverviewStatus(); }, function (error) { target.disabled = false; Dashboard.alert('Could not delete this collection: ' + err(error)); }); } });
         $('#toggleMetadataOverview').addEventListener('click', function () { var content = $('#metadataOverviewContent'), expanded = !content.hidden; content.hidden = expanded; this.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadMetadataOverview(); } });
         $('#metadataTypeSearch').addEventListener('input', applyOverviewTypeFilter);
         $('#metadataTagSearch').addEventListener('input', function () {
@@ -1598,12 +1642,12 @@
             var target = event.target.closest('button'); if (!target) { return; }
             if (target.matches('[data-toggle-manual-library]')) { var id = target.getAttribute('data-toggle-manual-library'), content = find('[data-manual-library-content="' + id + '"]'), expanded = !content.hidden; content.hidden = expanded; target.textContent = expanded ? 'Click here to expand' : 'Click here to collapse'; if (!expanded) { loadManualLibraryItems(id); } return; }
             var section = target.closest('[data-manual-library]'); if (!section) { return; }
-            var libraryId = section.getAttribute('data-manual-library'), state = manualLibraryState(libraryId), items = manualLibraryItems[libraryId] || [], search = state.search.toLowerCase(), filtered = items.filter(function (item) { return !search || String(prop(item, 'Name') || '').toLowerCase().indexOf(search) >= 0; }), pageItems = filtered.slice((state.page - 1) * 10, state.page * 10);
-            if (target.matches('[data-manual-page]')) { event.preventDefault(); target.blur(); state.page = Number(target.getAttribute('data-manual-page')); renderManualLibraryItems(libraryId); return; }
+            var libraryId = section.getAttribute('data-manual-library'), state = manualLibraryState(libraryId), pageItems = manualLibraryItems[libraryId] || [];
+            if (target.matches('[data-manual-page]')) { event.preventDefault(); target.blur(); state.page = Number(target.getAttribute('data-manual-page')); loadManualLibraryItems(libraryId); return; }
             if (target.matches('[data-manual-select-all]')) { event.preventDefault(); target.blur(); pageItems.forEach(function (item) { manualCollectionDraft.selected[String(prop(item, 'Id'))] = item; }); renderManualLibraryItems(libraryId); renderManualDraft(); return; }
             if (target.matches('[data-manual-select-none]')) { event.preventDefault(); target.blur(); pageItems.forEach(function (item) { delete manualCollectionDraft.selected[String(prop(item, 'Id'))]; }); renderManualLibraryItems(libraryId); renderManualDraft(); }
         });
-        $('#manualCollectionLibraryPickers').addEventListener('input', function (event) { if (event.target.matches('[data-manual-search]')) { var section = event.target.closest('[data-manual-library]'), libraryId = section.getAttribute('data-manual-library'), state = manualLibraryState(libraryId); state.search = event.target.value; state.page = 1; renderManualLibraryItems(libraryId); } });
+        $('#manualCollectionLibraryPickers').addEventListener('input', function (event) { if (event.target.matches('[data-manual-search]')) { var target = event.target, section = target.closest('[data-manual-library]'), libraryId = section.getAttribute('data-manual-library'), state = manualLibraryState(libraryId); state.search = target.value; state.page = 1; window.clearTimeout(target.searchTimer); target.searchTimer = window.setTimeout(function () { loadManualLibraryItems(libraryId); }, 350); } });
         $('#manualCollectionLibraryPickers').addEventListener('change', function (event) {
             var target = event.target;
             if (!target.matches('[data-manual-item]')) { return; }
@@ -1721,7 +1765,11 @@
         syncThemeOutlineColor();
         labelPrimaryArtwork();
         loadSettings();
-        setInterval(refreshStatus, 1500);
+        refreshStatus();
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden && lastStatus && prop(lastStatus, 'IsScanning') === true) { scheduleStatusPoll(250); }
+            if (!document.hidden && $('#scanCollectionsButton').disabled) { scheduleCollectionStatusPoll(250); }
+        });
     }());
     </script>
 </div>

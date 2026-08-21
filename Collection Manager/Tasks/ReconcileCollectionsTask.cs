@@ -10,22 +10,25 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
     private static readonly SemaphoreSlim TaskExecutionLock = new(1, 1);
     private readonly CollectionReconciler _reconciler;
     private readonly ManualReconciliationRequestQueue _requests;
-    private readonly ITaskManager _taskManager;
     private readonly LibraryIdentityService _libraryIdentities;
+    private readonly MediaTaggingManagerActivityGate _mediaTaggingManager;
+    private readonly ReconciliationScheduler _scheduler;
     private readonly ILogger<ReconcileCollectionsTask> _logger;
 
     /// <summary>Initializes a new instance of the <see cref="ReconcileCollectionsTask"/> class.</summary>
     public ReconcileCollectionsTask(
         CollectionReconciler reconciler,
         ManualReconciliationRequestQueue requests,
-        ITaskManager taskManager,
         LibraryIdentityService libraryIdentities,
+        MediaTaggingManagerActivityGate mediaTaggingManager,
+        ReconciliationScheduler scheduler,
         ILogger<ReconcileCollectionsTask> logger)
     {
         _reconciler = reconciler;
         _requests = requests;
-        _taskManager = taskManager;
         _libraryIdentities = libraryIdentities;
+        _mediaTaggingManager = mediaTaggingManager;
+        _scheduler = scheduler;
         _logger = logger;
     }
 
@@ -44,10 +47,16 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
     /// <inheritdoc />
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
-        var processedTargetedMetadataBatch = false;
         await TaskExecutionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            if (_mediaTaggingManager.IsBusy)
+            {
+                _logger.LogInformation("Collection Manager reconciliation is waiting for Media Tagging Manager or another library scan and a three-minute metadata quiet period.");
+                _scheduler.RequestReconciliation(forceTaskRun: true);
+                return;
+            }
+
             _libraryIdentities.Reconcile();
             while (_requests.TryTakeSavedRecipeRecreation(out var collectionId))
             {
@@ -57,6 +66,12 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
                     var reconciliation = await _reconciler.ReconcileSavedCreationRecipeAsync(collectionId, cancellationToken).ConfigureAwait(false);
                     _requests.CompleteSavedRecipeRecreation(reconciliation);
                     progress.Report(100);
+                }
+                catch (MediaTaggingManagerBusyException)
+                {
+                    _requests.DeferSavedRecipeRecreation(collectionId);
+                    _scheduler.RequestReconciliation(forceTaskRun: true);
+                    return;
                 }
                 catch (OperationCanceledException)
                 {
@@ -73,8 +88,18 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
 
             if (_requests.TryTakeAllEnabledRulesRequest())
             {
-                await _reconciler.ReconcileEnabledRulesAsync(cancellationToken).ConfigureAwait(false);
-                await _reconciler.ReconcileSavedCreationRecipesAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await _reconciler.ReconcileEnabledRulesAsync(cancellationToken).ConfigureAwait(false);
+                    await _reconciler.ReconcileSavedCreationRecipesAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (MediaTaggingManagerBusyException)
+                {
+                    _requests.EnqueueAllEnabledRules();
+                    _scheduler.RequestReconciliation(forceTaskRun: true);
+                    return;
+                }
+
                 progress.Report(100);
                 return;
             }
@@ -82,11 +107,21 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
             var requestedRuleIds = _requests.DrainRuleIds();
             if (requestedRuleIds.Count > 0)
             {
-                for (var index = 0; index < requestedRuleIds.Count; index++)
+                try
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    await _reconciler.ReconcileRuleAsync(requestedRuleIds[index], cancellationToken).ConfigureAwait(false);
-                    progress.Report((index + 1) * 100d / requestedRuleIds.Count);
+                    for (var index = 0; index < requestedRuleIds.Count; index++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        _mediaTaggingManager.ThrowIfBusy();
+                        await _reconciler.ReconcileRuleAsync(requestedRuleIds[index], cancellationToken).ConfigureAwait(false);
+                        progress.Report((index + 1) * 100d / requestedRuleIds.Count);
+                    }
+                }
+                catch (MediaTaggingManagerBusyException)
+                {
+                    _requests.RequeueRuleIds(requestedRuleIds);
+                    _scheduler.RequestReconciliation(forceTaskRun: true);
+                    return;
                 }
 
                 return;
@@ -95,8 +130,17 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
             var changedItemIds = _requests.DrainChangedItemIds();
             if (changedItemIds.Count > 0)
             {
-                processedTargetedMetadataBatch = true;
-                await _reconciler.ReconcileChangedItemsAsync(changedItemIds, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await _reconciler.ReconcileChangedItemsAsync(changedItemIds, cancellationToken).ConfigureAwait(false);
+                }
+                catch (MediaTaggingManagerBusyException)
+                {
+                    _requests.RequeueChangedItems(changedItemIds);
+                    _scheduler.RequestReconciliation(forceTaskRun: true);
+                    return;
+                }
+
                 progress.Report(100);
                 return;
             }
@@ -116,8 +160,17 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
             }
 
             _logger.LogInformation("Starting full scheduled Collection Manager reconciliation.");
-            await _reconciler.ReconcileEnabledRulesAsync(cancellationToken).ConfigureAwait(false);
-            await _reconciler.ReconcileSavedCreationRecipesAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await _reconciler.ReconcileEnabledRulesAsync(cancellationToken).ConfigureAwait(false);
+                await _reconciler.ReconcileSavedCreationRecipesAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (MediaTaggingManagerBusyException)
+            {
+                _scheduler.RequestReconciliation(forceTaskRun: true);
+                return;
+            }
+
             Plugin.Instance?.UpdateConfigurationSafely(updated =>
             {
                 updated.LastScheduledReconciliationUtc = DateTime.UtcNow;
@@ -129,13 +182,10 @@ public sealed class ReconcileCollectionsTask : IScheduledTask
         finally
         {
             TaskExecutionLock.Release();
-            if (processedTargetedMetadataBatch)
+            _requests.CompleteTargetedMetadataReconciliation();
+            if (_requests.HasPendingRequests)
             {
-                _requests.CompleteTargetedMetadataReconciliation();
-                if (_requests.TryQueueTargetedMetadataReconciliation())
-                {
-                    _taskManager.QueueScheduledTask<ReconcileCollectionsTask>();
-                }
+                _scheduler.RequestReconciliation();
             }
         }
     }

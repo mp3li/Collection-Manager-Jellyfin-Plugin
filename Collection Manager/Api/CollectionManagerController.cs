@@ -3,6 +3,7 @@ using Jellyfin.Plugin.CollectionManager.Models;
 using Jellyfin.Plugin.CollectionManager.Services;
 using Jellyfin.Plugin.CollectionManager.Tasks;
 using Jellyfin.Data.Enums;
+using Jellyfin.Database.Implementations.Enums;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Entities;
@@ -32,6 +33,7 @@ public sealed class CollectionManagerController : ControllerBase
     private readonly CollectionArtAssetStore _artAssets;
     private readonly CollectionBackupManager _collectionBackups;
     private readonly LibraryIdentityService _libraryIdentities;
+    private readonly ReconciliationScheduler _reconciliationScheduler;
 
     /// <summary>Initializes a new instance of the <see cref="CollectionManagerController"/> class.</summary>
     public CollectionManagerController(
@@ -44,7 +46,8 @@ public sealed class CollectionManagerController : ControllerBase
         IProviderManager providerManager,
         CollectionArtAssetStore artAssets,
         CollectionBackupManager collectionBackups,
-        LibraryIdentityService libraryIdentities)
+        LibraryIdentityService libraryIdentities,
+        ReconciliationScheduler reconciliationScheduler)
     {
         _reconciler = reconciler;
         _metadataCatalog = metadataCatalog;
@@ -56,6 +59,7 @@ public sealed class CollectionManagerController : ControllerBase
         _artAssets = artAssets;
         _collectionBackups = collectionBackups;
         _libraryIdentities = libraryIdentities;
+        _reconciliationScheduler = reconciliationScheduler;
     }
 
     /// <summary>Returns settings and selectable Jellyfin libraries for the dashboard's main settings tab.</summary>
@@ -169,7 +173,12 @@ public sealed class CollectionManagerController : ControllerBase
             return BadRequest("Save one or more libraries before scanning metadata tags.");
         }
 
-        return Accepted(_metadataCatalog.StartScan());
+        if (_metadataCatalog.TryStartScan(out var status))
+        {
+            _taskManager.QueueScheduledTask<MetadataCatalogScanTask>();
+        }
+
+        return Accepted(status);
     }
 
     /// <summary>Returns the current local metadata-catalog scan progress.</summary>
@@ -198,6 +207,20 @@ public sealed class CollectionManagerController : ControllerBase
         [FromQuery] string? searchTerm,
         [FromQuery] int page = 1) =>
         Ok(_metadataCatalog.GetValues(libraryId, metadataType, searchTerm, page));
+
+    /// <summary>Searches tag types and values across selected catalogs in one bounded request.</summary>
+    [HttpGet("metadata-catalog/search")]
+    public ActionResult<IReadOnlyList<MetadataCatalogSearchResult>> SearchMetadataCatalogValues(
+        [FromQuery] string libraryIds,
+        [FromQuery] string? searchTerm,
+        [FromQuery] int limit = 200)
+    {
+        var ids = (libraryIds ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(value => Guid.TryParse(value, out var id) ? id : Guid.Empty)
+            .Where(id => id != Guid.Empty)
+            .ToHashSet();
+        return Ok(_metadataCatalog.SearchValues(ids, searchTerm, limit));
+    }
 
     /// <summary>Previews the current catalog media a single individual collection draft would include.</summary>
     [HttpPost("individual-collection-drafts/preview")]
@@ -703,7 +726,10 @@ public sealed class CollectionManagerController : ControllerBase
 
     /// <summary>Returns the selectable media in one Jellyfin library for the manual collection picker.</summary>
     [HttpGet("manual-collections/library-items")]
-    public IActionResult GetManualCollectionLibraryItems([FromQuery] Guid libraryId)
+    public IActionResult GetManualCollectionLibraryItems(
+        [FromQuery] Guid libraryId,
+        [FromQuery] int page = 1,
+        [FromQuery] string? searchTerm = null)
     {
         if (!HasOnlyKnownLibraries([libraryId]))
         {
@@ -715,14 +741,21 @@ public sealed class CollectionManagerController : ControllerBase
         // Match Jellyfin's normal library browsing query: scope it to the
         // library, search recursively, and request only the item kinds that
         // belong in that library's configured collection type.
-        var items = _libraryManager.GetItemList(new InternalItemsQuery
+        const int pageSize = 10;
+        var currentPage = Math.Max(page, 1);
+        var matches = _libraryManager.GetItemsResult(new InternalItemsQuery
         {
             ParentId = libraryId,
             Recursive = true,
             IncludeItemTypes = GetManualCollectionItemTypes(collectionType),
-        })
+            SearchTerm = searchTerm?.Trim(),
+            StartIndex = (currentPage - 1) * pageSize,
+            Limit = pageSize,
+            EnableTotalRecordCount = true,
+            OrderBy = [(ItemSortBy.SortName, SortOrder.Ascending)],
+        });
+        var items = matches.Items
             .Where(item => item is not Video { ExtraType: not null })
-            .OrderBy(item => item.SortName ?? item.Name, StringComparer.OrdinalIgnoreCase)
             .Select(item => new
             {
                 item.Id,
@@ -734,7 +767,7 @@ public sealed class CollectionManagerController : ControllerBase
             })
             .ToArray();
 
-        return Ok(new { LibraryId = libraryId, Items = items });
+        return Ok(new { LibraryId = libraryId, Page = currentPage, PageSize = pageSize, TotalItems = matches.TotalRecordCount, Items = items });
     }
 
     /// <summary>Returns the still-available selected media for one saved manual-creation recipe.</summary>
@@ -807,7 +840,7 @@ public sealed class CollectionManagerController : ControllerBase
 
         var recipe = saved.Recipe!;
         var status = _requests.EnqueueSavedRecipeRecreation(collectionId, recipe.CollectionTitle);
-        _taskManager.QueueScheduledTask<ReconcileCollectionsTask>();
+        _reconciliationScheduler.RequestReconciliation();
         return Accepted(new { Recipe = recipe, Recreation = status });
     }
 
@@ -945,7 +978,7 @@ public sealed class CollectionManagerController : ControllerBase
 
         if (created.Count > 0)
         {
-            _taskManager.QueueScheduledTask<ReconcileCollectionsTask>();
+            _reconciliationScheduler.RequestReconciliation();
         }
 
         return Ok(created);
@@ -978,7 +1011,7 @@ public sealed class CollectionManagerController : ControllerBase
         }
 
         _requests.EnqueueRule(ruleId);
-        _taskManager.QueueScheduledTask<ReconcileCollectionsTask>();
+        _reconciliationScheduler.RequestReconciliation();
         return Accepted();
     }
 
@@ -987,7 +1020,7 @@ public sealed class CollectionManagerController : ControllerBase
     public IActionResult ReconcileAll()
     {
         _requests.EnqueueAllEnabledRules();
-        _taskManager.QueueScheduledTask<ReconcileCollectionsTask>();
+        _reconciliationScheduler.RequestReconciliation();
         return Accepted();
     }
 
@@ -1054,7 +1087,12 @@ public sealed class CollectionManagerController : ControllerBase
                 return BadRequest("Save one or more libraries in Main Settings before scanning collections.");
             }
 
-            return Ok(_collectionOverview.Scan(plugin.Configuration));
+            if (_collectionOverview.TryStartScan(out var status))
+            {
+                _taskManager.QueueScheduledTask<CollectionOverviewScanTask>();
+            }
+
+            return Accepted(status);
         }
         catch (Exception)
         {
@@ -1083,8 +1121,29 @@ public sealed class CollectionManagerController : ControllerBase
     {
         var values = FilterCollections(_collectionOverview.GetSnapshot()?.Libraries.SelectMany(library => library.Collections) ?? [])
             .OrderBy(collection => collection.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(collection => new
+            {
+                collection.CollectionId,
+                collection.Name,
+                collection.MadeByPlugin,
+                collection.Exists,
+                collection.NewlyAdded,
+                collection.NewlyRemoved,
+                ItemCount = collection.Items.Count,
+            })
             .ToArray();
         return Ok(new { Items = values, TotalItems = values.Length });
+    }
+
+    /// <summary>Returns saved member detail only when one overview collection is expanded.</summary>
+    [HttpGet("collection-overview/members")]
+    public IActionResult GetCollectionOverviewMembers([FromQuery] Guid collectionId)
+    {
+        var collection = FilterCollections(_collectionOverview.GetSnapshot()?.Libraries.SelectMany(library => library.Collections) ?? [])
+            .FirstOrDefault(value => value.CollectionId == collectionId);
+        return collection is null
+            ? NotFound("This collection is not present in the saved overview.")
+            : Ok(new { collection.CollectionId, Items = collection.Items });
     }
 
     /// <summary>Returns a bounded saved collection-overview page for one selected library.</summary>

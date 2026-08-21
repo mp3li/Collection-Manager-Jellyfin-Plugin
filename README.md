@@ -172,16 +172,17 @@ library artwork and all other Jellyfin data.
 
 ## Current Release
 
-The current catalog build is **0.1.0.80**. It is the feature-complete candidate
+The current catalog build is **0.1.0.81**. It is the feature-complete candidate
 for the first **1.0.0** release. The catalog version will change to 1.0.0 only
 when the final v1 DLL, ZIP, manifest checksum, commit, and publication are made
 together.
 
-The latest build stops Combined Tag and Multi-Match Tag recreation status
-checks from repeatedly reloading the matching-media preview. It also loads
-each automatic collection's membership once per targeted metadata batch, so
-stale Jellyfin collection links are not resolved again for every changed
-item.
+The latest build waits until Media Tagging Manager and Jellyfin library scans
+finish, then requires three quiet minutes without another metadata change
+before collection reconciliation begins. It also batches collection writes,
+shares metadata scans across rules and recipes, moves dashboard scans into
+cancellable Jellyfin tasks, and replaces high-frequency or fan-out dashboard
+requests with bounded paging, caching, lazy loading, and active-work polling.
 
 ## Requirements
 

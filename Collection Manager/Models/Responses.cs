@@ -153,6 +153,15 @@ public sealed record MetadataCatalogValuePage(
     int TotalValues,
     IReadOnlyList<MetadataCatalogValue> Values);
 
+/// <summary>One bounded cross-library metadata tag search result.</summary>
+public sealed record MetadataCatalogSearchResult(
+    Guid LibraryId,
+    string LibraryName,
+    string MetadataType,
+    string Value,
+    int MatchingItems,
+    string? PersonImageUrl);
+
 /// <summary>Preview of the current media items that a collection draft would include.</summary>
 public sealed record CatalogPreviewItem(Guid Id, string Title, Guid LibraryId, string LibraryName);
 

@@ -42,9 +42,27 @@ public sealed class CollectionOverviewService
         lock (_sync) return _snapshot;
     }
 
-    /// <summary>Scans all native collections once and persists the selected-library overview.</summary>
-    public CollectionOverviewScanStatus Scan(PluginConfiguration configuration)
+    /// <summary>Reserves one collection scan without starting unmanaged background work.</summary>
+    public bool TryStartScan(out CollectionOverviewScanStatus status)
     {
+        lock (_sync)
+        {
+            if (_status.IsScanning)
+            {
+                status = _status;
+                return false;
+            }
+
+            _status = new CollectionOverviewScanStatus(true, 0, 0, _status.LastCompletedUtc, "Preparing the collection scan…");
+            status = _status;
+            return true;
+        }
+    }
+
+    /// <summary>Scans all native collections once and persists the selected-library overview.</summary>
+    public async Task ScanAsync(IProgress<double> progress, CancellationToken cancellationToken)
+    {
+        var configuration = Plugin.Instance?.Configuration ?? new PluginConfiguration();
         var phase = "preparing the collection scan";
         try
         {
@@ -59,8 +77,10 @@ public sealed class CollectionOverviewService
             var managed = configuration.PluginManagedCollectionIds.Concat(configuration.Rules.Where(rule => rule.CollectionId.HasValue).Select(rule => rule.CollectionId!.Value)).ToHashSet();
             var nextCollections = new List<CollectionOverviewCollectionSnapshot>();
 
-            foreach (var collection in allCollections)
+            for (var collectionIndex = 0; collectionIndex < allCollections.Length; collectionIndex++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                var collection = allCollections[collectionIndex];
                 BaseItem[] children;
                 try { children = collection.GetLinkedChildren().ToArray(); }
                 catch (Exception exception) { _logger.LogWarning(exception, "Skipping unreadable native collection {CollectionId} during collection overview scan.", collection.Id); continue; }
@@ -93,6 +113,16 @@ public sealed class CollectionOverviewService
                         NewlyRemoved = true,
                     })).ToList(),
                 });
+                progress.Report(allCollections.Length == 0 ? 100 : (collectionIndex + 1) * 100d / allCollections.Length);
+                if (collectionIndex % 10 == 0)
+                {
+                    lock (_sync)
+                    {
+                        _status = new CollectionOverviewScanStatus(true, collectionIndex + 1, allCollections.Length, _status.LastCompletedUtc, "Scanning collections…");
+                    }
+
+                    await Task.Yield();
+                }
             }
 
             foreach (var removed in priorCollections.Values.Where(old => !nextCollections.Any(current => current.CollectionId == old.CollectionId)))
@@ -108,8 +138,17 @@ public sealed class CollectionOverviewService
             {
                 _snapshot = snapshot;
                 _status = new CollectionOverviewScanStatus(false, count, count, snapshot.CompletedUtc, $"Collection scan complete. Found {count} collection(s).");
-                return _status;
             }
+            progress.Report(100);
+        }
+        catch (OperationCanceledException)
+        {
+            lock (_sync)
+            {
+                _status = new CollectionOverviewScanStatus(false, 0, 0, _snapshot?.CompletedUtc, "Collection scan stopped. The last completed overview is still available.");
+            }
+
+            throw;
         }
         catch (Exception exception)
         {
@@ -117,7 +156,6 @@ public sealed class CollectionOverviewService
             lock (_sync)
             {
                 _status = new CollectionOverviewScanStatus(false, 0, 0, _snapshot?.CompletedUtc, $"Collection scan could not be completed while {phase} ({exception.GetType().Name}).");
-                return _status;
             }
         }
     }

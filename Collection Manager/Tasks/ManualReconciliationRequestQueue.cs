@@ -20,6 +20,17 @@ public sealed class ManualReconciliationRequestQueue
     /// <summary>Requests reconciliation of a single rule.</summary>
     public void EnqueueRule(Guid ruleId) => _ruleIds.Enqueue(ruleId);
 
+    /// <summary>Returns whether a dashboard or saved-recipe request is waiting.</summary>
+    public bool HasExplicitRequests => Volatile.Read(ref _allRulesRequested) == 1
+        || !_ruleIds.IsEmpty
+        || !_savedRecipeRecreationIds.IsEmpty;
+
+    /// <summary>Returns whether changed media still awaits targeted reconciliation.</summary>
+    public bool HasChangedItems => !_changedItemIds.IsEmpty;
+
+    /// <summary>Returns whether any kind of reconciliation work remains queued.</summary>
+    public bool HasPendingRequests => HasExplicitRequests || HasChangedItems;
+
     /// <summary>Returns whether an all-enabled-rules request is waiting.</summary>
     public bool TryTakeAllEnabledRulesRequest() => Interlocked.Exchange(ref _allRulesRequested, 0) == 1;
 
@@ -70,6 +81,19 @@ public sealed class ManualReconciliationRequestQueue
 
         collectionId = Guid.Empty;
         return false;
+    }
+
+    /// <summary>Returns an interrupted recreation to the queue without reporting a failure.</summary>
+    public void DeferSavedRecipeRecreation(Guid collectionId)
+    {
+        var previous = GetSavedRecipeRecreationStatus(collectionId);
+        _savedRecipeRecreationStatuses[collectionId] = previous with
+        {
+            State = "Queued",
+            Message = "Waiting for Media Tagging Manager or another library scan to finish, then for metadata changes to remain quiet for three minutes.",
+            UpdatedUtc = DateTime.UtcNow,
+        };
+        _savedRecipeRecreationIds.Enqueue(collectionId);
     }
 
     /// <summary>Records a completed saved-recipe recreation.</summary>
@@ -127,6 +151,24 @@ public sealed class ManualReconciliationRequestQueue
         }
 
         return ids;
+    }
+
+    /// <summary>Returns interrupted changed items to the next targeted batch.</summary>
+    public void RequeueChangedItems(IEnumerable<Guid> itemIds)
+    {
+        foreach (var itemId in itemIds)
+        {
+            EnqueueChangedItem(itemId);
+        }
+    }
+
+    /// <summary>Returns interrupted rule requests to the queue.</summary>
+    public void RequeueRuleIds(IEnumerable<Guid> ruleIds)
+    {
+        foreach (var ruleId in ruleIds)
+        {
+            EnqueueRule(ruleId);
+        }
     }
 
     /// <summary>Marks the active targeted metadata task complete.</summary>

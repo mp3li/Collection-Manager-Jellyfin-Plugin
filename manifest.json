@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.80",
-        "changelog": "Stops repeated matching-media previews during recreation and repeated collection-link resolution during targeted reconciliation.",
+        "version": "0.1.0.81",
+        "changelog": "Defers reconciliation until Media Tagging Manager and library scans finish, waits for three quiet minutes, and reduces scan, dashboard, metadata, and collection request load.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Releases/0.1.0.80/CollectionManager_0.1.0.80.zip",
-        "checksum": "d1daaaa880d5394b548aa15e521d3cb3",
-        "timestamp": "2026-08-17T23:41:04Z"
+        "sourceUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Releases/0.1.0.81/CollectionManager_0.1.0.81.zip",
+        "checksum": "998a782d9b0ecdae5ef58f354ff36ddd",
+        "timestamp": "2026-08-21T05:17:39Z"
       }
     ]
   }

@@ -26,6 +26,7 @@ public sealed class CollectionReconciler
     private readonly ICollectionManager _collectionManager;
     private readonly ILibraryManager _libraryManager;
     private readonly MetadataCatalogService _metadataCatalog;
+    private readonly MediaTaggingManagerActivityGate _mediaTaggingManager;
     private readonly ILogger<CollectionReconciler> _logger;
 
     /// <summary>Initializes a new instance of the <see cref="CollectionReconciler"/> class.</summary>
@@ -33,11 +34,13 @@ public sealed class CollectionReconciler
         ICollectionManager collectionManager,
         ILibraryManager libraryManager,
         MetadataCatalogService metadataCatalog,
+        MediaTaggingManagerActivityGate mediaTaggingManager,
         ILogger<CollectionReconciler> logger)
     {
         _collectionManager = collectionManager;
         _libraryManager = libraryManager;
         _metadataCatalog = metadataCatalog;
+        _mediaTaggingManager = mediaTaggingManager;
         _logger = logger;
     }
 
@@ -75,26 +78,51 @@ public sealed class CollectionReconciler
     public async Task<IReadOnlyList<ReconciliationResult>> ReconcileEnabledRulesAsync(CancellationToken cancellationToken)
     {
         var rules = Plugin.Instance?.GetRulesSnapshot().Where(rule => rule.Enabled).ToArray() ?? [];
-        var results = new List<ReconciliationResult>(rules.Length);
-        foreach (var rule in rules)
+        await ReconciliationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            results.Add(await ReconcileRuleAsync(rule.Id, cancellationToken).ConfigureAwait(false));
-        }
+            var items = GetMediaItems().ToArray();
+            var cache = new MetadataEvaluationCache(this);
+            var results = new List<ReconciliationResult>(rules.Length);
+            foreach (var rule in rules)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                _mediaTaggingManager.ThrowIfBusy();
+                results.Add(await ReconcileRuleCoreAsync(rule, items, cache, cancellationToken, updateRunState: false).ConfigureAwait(false));
+            }
 
-        return results;
+            UpdateRuleRunStates(RequirePlugin(), results);
+            return results;
+        }
+        finally
+        {
+            ReconciliationLock.Release();
+        }
     }
 
     /// <summary>Reconciles every collection with a saved creation-tab recipe against current metadata.</summary>
     public async Task ReconcileSavedCreationRecipesAsync(CancellationToken cancellationToken)
     {
-        var recipes = Plugin.Instance?.Configuration.CollectionCreationRecipes
-            .Select(recipe => new { recipe.CollectionId, recipe.CollectionTitle })
-            .ToArray() ?? [];
-        foreach (var recipe in recipes)
+        var recipes = Plugin.Instance?.Configuration.CollectionCreationRecipes.ToArray() ?? [];
+        await ReconciliationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            await ReconcileSavedCreationRecipeAsync(recipe.CollectionId, cancellationToken).ConfigureAwait(false);
+            var plugin = RequirePlugin();
+            var desiredByCollection = _metadataCatalog.GetLiveMatchingItemIds(recipes, cancellationToken);
+            foreach (var recipe in recipes)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                _mediaTaggingManager.ThrowIfBusy();
+                await ApplySavedCreationRecipeAsync(
+                    plugin,
+                    recipe,
+                    desiredByCollection.GetValueOrDefault(recipe.CollectionId) ?? [],
+                    cancellationToken).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            ReconciliationLock.Release();
         }
     }
 
@@ -111,46 +139,61 @@ public sealed class CollectionReconciler
                 throw new KeyNotFoundException("The saved collection creation recipe no longer exists.");
             }
 
-            var collection = _libraryManager.GetItemById<BoxSet>(collectionId);
-            if (collection is null)
-            {
-                plugin.ForgetManagedCollection(collectionId);
-                return new SavedRecipeReconciliationResult(collectionId, recipe.CollectionTitle, 0, 0, 0, 0);
-            }
-
-            var desiredIds = _metadataCatalog.GetLiveMatchingItemIds(recipe).ToHashSet();
-            var currentIds = collection.GetLinkedChildren().Select(item => item.Id).ToHashSet();
-            var additions = desiredIds.Except(currentIds).ToArray();
-            var removals = currentIds.Except(desiredIds).ToArray();
-
-            if (additions.Length > 0)
-            {
-                await _collectionManager.AddToCollectionAsync(collection.Id, additions).ConfigureAwait(false);
-            }
-
-            if (removals.Length > 0)
-            {
-                await _collectionManager.RemoveFromCollectionAsync(collection.Id, removals).ConfigureAwait(false);
-            }
-
-            _logger.LogInformation(
-                "Reconciled saved creation recipe for {CollectionName}: {Matching} matching, {Added} added, {Removed} removed.",
-                collection.Name,
-                desiredIds.Count,
-                additions.Length,
-                removals.Length);
-            return new SavedRecipeReconciliationResult(
-                collection.Id,
-                collection.Name,
-                desiredIds.Count,
-                additions.Length,
-                removals.Length,
-                collection.GetLinkedChildren().Count());
+            var desiredIds = _metadataCatalog.GetLiveMatchingItemIds([recipe], cancellationToken)
+                .GetValueOrDefault(recipe.CollectionId) ?? [];
+            return await ApplySavedCreationRecipeAsync(plugin, recipe, desiredIds, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
             ReconciliationLock.Release();
         }
+    }
+
+    private async Task<SavedRecipeReconciliationResult> ApplySavedCreationRecipeAsync(
+        Plugin plugin,
+        CollectionCreationRecipe recipe,
+        IReadOnlyCollection<Guid> desiredItemIds,
+        CancellationToken cancellationToken)
+    {
+        var collection = _libraryManager.GetItemById<BoxSet>(recipe.CollectionId);
+        if (collection is null)
+        {
+            plugin.ForgetManagedCollection(recipe.CollectionId);
+            return new SavedRecipeReconciliationResult(recipe.CollectionId, recipe.CollectionTitle, 0, 0, 0, 0);
+        }
+
+        var desiredIds = desiredItemIds.ToHashSet();
+        var currentIds = collection.GetLinkedChildren().Select(item => item.Id).ToHashSet();
+        var additions = desiredIds.Except(currentIds).ToArray();
+        var removals = currentIds.Except(desiredIds).ToArray();
+
+        if (additions.Length > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _mediaTaggingManager.ThrowIfBusy();
+            await _collectionManager.AddToCollectionAsync(collection.Id, additions).ConfigureAwait(false);
+        }
+
+        if (removals.Length > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _mediaTaggingManager.ThrowIfBusy();
+            await _collectionManager.RemoveFromCollectionAsync(collection.Id, removals).ConfigureAwait(false);
+        }
+
+        _logger.LogInformation(
+            "Reconciled saved creation recipe for {CollectionName}: {Matching} matching, {Added} added, {Removed} removed.",
+            collection.Name,
+            desiredIds.Count,
+            additions.Length,
+            removals.Length);
+        return new SavedRecipeReconciliationResult(
+            collection.Id,
+            collection.Name,
+            desiredIds.Count,
+            additions.Length,
+            removals.Length,
+            currentIds.Count + additions.Length - removals.Length);
     }
 
     /// <summary>Reconciles only changed items against automatic collections without rescanning any library.</summary>
@@ -162,18 +205,25 @@ public sealed class CollectionReconciler
             var plugin = RequirePlugin();
             var rules = plugin.GetRulesSnapshot().Where(rule => rule.Enabled).ToArray();
             var recipes = plugin.Configuration.CollectionCreationRecipes.ToArray();
+            var liveRecipes = recipes.Where(recipe => recipe.Kind != CollectionCreationRecipeKind.Manual).ToArray();
             var memberships = LoadAutomaticCollectionMemberships(rules, recipes);
+            var metadataCache = new MetadataEvaluationCache(this);
+            var desiredStates = new Dictionary<(Guid CollectionId, Guid ItemId), bool>();
             var changedCount = 0;
-            var collectionChanges = 0;
 
             foreach (var itemId in changedItemIds.Distinct())
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                _mediaTaggingManager.ThrowIfBusy();
                 var item = _libraryManager.GetItemById<BaseItem>(itemId);
                 changedCount++;
                 if (item is null)
                 {
-                    collectionChanges += await RemoveDeletedItemFromAutomaticCollectionsAsync(itemId, memberships, cancellationToken).ConfigureAwait(false);
+                    foreach (var membership in memberships.Values.Where(membership => membership.ItemIds.Contains(itemId)))
+                    {
+                        desiredStates[(membership.Collection.Id, itemId)] = false;
+                    }
+
                     continue;
                 }
 
@@ -184,24 +234,89 @@ public sealed class CollectionReconciler
 
                 foreach (var rule in rules)
                 {
-                    collectionChanges += await ReconcileChangedItemForRuleAsync(rule, item, memberships, cancellationToken).ConfigureAwait(false);
-                }
-
-                foreach (var recipe in recipes)
-                {
-                    if (recipe.Kind == CollectionCreationRecipeKind.Manual)
+                    if (!rule.CollectionId.HasValue || !memberships.TryGetValue(rule.CollectionId.Value, out var membership))
                     {
                         continue;
                     }
 
-                    collectionChanges += await ReconcileChangedItemForRecipeAsync(recipe, item, memberships, cancellationToken).ConfigureAwait(false);
+                    var key = (membership.Collection.Id, item.Id);
+                    var shouldBeMember = IsInSelectedLibraryScope(item) && Matches(rule, item, metadataCache);
+                    if (shouldBeMember)
+                    {
+                        desiredStates[key] = true;
+                    }
+                    else if (rule.RemoveItemsNoLongerMatching)
+                    {
+                        desiredStates[key] = false;
+                    }
+                }
+
+                if (liveRecipes.Length == 0)
+                {
+                    continue;
+                }
+
+                var recipeContext = _metadataCatalog.CreateLiveRecipeItemContext(item);
+                foreach (var recipe in liveRecipes)
+                {
+                    if (!memberships.TryGetValue(recipe.CollectionId, out var membership))
+                    {
+                        continue;
+                    }
+
+                    var collectionItemId = ResolveRecipeCollectionItemId(item);
+                    desiredStates[(membership.Collection.Id, collectionItemId)] = _metadataCatalog.MatchesLiveRecipeItem(recipe, recipeContext);
                 }
             }
 
+            var additionsByCollection = new Dictionary<Guid, List<Guid>>();
+            var removalsByCollection = new Dictionary<Guid, List<Guid>>();
+            foreach (var desired in desiredStates)
+            {
+                var membership = memberships[desired.Key.CollectionId];
+                var isCurrentMember = membership.ItemIds.Contains(desired.Key.ItemId);
+                if (desired.Value && !isCurrentMember)
+                {
+                    AddMutation(additionsByCollection, desired.Key.CollectionId, desired.Key.ItemId);
+                }
+                else if (!desired.Value && isCurrentMember)
+                {
+                    AddMutation(removalsByCollection, desired.Key.CollectionId, desired.Key.ItemId);
+                }
+            }
+
+            _mediaTaggingManager.ThrowIfBusy();
+            foreach (var additions in additionsByCollection)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                _mediaTaggingManager.ThrowIfBusy();
+                await _collectionManager.AddToCollectionAsync(additions.Key, additions.Value).ConfigureAwait(false);
+                var membership = memberships[additions.Key];
+                foreach (var itemId in additions.Value)
+                {
+                    membership.ItemIds.Add(itemId);
+                }
+            }
+
+            foreach (var removals in removalsByCollection)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                _mediaTaggingManager.ThrowIfBusy();
+                await _collectionManager.RemoveFromCollectionAsync(removals.Key, removals.Value).ConfigureAwait(false);
+                var membership = memberships[removals.Key];
+                foreach (var itemId in removals.Value)
+                {
+                    membership.ItemIds.Remove(itemId);
+                }
+            }
+
+            var collectionChanges = additionsByCollection.Values.Sum(ids => ids.Count) + removalsByCollection.Values.Sum(ids => ids.Count);
+
             _logger.LogInformation(
-                "Targeted metadata reconciliation processed {ChangedItemCount} changed item(s) and changed {CollectionChangeCount} collection membership(s).",
+                "Targeted metadata reconciliation processed {ChangedItemCount} changed item(s), changed {CollectionChangeCount} membership(s), and used {CollectionWriteCount} batched collection write(s).",
                 changedCount,
-                collectionChanges);
+                collectionChanges,
+                additionsByCollection.Count + removalsByCollection.Count);
         }
         finally
         {
@@ -209,96 +324,18 @@ public sealed class CollectionReconciler
         }
     }
 
-    private async Task<int> ReconcileChangedItemForRuleAsync(
-        CollectionRule rule,
-        BaseItem item,
-        IReadOnlyDictionary<Guid, AutomaticCollectionMembership> memberships,
-        CancellationToken cancellationToken)
+    private static void AddMutation(Dictionary<Guid, List<Guid>> mutations, Guid collectionId, Guid itemId)
     {
-        if (!rule.CollectionId.HasValue || !memberships.TryGetValue(rule.CollectionId.Value, out var membership))
+        if (!mutations.TryGetValue(collectionId, out var ids))
         {
-            return 0;
+            ids = [];
+            mutations[collectionId] = ids;
         }
 
-        var isCurrentMember = membership.ItemIds.Contains(item.Id);
-        var shouldBeMember = IsInSelectedLibraryScope(item) && Matches(rule, item);
-        if (shouldBeMember && !isCurrentMember)
+        if (!ids.Contains(itemId))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            await _collectionManager.AddToCollectionAsync(membership.Collection.Id, [item.Id]).ConfigureAwait(false);
-            membership.ItemIds.Add(item.Id);
-            _logger.LogInformation("Targeted metadata reconciliation added {ItemName} to {CollectionName}.", item.Name, membership.Collection.Name);
-            return 1;
+            ids.Add(itemId);
         }
-
-        if (!shouldBeMember && isCurrentMember && rule.RemoveItemsNoLongerMatching)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            await _collectionManager.RemoveFromCollectionAsync(membership.Collection.Id, [item.Id]).ConfigureAwait(false);
-            membership.ItemIds.Remove(item.Id);
-            _logger.LogInformation("Targeted metadata reconciliation removed {ItemName} from {CollectionName}.", item.Name, membership.Collection.Name);
-            return 1;
-        }
-
-        return 0;
-    }
-
-    private async Task<int> ReconcileChangedItemForRecipeAsync(
-        CollectionCreationRecipe recipe,
-        BaseItem item,
-        IReadOnlyDictionary<Guid, AutomaticCollectionMembership> memberships,
-        CancellationToken cancellationToken)
-    {
-        if (!memberships.TryGetValue(recipe.CollectionId, out var membership))
-        {
-            return 0;
-        }
-
-        var collectionItemId = ResolveRecipeCollectionItemId(item);
-        var isCurrentMember = membership.ItemIds.Contains(collectionItemId);
-        var shouldBeMember = _metadataCatalog.MatchesLiveRecipeItem(recipe, item);
-        if (shouldBeMember && !isCurrentMember)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            await _collectionManager.AddToCollectionAsync(membership.Collection.Id, [collectionItemId]).ConfigureAwait(false);
-            membership.ItemIds.Add(collectionItemId);
-            _logger.LogInformation("Targeted metadata reconciliation added {ItemName} to {CollectionName}.", item.Name, membership.Collection.Name);
-            return 1;
-        }
-
-        if (!shouldBeMember && isCurrentMember)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            await _collectionManager.RemoveFromCollectionAsync(membership.Collection.Id, [collectionItemId]).ConfigureAwait(false);
-            membership.ItemIds.Remove(collectionItemId);
-            _logger.LogInformation("Targeted metadata reconciliation removed {ItemName} from {CollectionName}.", item.Name, membership.Collection.Name);
-            return 1;
-        }
-
-        return 0;
-    }
-
-    private async Task<int> RemoveDeletedItemFromAutomaticCollectionsAsync(
-        Guid itemId,
-        IReadOnlyDictionary<Guid, AutomaticCollectionMembership> memberships,
-        CancellationToken cancellationToken)
-    {
-        var changes = 0;
-        foreach (var membership in memberships.Values)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!membership.ItemIds.Contains(itemId))
-            {
-                continue;
-            }
-
-            await _collectionManager.RemoveFromCollectionAsync(membership.Collection.Id, [itemId]).ConfigureAwait(false);
-            membership.ItemIds.Remove(itemId);
-            changes++;
-            _logger.LogInformation("Targeted metadata reconciliation removed deleted item {ItemId} from {CollectionName}.", itemId, membership.Collection.Name);
-        }
-
-        return changes;
     }
 
     private Dictionary<Guid, AutomaticCollectionMembership> LoadAutomaticCollectionMemberships(
@@ -343,56 +380,79 @@ public sealed class CollectionReconciler
             var plugin = RequirePlugin();
             var rule = plugin.GetRuleSnapshot(ruleId)
                 ?? throw new KeyNotFoundException("The requested collection rule no longer exists.");
-            var matchingItems = GetMediaItems()
-                .Where(item => Matches(rule, item))
-                .Select(item => item.Id)
-                .Distinct()
-                .ToArray();
-
-            var collection = rule.CollectionId.HasValue
-                ? _libraryManager.GetItemById<BoxSet>(rule.CollectionId.Value)
-                : null;
-            if (collection is null)
-            {
-                collection = await _collectionManager.CreateCollectionAsync(new CollectionCreationOptions
-                {
-                    Name = rule.Name,
-                    ItemIdList = matchingItems.Select(itemId => itemId.ToString("N", System.Globalization.CultureInfo.InvariantCulture)).ToArray(),
-                }).ConfigureAwait(false);
-                UpdateRuleRunState(plugin, rule.Id, collection.Id);
-                return new ReconciliationResult(rule.Id, collection.Id, matchingItems.Length, matchingItems.Length, 0, rule.Name);
-            }
-
-            var currentIds = collection.GetLinkedChildren().Select(item => item.Id).ToHashSet();
-            var desiredIds = matchingItems.ToHashSet();
-            var additions = desiredIds.Except(currentIds).ToArray();
-            var removals = rule.RemoveItemsNoLongerMatching
-                ? currentIds.Except(desiredIds).ToArray()
-                : [];
-
-            if (additions.Length > 0)
-            {
-                await _collectionManager.AddToCollectionAsync(collection.Id, additions).ConfigureAwait(false);
-            }
-
-            if (removals.Length > 0)
-            {
-                await _collectionManager.RemoveFromCollectionAsync(collection.Id, removals).ConfigureAwait(false);
-            }
-
-            UpdateRuleRunState(plugin, rule.Id, collection.Id);
-            _logger.LogInformation(
-                "Reconciled collection {CollectionName}: {Matching} matching, {Added} added, {Removed} removed.",
-                rule.Name,
-                matchingItems.Length,
-                additions.Length,
-                removals.Length);
-            return new ReconciliationResult(rule.Id, collection.Id, matchingItems.Length, additions.Length, removals.Length, rule.Name);
+            return await ReconcileRuleCoreAsync(rule, GetMediaItems().ToArray(), new MetadataEvaluationCache(this), cancellationToken).ConfigureAwait(false);
         }
         finally
         {
             ReconciliationLock.Release();
         }
+    }
+
+    private async Task<ReconciliationResult> ReconcileRuleCoreAsync(
+        CollectionRule rule,
+        IReadOnlyCollection<BaseItem> mediaItems,
+        MetadataEvaluationCache metadataCache,
+        CancellationToken cancellationToken,
+        bool updateRunState = true)
+    {
+        var plugin = RequirePlugin();
+        var matchingItems = new HashSet<Guid>();
+        foreach (var item in mediaItems)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _mediaTaggingManager.ThrowIfBusy();
+            if (Matches(rule, item, metadataCache))
+            {
+                matchingItems.Add(item.Id);
+            }
+        }
+
+        var collection = rule.CollectionId.HasValue
+            ? _libraryManager.GetItemById<BoxSet>(rule.CollectionId.Value)
+            : null;
+        if (collection is null)
+        {
+            _mediaTaggingManager.ThrowIfBusy();
+            collection = await _collectionManager.CreateCollectionAsync(new CollectionCreationOptions
+            {
+                Name = rule.Name,
+                ItemIdList = matchingItems.Select(itemId => itemId.ToString("N", System.Globalization.CultureInfo.InvariantCulture)).ToArray(),
+            }).ConfigureAwait(false);
+            // Persist a newly-created collection id immediately. If companion metadata work
+            // starts before the full batch finishes, the retry must reuse this collection.
+            UpdateRuleRunState(plugin, rule.Id, collection.Id);
+            return new ReconciliationResult(rule.Id, collection.Id, matchingItems.Count, matchingItems.Count, 0, rule.Name);
+        }
+
+        var currentIds = collection.GetLinkedChildren().Select(item => item.Id).ToHashSet();
+        var additions = matchingItems.Except(currentIds).ToArray();
+        var removals = rule.RemoveItemsNoLongerMatching
+            ? currentIds.Except(matchingItems).ToArray()
+            : [];
+
+        _mediaTaggingManager.ThrowIfBusy();
+        if (additions.Length > 0)
+        {
+            await _collectionManager.AddToCollectionAsync(collection.Id, additions).ConfigureAwait(false);
+        }
+
+        if (removals.Length > 0)
+        {
+            _mediaTaggingManager.ThrowIfBusy();
+            await _collectionManager.RemoveFromCollectionAsync(collection.Id, removals).ConfigureAwait(false);
+        }
+
+        if (updateRunState)
+        {
+            UpdateRuleRunState(plugin, rule.Id, collection.Id);
+        }
+        _logger.LogInformation(
+            "Reconciled collection {CollectionName}: {Matching} matching, {Added} added, {Removed} removed.",
+            rule.Name,
+            matchingItems.Count,
+            additions.Length,
+            removals.Length);
+        return new ReconciliationResult(rule.Id, collection.Id, matchingItems.Count, additions.Length, removals.Length, rule.Name);
     }
 
     /// <summary>Creates an ordinary Jellyfin collection with a bulk initial item set.</summary>
@@ -512,6 +572,20 @@ public sealed class CollectionReconciler
             return 0;
         });
 
+    private static void UpdateRuleRunStates(Plugin plugin, IReadOnlyCollection<ReconciliationResult> results) =>
+        plugin.UpdateConfigurationSafely(configuration =>
+        {
+            var completedAt = DateTime.UtcNow;
+            var collectionIds = results.ToDictionary(result => result.RuleId, result => result.CollectionId);
+            foreach (var rule in configuration.Rules.Where(rule => collectionIds.ContainsKey(rule.Id)))
+            {
+                rule.CollectionId = collectionIds[rule.Id];
+                rule.LastRunUtc = completedAt;
+            }
+
+            return 0;
+        });
+
     private static IReadOnlyList<string> Values(IEnumerable<string?> values) =>
         values.Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value!.Trim())
@@ -568,7 +642,7 @@ public sealed class CollectionReconciler
         _ => item.Id,
     };
 
-    private bool Matches(CollectionRule rule, BaseItem item)
+    private bool Matches(CollectionRule rule, BaseItem item, MetadataEvaluationCache? cache = null)
     {
         var desired = rule.Values.Where(value => !string.IsNullOrWhiteSpace(value)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (desired.Count == 0)
@@ -576,29 +650,29 @@ public sealed class CollectionReconciler
             return false;
         }
 
-        return GetValues(rule, item).Any(desired.Contains);
+        return (cache?.GetValues(rule, item) ?? GetValues(rule, item, NfoMetadataReader.Read(item))).Any(desired.Contains);
     }
 
-    private IEnumerable<string> GetValues(CollectionRule rule, BaseItem item) => rule.Field switch
+    private IEnumerable<string> GetValues(CollectionRule rule, BaseItem item, NfoMetadata nfo) => rule.Field switch
     {
-        CollectionRuleField.Provider => SourceValues(TaggedValues(item.Tags, ProviderTagPrefix), NfoMetadataReader.Read(item).Providers),
-        CollectionRuleField.Network => SourceValues(TaggedValues(item.Tags, NetworkTagPrefix), NfoMetadataReader.Read(item).Networks),
-        CollectionRuleField.Tag => SourceValues(item.Tags, NfoMetadataReader.Read(item).Tags),
-        CollectionRuleField.Genre => SourceValues(item.Genres, NfoMetadataReader.Read(item).Genres),
-        CollectionRuleField.Studio => SourceValues(item.Studios, NfoMetadataReader.Read(item).Studios),
-        CollectionRuleField.Actor => SourceValues(PersonValues([item], "Actor"), NfoMetadataReader.Read(item).Actors),
-        CollectionRuleField.Director => SourceValues(PersonValues([item], "Director"), NfoMetadataReader.Read(item).Directors),
-        CollectionRuleField.Composer => SourceValues([], NfoMetadataReader.Read(item).Composers),
-        CollectionRuleField.Writer => SourceValues(PersonValues([item], "Writer"), NfoMetadataReader.Read(item).Writers),
-        CollectionRuleField.Producer => SourceValues([], NfoMetadataReader.Read(item).Producers),
-        CollectionRuleField.Country => SourceValues(item.ProductionLocations, NfoMetadataReader.Read(item).Countries),
-        CollectionRuleField.Language => SourceValues([item.PreferredMetadataLanguage], NfoMetadataReader.Read(item).Languages),
-        CollectionRuleField.ContentRating => SourceValues([item.OfficialRating], NfoMetadataReader.Read(item).ContentRatings),
+        CollectionRuleField.Provider => SourceValues(TaggedValues(item.Tags, ProviderTagPrefix), nfo.Providers),
+        CollectionRuleField.Network => SourceValues(TaggedValues(item.Tags, NetworkTagPrefix), nfo.Networks),
+        CollectionRuleField.Tag => SourceValues(item.Tags, nfo.Tags),
+        CollectionRuleField.Genre => SourceValues(item.Genres, nfo.Genres),
+        CollectionRuleField.Studio => SourceValues(item.Studios, nfo.Studios),
+        CollectionRuleField.Actor => SourceValues(PersonValues([item], "Actor"), nfo.Actors),
+        CollectionRuleField.Director => SourceValues(PersonValues([item], "Director"), nfo.Directors),
+        CollectionRuleField.Composer => SourceValues([], nfo.Composers),
+        CollectionRuleField.Writer => SourceValues(PersonValues([item], "Writer"), nfo.Writers),
+        CollectionRuleField.Producer => SourceValues([], nfo.Producers),
+        CollectionRuleField.Country => SourceValues(item.ProductionLocations, nfo.Countries),
+        CollectionRuleField.Language => SourceValues([item.PreferredMetadataLanguage], nfo.Languages),
+        CollectionRuleField.ContentRating => SourceValues([item.OfficialRating], nfo.ContentRatings),
         CollectionRuleField.ProductionYear => SourceValues(
             item.ProductionYear.HasValue ? [item.ProductionYear.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)] : [],
-            NfoMetadataReader.Read(item).ProductionYears),
+            nfo.ProductionYears),
         CollectionRuleField.JellyfinField => SourceValues(JellyfinFieldValues(item, rule.MetadataFieldName).Select(value => value.Value), []),
-        CollectionRuleField.NfoField => NfoFieldValues(item, rule.MetadataFieldName),
+        CollectionRuleField.NfoField => NfoFieldValues(nfo, rule.MetadataFieldName),
         _ => [],
     };
 
@@ -617,14 +691,13 @@ public sealed class CollectionReconciler
             .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
     }
 
-    private static IEnumerable<string> NfoFieldValues(BaseItem item, string? fieldName)
+    private static IEnumerable<string> NfoFieldValues(NfoMetadata nfo, string? fieldName)
     {
         if (string.IsNullOrWhiteSpace(fieldName))
         {
             return [];
         }
 
-        var nfo = NfoMetadataReader.Read(item);
         return nfo.Fields.TryGetValue(fieldName.Trim(), out var values)
             ? SourceValues([], values)
             : [];
@@ -695,4 +768,29 @@ public sealed class CollectionReconciler
     }
 
     private sealed record AutomaticCollectionMembership(BoxSet Collection, HashSet<Guid> ItemIds);
+
+    private sealed class MetadataEvaluationCache(CollectionReconciler owner)
+    {
+        private readonly Dictionary<Guid, NfoMetadata> _nfo = [];
+        private readonly Dictionary<(Guid ItemId, CollectionRuleField Field, string FieldName), IReadOnlyList<string>> _values = [];
+
+        public IReadOnlyList<string> GetValues(CollectionRule rule, BaseItem item)
+        {
+            var key = (item.Id, rule.Field, rule.MetadataFieldName?.Trim() ?? string.Empty);
+            if (_values.TryGetValue(key, out var values))
+            {
+                return values;
+            }
+
+            if (!_nfo.TryGetValue(item.Id, out var nfo))
+            {
+                nfo = NfoMetadataReader.Read(item);
+                _nfo[item.Id] = nfo;
+            }
+
+            values = owner.GetValues(rule, item, nfo).ToArray();
+            _values[key] = values;
+            return values;
+        }
+    }
 }
