@@ -9,13 +9,13 @@
     "imageUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Assets/Branding/collection-manager-plugin-photo.png",
     "versions": [
       {
-        "version": "0.1.0.81",
-        "changelog": "Defers reconciliation until Media Tagging Manager and library scans finish, waits for three quiet minutes, and reduces scan, dashboard, metadata, and collection request load.",
+        "version": "0.1.0.82",
+        "changelog": "Adds adjustable, saved text line spacing to Text Focused Collection Art, with immediate preview updates and matching spacing in applied collection and library artwork.",
         "targetAbi": "10.11.11.0",
         "framework": "net9.0",
-        "sourceUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Releases/0.1.0.81/CollectionManager_0.1.0.81.zip",
-        "checksum": "998a782d9b0ecdae5ef58f354ff36ddd",
-        "timestamp": "2026-08-21T05:17:39Z"
+        "sourceUrl": "https://raw.githubusercontent.com/mp3li/Collection-Manager-Jellyfin-Plugin/main/Releases/0.1.0.82/CollectionManager_0.1.0.82.zip",
+        "checksum": "17bdca2a5c458fafa5f5af0020570793",
+        "timestamp": "2026-10-11T22:34:32Z"
       }
     ]
   }

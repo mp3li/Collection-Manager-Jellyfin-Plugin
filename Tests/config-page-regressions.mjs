@@ -38,6 +38,32 @@ const normalizedValidationError = await helpers.normalizeApiError(new Response(
 )).catch(error => error);
 assert.equal(helpers.err(normalizedValidationError), 'HTTP 400: Select one or more media items.');
 
+const textSizeControlStart = scriptMatch[1].indexOf('function addTextSizeControl');
+const textSizeControlEnd = scriptMatch[1].indexOf('function removeImageBackgroundChoice', textSizeControlStart);
+assert.ok(textSizeControlStart > 0 && textSizeControlEnd > textSizeControlStart, 'The text-size controls were not found.');
+const textSizeControls = scriptMatch[1].slice(textSizeControlStart, textSizeControlEnd);
+assert.match(
+    textSizeControls,
+    /\$\('#textArtTextSize'\)\.closest\('\.inputContainer'\)\.parentNode\.insertAdjacentHTML\('afterend', '[^']*Text line spacing/,
+    'Text line spacing should be inserted directly below text size.',
+);
+
+const drawCanvasTextMatch = scriptMatch[1].match(/function drawCanvasText\([^\n]+/);
+assert.ok(drawCanvasTextMatch, 'The collection-art text renderer was not found.');
+const drawContext = {};
+vm.createContext(drawContext);
+vm.runInContext(`${drawCanvasTextMatch[0]}; globalThis.__drawCanvasText = drawCanvasText;`, drawContext);
+const drawnLines = [];
+const canvasContext = {
+    measureText: value => ({ width: value.length * 100 }),
+    fillText: (value, x, y) => drawnLines.push({ value, x, y }),
+};
+drawContext.__drawCanvasText(canvasContext, 'One Two Three', 1000, 1500, '#ffffff', '#000000', 100, 150);
+assert.equal(drawnLines.length, 2);
+assert.equal(drawnLines[1].y - drawnLines[0].y, 157.5, 'Text line spacing should change the distance between wrapped lines.');
+assert.match(scriptMatch[1], /TextLineSpacing:Number\(\$\('#textArtTextLineSpacing'\)\.value \|\| 112\)/);
+assert.match(scriptMatch[1], /#textArtTextLineSpacing/);
+
 const catalogNameMatch = scriptMatch[1].match(/function catalogLibraryName\(id\) \{[^\n]+\}/);
 assert.ok(catalogNameMatch, 'The current-library name resolver was not found.');
 const nameContext = {

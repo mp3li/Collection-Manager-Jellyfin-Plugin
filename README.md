@@ -685,6 +685,8 @@ Collection Art**.
 - **Import Font** accepts a TTF or OTF file and stores it in Collection
   Manager's plugin-data folder.
 - **Text size** accepts a value from 10% through 250%.
+- **Text line spacing** accepts a value from 50% through 250% and adjusts the
+  vertical space between wrapped title lines.
 - **Select Text Color** and **Select Text Shadow Color** control the title.
 - **Select Art Background Style** offers Solid, Transparent, or Gradient.
 - Solid reveals one background-color picker.

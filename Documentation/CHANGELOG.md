@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0.82] - 2026-10-11
+
+### Added
+
+- Adds a saved **Text line spacing** percentage directly below **Text size** in
+  Text Focused Collection Art, with immediate preview updates and matching
+  spacing in applied collection and library artwork.
+
 ## [0.1.0.81] - 2026-08-20
 
 ### Changed
